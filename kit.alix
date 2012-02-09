@@ -1,0 +1,16 @@
+project_name = Kit
+source_dir = src
+depend = { project = Marlowe version = any }
+depend = { project = GCS version = any }
+depend = { project = WLib version = any }
+main_unit = kit-driver
+exec_name = kit
+config_dir = config
+path_unit = { unit = Kit.Paths path = src/kit-paths.ads }
+builder_option = "-g"
+builder_option = "-k"
+compiler_option = "-g"
+compiler_option = "-gnatwae"
+compiler_option = "-gnatyabcefhiklmnoprst"
+compiler_option = "-gnat2012"
+linker_option = "-g"
