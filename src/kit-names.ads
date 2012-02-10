@@ -10,6 +10,8 @@ package Kit.Names is
    procedure Create (Item : in out Root_Named_Object;
                      Name : String);
 
+   function Ada_Name (Raw_Name : String) return String;
+
 private
 
    type Root_Named_Object is abstract tagged

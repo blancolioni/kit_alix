@@ -13,6 +13,17 @@ package body Kit.Types is
    overriding
    function Return_Subtype (Item : Integer_Type) return String;
 
+   type Table_Reference_Type_Record is
+     new Kit_Type with
+      record
+         Table_Name : access String;
+      end record;
+
+   overriding
+   function Return_Subtype
+     (Item : Table_Reference_Type_Record)
+      return String;
+
    type String_Type is new Kit_Type with
       record
          Length : Positive;
@@ -123,6 +134,19 @@ package body Kit.Types is
       pragma Unreferenced (Item);
    begin
       return "String";
+   end Return_Subtype;
+
+   --------------------
+   -- Return_Subtype --
+   --------------------
+
+   overriding
+   function Return_Subtype
+     (Item : Table_Reference_Type_Record)
+      return String
+   is
+   begin
+      return Kit.Names.Ada_Name (Item.Table_Name.all) & "_Reference";
    end Return_Subtype;
 
    ------------------
@@ -259,6 +283,21 @@ package body Kit.Types is
          Result.Length := Length;
       end return;
    end Standard_String;
+
+   --------------------------
+   -- Table_Reference_Type --
+   --------------------------
+
+   function Table_Reference_Type
+     (Table_Name : String)
+      return Kit_Type'Class
+   is
+   begin
+      return Result : Table_Reference_Type_Record do
+         Result.Size := 8;
+         Result.Table_Name := new String'(Table_Name);
+      end return;
+   end Table_Reference_Type;
 
    ----------------------
    -- To_Storage_Array --

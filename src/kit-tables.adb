@@ -40,6 +40,10 @@ package body Kit.Tables is
          Table.Has_String_Type := True;
       end if;
 
+      if Item.Has_Key_Field then
+         Table.Has_Key_Field := True;
+      end if;
+
       Table.Bases.Append (new Table_Type'Class'(Item));
       if Recursively_Add_Bases then
          declare
@@ -73,6 +77,10 @@ package body Kit.Tables is
 
       if Item.Get_Field_Type.Is_String then
          Table.Has_String_Type := True;
+      end if;
+
+      if Is_Key then
+         Table.Has_Key_Field := True;
       end if;
 
       Table.Fields.Append (Field);
@@ -230,6 +238,11 @@ package body Kit.Tables is
    begin
       return Field_Vectors.Has_Element (Field_Vectors.Cursor (Position));
    end Has_Element;
+
+   function Has_Key_Field (Item : Table_Type) return Boolean is
+   begin
+      return Item.Has_Key_Field;
+   end Has_Key_Field;
 
    ---------------------
    -- Has_String_Type --
