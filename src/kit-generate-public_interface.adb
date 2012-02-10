@@ -48,6 +48,11 @@ package body Kit.Generate.Public_Interface is
       Key           : in     Kit.Tables.Key_Cursor;
       Key_Value     : in     Boolean);
 
+   procedure Fetch_From_Index
+     (Table       : Kit.Tables.Table_Type'Class;
+      Object_Name : String;
+      Target      : in out Aquarius.Drys.Statement_Sequencer'Class);
+
    -------------------------------
    -- Create_Control_Procedures --
    -------------------------------
@@ -270,8 +275,6 @@ package body Kit.Generate.Public_Interface is
 
       function Function_Name return String;
 
-      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class);
-
       procedure Set_Field
         (Seq        : in out Sequence_Of_Statements;
          Field_Name : String;
@@ -355,32 +358,6 @@ package body Kit.Generate.Public_Interface is
          end if;
       end Function_Name;
 
-      --------------
-      -- Get_Base --
-      --------------
-
-      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class) is
-         Base_Target    : constant String :=
-                            "Result.Local_Context."
-                              & Base.Ada_Name
-           & "_Data";
-         Cache_Package  : constant String :=
-                            Base.Ada_Name & "_Cache";
-         Index_Variable : constant String :=
-                            (if Base.Ada_Name = Table.Ada_Name
-                             then "Index"
-                             else "Result.Local_Context." & Table.Ada_Name
-                             & "_Data.Db." & Base.Ada_Name & "_Index");
-      begin
-         Lock_Sequence.Append
-           (New_Assignment_Statement
-              (Base_Target,
-               New_Function_Call_Expression
-                 (Cache_Package & ".Get",
-                  "Marlowe_Keys.Handle",
-                  Index_Variable)));
-      end Get_Base;
-
       ---------------
       -- Set_Field --
       ---------------
@@ -406,20 +383,21 @@ package body Kit.Generate.Public_Interface is
         (New_Procedure_Call_Statement
            (Table.Ada_Name & "_Impl.File_Mutex.Lock"));
 
-      Table.Iterate (Get_Base'Access,
-                     Inclusive   => True,
-                     Table_First => True);
+      Lock_Sequence.Append ("Result.Index := Index");
+
+      Fetch_From_Index (Table       => Table,
+                        Object_Name => "Result",
+                        Target      => Lock_Sequence);
 
       Set_Field (Lock_Sequence, "Finished", not Scan);
       Set_Field (Lock_Sequence, "Forward", First);
       Set_Field (Lock_Sequence, "Scanning", Scan);
-      Lock_Sequence.Append ("Result.Index := Index");
       Set_Field (Lock_Sequence, "Link_Context.S_Locked", True);
 
       Set_Field (Invalid_Sequence, "Finished", True);
       Set_Field (Invalid_Sequence, "Forward", False);
       Set_Field (Invalid_Sequence, "Scanning", False);
-      Lock_Sequence.Append ("Result.Index := 0");
+      Invalid_Sequence.Append ("Result.Index := 0");
       Set_Field (Invalid_Sequence, "Link_Context.S_Locked", False);
 
       Return_Sequence.Append
@@ -761,6 +739,10 @@ package body Kit.Generate.Public_Interface is
       begin
          Next_Block.Add_Declaration
            (Use_Type ("Marlowe.Database_Index"));
+         Next_Block.Add_Declaration
+           (New_Object_Declaration
+              ("Got_Valid_Index", "Boolean"));
+
          Next_Block.Add_Statement
            (If_Statement
               (Operator
@@ -769,6 +751,76 @@ package body Kit.Generate.Public_Interface is
                Raise_Statement
                  ("Constraint_Error",
                   "Not currently scanning this table")));
+
+         Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
+                                     & ".Shared_Lock");
+         Next_Block.Add_Statement ("Item.Local_Context.Unlock");
+
+         declare
+            Index_Scan : Sequence_Of_Statements;
+            Key_Scan   : Sequence_Of_Statements;
+         begin
+
+            declare
+               Valid_Index : constant Expression'Class :=
+                               New_Function_Call_Expression
+                                 ("Marlowe.Btree_Handles.Valid_Index",
+                                  "Marlowe_Keys.Handle",
+                                  Table.Ada_Name & "_Table_Index",
+                                  "Item.Index");
+               Is_Deleted  : constant Expression'Class :=
+                               New_Function_Call_Expression
+                                 ("Marlowe.Btree_Handles.Deleted_Record",
+                                  "Marlowe_Keys.Handle",
+                                  Table.Ada_Name & "_Table_Index",
+                                  "Item.Index");
+               Condition   : constant Expression'Class :=
+                               Operator ("and then",
+                                         Valid_Index, Is_Deleted);
+               Increment   : constant Statement'Class :=
+                     New_Assignment_Statement
+                                 ("Item.Index",
+                                  Operator
+                                    ("+",
+                                     Object ("Item.Index"),
+                                     Literal (1)));
+            begin
+               Index_Scan.Append (Increment);
+               Index_Scan.Append
+                 (While_Statement
+                    (Condition, Increment));
+               Index_Scan.Append
+                 (New_Assignment_Statement
+                    ("Got_Valid_Index",
+                     Valid_Index));
+            end;
+
+            Key_Scan.Append
+              (New_Assignment_Statement
+                 ("Got_Valid_Index", Object ("False")));
+
+            Next_Block.Add_Statement
+              (If_Statement
+                 (Operator ("not", Object ("Item.Using_Key")),
+                  Index_Scan,
+                  Key_Scan));
+         end;
+
+         Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
+                                   & ".Shared_Unlock");
+
+         declare
+            Fetch_Found : Sequence_Of_Statements;
+            Not_Found   : Sequence_Of_Statements;
+         begin
+            Fetch_From_Index (Table, "Item", Fetch_Found);
+            Not_Found.Append ("Item.Index := 0");
+            Next_Block.Add_Statement
+              (If_Statement
+                 (Object ("Got_Valid_Index"),
+                  Fetch_Found,
+                  Not_Found));
+         end;
 
          declare
             Next : Subprogram_Declaration'Class :=
@@ -789,6 +841,53 @@ package body Kit.Generate.Public_Interface is
       Create_Has_Element;
       Create_Next;
    end Create_Search_Procedures;
+
+   ----------------------
+   -- Fetch_From_Index --
+   ----------------------
+
+   procedure Fetch_From_Index
+     (Table       : Kit.Tables.Table_Type'Class;
+      Object_Name : String;
+      Target      : in out Aquarius.Drys.Statement_Sequencer'Class)
+   is
+
+      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class);
+
+      --------------
+      -- Get_Base --
+      --------------
+
+      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class) is
+         use Aquarius.Drys.Expressions;
+         use Aquarius.Drys.Statements;
+
+         Base_Target    : constant String :=
+                               Object_Name & ".Local_Context."
+                                 & Base.Ada_Name & "_Data";
+         Cache_Package  : constant String :=
+                            Base.Ada_Name & "_Cache";
+         Index_Variable : constant String :=
+                            (if Base.Ada_Name = Table.Ada_Name
+                             then Object_Name & ".Index"
+                             else Object_Name & ".Local_Context."
+                             & Table.Ada_Name
+                             & "_Data.Db." & Base.Ada_Name & "_Index");
+      begin
+         Target.Append
+           (New_Assignment_Statement
+              (Base_Target,
+               New_Function_Call_Expression
+                 (Cache_Package & ".Get",
+                  "Marlowe_Keys.Handle",
+                  Index_Variable)));
+      end Get_Base;
+
+   begin
+      Table.Iterate (Get_Base'Access,
+                     Inclusive   => True,
+                     Table_First => True);
+   end Fetch_From_Index;
 
    -------------------------------
    -- Generate_Public_Interface --
