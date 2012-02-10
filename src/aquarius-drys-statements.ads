@@ -38,6 +38,16 @@ package Aquarius.Drys.Statements is
       True_Part  : Statement'Class)
       return Statement'Class;
 
+   function While_Statement
+     (Condition  : Expression'Class;
+      While_Body : Sequence_Of_Statements'Class)
+      return Statement'Class;
+
+   function While_Statement
+     (Condition  : Expression'Class;
+      While_Body : Statement'Class)
+      return Statement'Class;
+
    type Case_Statement_Record is
      new Statement with private;
 
