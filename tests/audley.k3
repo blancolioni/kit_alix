@@ -1,0 +1,41 @@
+package Audley.Db is
+
+record Term is
+   key Partial_Tag : String (32);
+   Identifier      : String (1024);
+   Full_Tag        : String (1024);
+end Term;
+
+record Label is
+   unique key Term;
+   Text : String (1024);
+end Label;
+
+record Member is
+   key Collection : Term;
+   key Term;
+   compound unique key Term_And_Collection is Term, Collection;
+   compound unique key Collection_And_Term is Collection, Term;
+end Member;
+
+record Subset is
+   key Superset : Term;
+   key Subset   : Term;
+   compound unique key Subset_And_Superset is Subset, Superset;
+   compound unique key Superset_And_Subset is Superset, Subset;
+end Subset;
+
+record Property is
+   key Term;
+   key Property : Term;
+   key Value : Term;
+   compound key Term_Property is Term, Property;
+end Property;
+
+record Search is
+   key Search_Term : String (32);
+   Term;
+   compound unique key Term_And_Search_Term is Term, Search_Term;
+end Search;
+
+end Audley.Db;
