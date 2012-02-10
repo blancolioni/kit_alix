@@ -302,7 +302,35 @@ package body Kit.Generate.Public_Interface is
                  ("Index",
                   "Marlowe.Database_Index"));
             if not Using_Key then
+               pragma Assert (First);
+               Block.Add_Declaration (Use_Type ("Marlowe.Database_Index"));
+
                Block.Add_Statement ("Index := 1");
+               declare
+                  Valid_Index : constant Expression'Class :=
+                                  New_Function_Call_Expression
+                                    ("Marlowe.Btree_Handles.Valid_Index",
+                                     "Marlowe_Keys.Handle",
+                                     Table.Ada_Name & "_Table_Index",
+                                     "Index");
+                  Is_Deleted  : constant Expression'Class :=
+                                  New_Function_Call_Expression
+                                    ("Marlowe.Btree_Handles.Deleted_Record",
+                                     "Marlowe_Keys.Handle",
+                                     Table.Ada_Name & "_Table_Index",
+                                     "Index");
+                  Condition   : constant Expression'Class :=
+                                  Operator ("and then",
+                                            Valid_Index, Is_Deleted);
+               begin
+                  Block.Add_Statement
+                    (While_Statement
+                       (Condition,
+                        New_Assignment_Statement
+                          ("Index",
+                          Operator ("+", Object ("Index"), Literal (1)))));
+               end;
+
             end if;
          end if;
       end Declare_Index;

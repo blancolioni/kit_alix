@@ -12,6 +12,26 @@ package body Aquarius.Drys.Statements is
    procedure Write (Item        : If_Statement_Record;
                     Writer      : in out Writer_Interface'Class);
 
+   type Loop_Statement_Record is
+     new Statement with
+      record
+         Loop_Body : Sequence_Of_Statements;
+      end record;
+
+   overriding
+   procedure Write (Item        : Loop_Statement_Record;
+                    Writer      : in out Writer_Interface'Class);
+
+   type While_Statement_Record is
+     new Loop_Statement_Record with
+      record
+         Condition : access Expression'Class;
+      end record;
+
+   overriding
+   procedure Write (Item        : While_Statement_Record;
+                    Writer      : in out Writer_Interface'Class);
+
    type Declare_Statement_Record is
      new Statement with
       record
@@ -345,6 +365,37 @@ package body Aquarius.Drys.Statements is
       end return;
    end Raise_Statement;
 
+   ---------------------
+   -- While_Statement --
+   ---------------------
+
+   function While_Statement
+     (Condition  : Expression'Class;
+      While_Body : Sequence_Of_Statements'Class)
+      return Statement'Class
+   is
+   begin
+      return Result : While_Statement_Record do
+         Result.Condition := new Expression'Class'(Condition);
+         Result.Loop_Body := Sequence_Of_Statements (While_Body);
+      end return;
+   end While_Statement;
+
+   ---------------------
+   -- While_Statement --
+   ---------------------
+
+   function While_Statement
+     (Condition  : Expression'Class;
+      While_Body : Statement'Class)
+      return Statement'Class
+   is
+      Seq : Sequence_Of_Statements;
+   begin
+      Seq.Append (While_Body);
+      return While_Statement (Condition, Seq);
+   end While_Statement;
+
    -----------
    -- Write --
    -----------
@@ -564,6 +615,35 @@ package body Aquarius.Drys.Statements is
    begin
       Writer.Put_Line ("raise " & Item.Exception_Name.all & " with");
       Writer.Put ("  """ & Item.Exception_Message.all & """");
+   end Write;
+
+   -----------
+   -- Write --
+   -----------
+
+   overriding
+   procedure Write (Item        : Loop_Statement_Record;
+                    Writer      : in out Writer_Interface'Class)
+   is
+   begin
+      Writer.Put_Line ("loop");
+      Item.Loop_Body.Write (Writer);
+      Writer.Put ("end loop");
+   end Write;
+
+   -----------
+   -- Write --
+   -----------
+
+   overriding
+   procedure Write (Item        : While_Statement_Record;
+                    Writer      : in out Writer_Interface'Class)
+   is
+   begin
+      Writer.Put ("while ");
+      Item.Condition.Write (Writer);
+      Writer.Put (" ");
+      Loop_Statement_Record (Item).Write (Writer);
    end Write;
 
 end Aquarius.Drys.Statements;
