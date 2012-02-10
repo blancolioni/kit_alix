@@ -14,6 +14,9 @@ package Kit.Databases is
    function Contains (Database : Database_Type;
                       Name     : String)
                      return Boolean;
+   function Element (Database : Database_Type;
+                     Name     : String)
+                     return Kit.Tables.Table_Type'Class;
 
    procedure Next (Position : in out Table_Cursor);
 

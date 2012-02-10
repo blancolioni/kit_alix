@@ -97,15 +97,18 @@ package body Kit.Generate.Database_Package is
             use Aquarius.Drys.Statements;
 
             procedure Create_Key
-              (Position : Kit.Tables.Key_Cursor);
+              (Base     : Kit.Tables.Table_Type'Class;
+               Position : Kit.Tables.Key_Cursor);
 
             ----------------
             -- Create_Key --
             ----------------
 
             procedure Create_Key
-              (Position : Kit.Tables.Key_Cursor)
+              (Base     : Kit.Tables.Table_Type'Class;
+               Position : Kit.Tables.Key_Cursor)
             is
+               pragma Unreferenced (Base);
                use Aquarius.Drys;
                use Aquarius.Drys.Expressions;
                use Kit.Tables;

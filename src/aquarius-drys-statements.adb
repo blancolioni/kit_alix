@@ -1,7 +1,3 @@
-------------------------------
--- Aquarius.Drys.Statements --
-------------------------------
-
 package body Aquarius.Drys.Statements is
 
    type If_Statement_Record is
@@ -36,6 +32,26 @@ package body Aquarius.Drys.Statements is
    overriding
    procedure Write (Item        : Raise_Statement_Record;
                     Writer      : in out Writer_Interface'Class);
+
+   type Return_Statement is new Statement with
+      record
+         Expr : access Expression'Class;
+      end record;
+
+   overriding
+   procedure Write (Item   : Return_Statement;
+                    Writer : in out Writer_Interface'Class);
+
+   type Extended_Return_Statement is new Statement with
+      record
+         Return_Variable : access String;
+         Return_Type     : access String;
+         Return_Sequence : Sequence_Of_Statements;
+      end record;
+
+   overriding
+   procedure Write (Item   : Extended_Return_Statement;
+                    Writer : in out Writer_Interface'Class);
 
    -------------------------
    -- Add_Actual_Argument --
@@ -107,6 +123,17 @@ package body Aquarius.Drys.Statements is
    is
    begin
       To.Sequence.Append (S);
+   end Append;
+
+   ------------
+   -- Append --
+   ------------
+
+   procedure Append (To : in out Sequence_Of_Statements;
+                     S  : in     String)
+   is
+   begin
+      To.Append (New_Procedure_Call_Statement (S));
    end Append;
 
    --------------------
@@ -284,6 +311,25 @@ package body Aquarius.Drys.Statements is
       end return;
    end New_Return_Statement;
 
+   --------------------------
+   -- New_Return_Statement --
+   --------------------------
+
+   function New_Return_Statement
+     (Return_Variable   : String;
+      Variable_Type     : String;
+      Return_Statements : Sequence_Of_Statements'Class)
+      return Statement'Class
+   is
+   begin
+      return R : Extended_Return_Statement do
+         R.Return_Variable := new String'(Return_Variable);
+         R.Return_Type := new String'(Variable_Type);
+         R.Return_Sequence :=
+           Sequence_Of_Statements (Return_Statements);
+      end return;
+   end New_Return_Statement;
+
    ---------------------
    -- Raise_Statement --
    ---------------------
@@ -338,6 +384,21 @@ package body Aquarius.Drys.Statements is
    begin
       Writer.Put ("return ");
       Item.Expr.Write (Writer);
+   end Write;
+
+   -----------
+   -- Write --
+   -----------
+
+   overriding
+   procedure Write (Item   : Extended_Return_Statement;
+                    Writer : in out Writer_Interface'Class)
+   is
+   begin
+      Writer.Put_Line ("return " & Item.Return_Variable.all
+                       & " : " & Item.Return_Type.all & " do");
+      Item.Return_Sequence.Write (Writer);
+      Writer.Put ("end return");
    end Write;
 
    -----------

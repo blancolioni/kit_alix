@@ -1,0 +1,19 @@
+package Test_Database is
+
+   record Object is
+      unique key Identity : Integer;
+   end Object;
+
+   record Named_Object : Object is
+      unique key Name : String (64);
+   end Named_Object;
+
+   record Ship : Named_Object is
+      key Owner : Integer;
+   end Ship;
+
+   record Unit : Named_Object is
+      key Owner : Integer;
+   end Unit;
+
+end Test_Database;

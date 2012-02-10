@@ -38,6 +38,8 @@ package Kit.Tables is
    type Base_Cursor is private;
    type Key_Cursor is private;
 
+   Null_Key_Cursor : constant Key_Cursor;
+
    function First_Field (Table : Table_Type) return Field_Cursor;
    function Contains_Field (Table : Table_Type;
                             Name     : String)
@@ -157,6 +159,9 @@ private
 
    type Field_Cursor is new Field_Vectors.Cursor;
    type Key_Cursor is new Field_Vectors.Cursor;
+
+   Null_Key_Cursor : constant Key_Cursor :=
+                       Key_Cursor (Field_Vectors.No_Element);
 
    type Table_Access is access all Table_Type'Class;
 

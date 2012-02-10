@@ -53,6 +53,24 @@ package body Kit.Databases is
       return Table_Vectors.Element (Table_Vectors.Cursor (Position)).all;
    end Element;
 
+   -------------
+   -- Element --
+   -------------
+
+   function Element (Database : Database_Type;
+                     Name     : String)
+                     return Kit.Tables.Table_Type'Class
+   is
+   begin
+      for T of Database.Tables loop
+         if T.Name = Name then
+            return T.all;
+         end if;
+      end loop;
+      raise Constraint_Error with
+        "table " & Name & " not found in database " & Database.Name;
+   end Element;
+
    -----------------
    -- First_Table --
    -----------------

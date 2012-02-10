@@ -221,8 +221,14 @@ package body Aquarius.Drys.Types is
 
    begin
 
+      Writer.Optional_New_Line;
+
       if Item.Is_Abstract then
          Writer.Put ("abstract ");
+      end if;
+
+      if Item.Is_Limited then
+         Writer.Put ("limited ");
       end if;
 
       if Item.Parents.Last_Index > 0 then

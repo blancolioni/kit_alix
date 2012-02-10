@@ -11,6 +11,9 @@ package Aquarius.Drys.Statements is
    procedure Append (To : in out Sequence_Of_Statements;
                      S  : in     Statement'Class);
 
+   procedure Append (To : in out Sequence_Of_Statements;
+                     S  : in     String);
+
    overriding
    procedure Write (Item   : Sequence_Of_Statements;
                     Writer : in out Writer_Interface'Class);
@@ -61,14 +64,14 @@ package Aquarius.Drys.Statements is
    procedure Write (Item   : Null_Statement;
                     Writer : in out Writer_Interface'Class);
 
-   type Return_Statement is new Statement with private;
-
-   overriding
-   procedure Write (Item   : Return_Statement;
-                    Writer : in out Writer_Interface'Class);
-
    function New_Return_Statement
      (Result : Expression'Class)
+      return Statement'Class;
+
+   function New_Return_Statement
+     (Return_Variable   : String;
+      Variable_Type     : String;
+      Return_Statements : Sequence_Of_Statements'Class)
       return Statement'Class;
 
    type Assignment_Statement is new Statement with private;
@@ -135,11 +138,6 @@ private
       end record;
 
    type Null_Statement is new Statement with null record;
-
-   type Return_Statement is new Statement with
-      record
-         Expr : access Expression'Class;
-      end record;
 
    type Assignment_Statement is new Statement with
       record
