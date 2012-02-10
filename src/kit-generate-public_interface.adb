@@ -39,6 +39,15 @@ package body Kit.Generate.Public_Interface is
       Table : in     Kit.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
+   procedure Create_Get_Function
+     (Db            : in     Kit.Databases.Database_Type;
+      Table         : in     Kit.Tables.Table_Type'Class;
+      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Scan          : in     Boolean;
+      First         : in     Boolean;
+      Key           : in     Kit.Tables.Key_Cursor;
+      Key_Value     : in     Boolean);
+
    -------------------------------
    -- Create_Control_Procedures --
    -------------------------------
@@ -200,7 +209,6 @@ package body Kit.Generate.Public_Interface is
                Aquarius.Drys.Object
                  ("Lock_Context (Item.Local_Context)")));
 
-         Set_Field ("First", "False");
          Set_Field ("Finished", "True");
          Set_Field ("Forward", "True");
          Set_Field ("Created", "False");
@@ -228,6 +236,208 @@ package body Kit.Generate.Public_Interface is
       Create_Initialize;
       Create_Finalize;
    end Create_Control_Procedures;
+
+   -------------------------
+   -- Create_Get_Function --
+   -------------------------
+
+   procedure Create_Get_Function
+     (Db            : in     Kit.Databases.Database_Type;
+      Table         : in     Kit.Tables.Table_Type'Class;
+      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Scan          : in     Boolean;
+      First         : in     Boolean;
+      Key           : in     Kit.Tables.Key_Cursor;
+      Key_Value     : in     Boolean)
+   is
+      pragma Unreferenced (Db);
+      use Aquarius.Drys;
+      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
+
+      Get              : Function_Call_Expression :=
+                           New_Function_Call_Expression
+                             ("Ship_Cache.Get");
+      Return_Sequence  : Sequence_Of_Statements;
+      Lock_Sequence    : Sequence_Of_Statements;
+      Invalid_Sequence : Sequence_Of_Statements;
+
+      Using_Key : constant Boolean :=
+                    Kit.Tables."/="
+                      (Key, Kit.Tables.Null_Key_Cursor);
+
+      procedure Declare_Index
+        (Block : in out Aquarius.Drys.Blocks.Block_Type);
+
+      function Function_Name return String;
+
+      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class);
+
+      procedure Set_Field
+        (Seq        : in out Sequence_Of_Statements;
+         Field_Name : String;
+         Value      : Boolean);
+
+      -------------------
+      -- Declare_Index --
+      -------------------
+
+      procedure Declare_Index
+        (Block : in out Aquarius.Drys.Blocks.Block_Type)
+      is
+         use Aquarius.Drys.Declarations;
+      begin
+         if not Scan then
+            if not Using_Key then
+               Block.Add_Declaration
+                 (New_Constant_Declaration
+                    ("Index",
+                     "Marlowe.Database_Index",
+                     Object ("Marlowe.Database_Index (Reference)")));
+            else
+               null;
+            end if;
+         else
+            Block.Add_Declaration
+              (New_Object_Declaration
+                 ("Index",
+                  "Marlowe.Database_Index"));
+            if not Using_Key then
+               Block.Add_Statement ("Index := 1");
+            end if;
+         end if;
+      end Declare_Index;
+
+      -------------------
+      -- Function_Name --
+      -------------------
+
+      function Function_Name return String is
+
+         Base_Name : constant String :=
+                       (if not Scan
+                        then "Get"
+                        elsif not First
+                        then "Last"
+                        else "First");
+      begin
+         if Using_Key then
+            return Base_Name & "_By" & Kit.Tables.Ada_Name (Key);
+         else
+            return Base_Name;
+         end if;
+      end Function_Name;
+
+      --------------
+      -- Get_Base --
+      --------------
+
+      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class) is
+         Base_Target    : constant String :=
+                            "Result.Local_Context."
+                              & Base.Ada_Name
+           & "_Data";
+         Cache_Package  : constant String :=
+                            Base.Ada_Name & "_Cache";
+         Index_Variable : constant String :=
+                            (if Base.Ada_Name = Table.Ada_Name
+                             then "Index"
+                             else "Result.Local_Context." & Table.Ada_Name
+                             & "_Data.Db." & Base.Ada_Name & "_Index");
+      begin
+         Lock_Sequence.Append
+           (New_Assignment_Statement
+              (Base_Target,
+               New_Function_Call_Expression
+                 (Cache_Package & ".Get",
+                  "Marlowe_Keys.Handle",
+                  Index_Variable)));
+      end Get_Base;
+
+      ---------------
+      -- Set_Field --
+      ---------------
+
+      procedure Set_Field
+        (Seq        : in out Sequence_Of_Statements;
+         Field_Name : String;
+         Value      : Boolean)
+      is
+      begin
+         Seq.Append
+           (New_Assignment_Statement
+              ("Result." & Field_Name,
+               (if Value then Object ("True") else Object ("False"))));
+      end Set_Field;
+
+   begin
+      Get.Add_Actual_Argument (Object ("Handle"));
+      Get.Add_Actual_Argument
+        (Object ("Index"));
+
+      Return_Sequence.Append
+        (New_Procedure_Call_Statement
+           (Table.Ada_Name & "_Impl.File_Mutex.Lock"));
+
+      Table.Iterate (Get_Base'Access,
+                     Inclusive   => True,
+                     Table_First => True);
+
+      Set_Field (Lock_Sequence, "Finished", not Scan);
+      Set_Field (Lock_Sequence, "Forward", First);
+      Set_Field (Lock_Sequence, "Scanning", Scan);
+      Lock_Sequence.Append ("Result.Index := Index");
+      Set_Field (Lock_Sequence, "Link_Context.S_Locked", True);
+
+      Set_Field (Invalid_Sequence, "Finished", True);
+      Set_Field (Invalid_Sequence, "Forward", False);
+      Set_Field (Invalid_Sequence, "Scanning", False);
+      Lock_Sequence.Append ("Result.Index := 0");
+      Set_Field (Invalid_Sequence, "Link_Context.S_Locked", False);
+
+      Return_Sequence.Append
+        (If_Statement
+           (New_Function_Call_Expression
+              ("Marlowe.Btree_Handles.Valid_Index",
+               "Marlowe_Keys.Handle",
+               Table.Ada_Name & "_Table_Index",
+               "Index"),
+            Lock_Sequence,
+            Invalid_Sequence));
+
+      Return_Sequence.Append
+        (New_Procedure_Call_Statement
+           (Table.Ada_Name & "_Impl.File_Mutex.Unlock"));
+
+      declare
+         use Aquarius.Drys.Declarations;
+         Table_Class_Wide_Name  : constant String :=
+                                    Table.Ada_Name & "_Type";
+         Implementation_Type    : constant String :=
+                                    Table.Ada_Name & "_Implementation";
+         Block                  : Aquarius.Drys.Blocks.Block_Type;
+         Fn                     : Subprogram_Declaration;
+      begin
+         Declare_Index (Block);
+         Block.Append
+           (Aquarius.Drys.Statements.New_Return_Statement
+              ("Result", Implementation_Type, Return_Sequence));
+
+         Fn := New_Function
+           (Function_Name, Table_Class_Wide_Name,
+            Block);
+
+         if not Scan and then not Using_Key then
+            Fn.Add_Formal_Argument
+              (New_Formal_Argument
+                 ("Reference",
+                  Named_Subtype (Table.Ada_Name & "_Reference")));
+         end if;
+
+         Table_Package.Append (Fn);
+      end;
+
+      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+   end Create_Get_Function;
 
    -----------------------------
    -- Create_Key_Context_Type --
@@ -391,21 +601,31 @@ package body Kit.Generate.Public_Interface is
 
    begin
 
+      Unlock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
       Table.Iterate (Unlock'Access,
                      Inclusive => True,
                      Table_First => False);
+      Unlock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
+      Unlock_Block.Add_Statement ("Item.S_Locked := False");
+      Unlock_Block.Add_Statement ("Item.X_Locked := False");
 
       Add_Locker ("Unlock", Unlock_Block);
 
+      S_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
       Table.Iterate (S_Lock'Access,
                      Inclusive => True,
                      Table_First => False);
+      S_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
+      S_Lock_Block.Add_Statement ("Item.S_Locked := True");
 
       Add_Locker ("S_Lock", S_Lock_Block);
 
+      X_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
       Table.Iterate (X_Lock'Access,
                      Inclusive => True,
                      Table_First => False);
+      X_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
+      X_Lock_Block.Add_Statement ("Item.X_Locked := True");
 
       Add_Locker ("X_Lock", X_Lock_Block);
 
@@ -580,7 +800,6 @@ package body Kit.Generate.Public_Interface is
                            Field : Kit.Fields.Field_Type'Class);
 
       procedure Add_Create_Function;
-      procedure Add_Reference_Get_Function;
 
       procedure Create_Implementation_Type;
 
@@ -620,7 +839,7 @@ package body Kit.Generate.Public_Interface is
 
          use Aquarius.Drys.Statements;
 
-         Block : Aquarius.Drys.Blocks.Block_Type;
+         Sequence : Sequence_Of_Statements;
 
          procedure Allocate_Context (Base : Kit.Tables.Table_Type'Class);
 
@@ -636,7 +855,7 @@ package body Kit.Generate.Public_Interface is
          procedure Allocate_Context (Base : Kit.Tables.Table_Type'Class) is
             use Aquarius.Drys.Expressions;
          begin
-            Block.Add_Statement
+            Sequence.Append
               (New_Assignment_Statement
                  ("Result.Local_Context." & Base.Ada_Name & "_Data",
                   New_Allocation_Expression
@@ -667,7 +886,7 @@ package body Kit.Generate.Public_Interface is
               (Meta_Base : Kit.Tables.Table_Type'Class)
             is
             begin
-               Block.Add_Statement
+               Sequence.Append
                  (New_Assignment_Statement
                     ("Result.Local_Context." & Base.Ada_Name & "_Data"
                      & ".Db." & Meta_Base.Ada_Name & "_Index",
@@ -677,9 +896,9 @@ package body Kit.Generate.Public_Interface is
             end Set_Base_Index;
 
          begin
-            Block.Add_Statement (Base.Ada_Name & "_Impl.File_Mutex.Lock");
+            Sequence.Append (Base.Ada_Name & "_Impl.File_Mutex.Lock");
 
-            Block.Add_Statement
+            Sequence.Append
               (New_Assignment_Statement
                  (Index_Field,
                   New_Function_Call_Expression
@@ -690,20 +909,20 @@ package body Kit.Generate.Public_Interface is
                Base.Iterate (Set_Base_Index'Access, Inclusive   => False);
             end if;
 
-            Block.Add_Statement
+            Sequence.Append
               (New_Procedure_Call_Statement
                  ("Result.Local_Context." & Base.Ada_Name & "_Data.Initialise",
                   Literal (Integer (Base.Reference_Index)),
                   Object (Index_Field)));
 
-            Block.Add_Statement
+            Sequence.Append
               (New_Procedure_Call_Statement
                  ("Kit.Cache.Insert",
                   New_Function_Call_Expression
                     ("Kit.Cache.Cache_Entry",
                      "Result.Local_Context." & Base.Ada_Name & "_Data")));
 
-            Block.Add_Statement
+            Sequence.Append
               (New_Procedure_Call_Statement
                  (Base.Ada_Name & "_Impl.Write",
                   Object (Index_Field),
@@ -711,10 +930,10 @@ package body Kit.Generate.Public_Interface is
                     ("Result.Local_Context." & Base.Ada_Name & "_Data"
                      & ".Db")));
 
-            Block.Add_Statement
+            Sequence.Append
               ("Result.Local_Context." & Base.Ada_Name & "_Data.X_Lock");
 
-            Block.Add_Statement (Base.Ada_Name & "_Impl.File_Mutex.Unlock");
+            Sequence.Append (Base.Ada_Name & "_Impl.File_Mutex.Unlock");
          end Database_Insert;
 
          ---------------
@@ -725,18 +944,14 @@ package body Kit.Generate.Public_Interface is
                               Value      : String)
          is
          begin
-            Block.Add_Statement
+            Sequence.Append
               (Aquarius.Drys.Statements.New_Assignment_Statement
                  ("Result." & Field_Name,
                   Aquarius.Drys.Object (Value)));
          end Set_Field;
 
       begin
-         Block.Add_Declaration
-           (New_Object_Declaration (Name       => "Result",
-                                    Object_Type => Implementation_Type));
 
-         Set_Field ("First", "False");
          Set_Field ("Finished", "False");
          Set_Field ("Created", "True");
          Set_Field ("Deleted", "False");
@@ -746,26 +961,33 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Using_Key", "False");
          Set_Field ("Index", "0");
 
-         Block.Add_Statement
+         Sequence.Append
            (New_Procedure_Call_Statement ("Memory_Mutex.Lock"));
 
          Table.Iterate (Allocate_Context'Access,
                         Inclusive => True,
                         Table_First => False);
 
-         Block.Add_Statement
+         Sequence.Append
            (New_Procedure_Call_Statement ("Memory_Mutex.Unlock"));
 
          Table.Iterate (Database_Insert'Access,
                         Inclusive => True,
                         Table_First => False);
 
-         Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Return_Statement
-              (Object ("Result")));
-         Table_Package.Append
+         Sequence.Append ("Result.Local_Context.X_Locked := True");
+
+         declare
+            Block : Aquarius.Drys.Blocks.Block_Type;
+         begin
+            Block.Append
+              (New_Return_Statement
+                 ("Result", Implementation_Type, Sequence));
+            Table_Package.Append
               (New_Function ("Create", Table_Class_Wide_Name,
                Block));
+         end;
+
          Table_Package.Append (New_Separator);
       end Add_Create_Function;
 
@@ -824,134 +1046,6 @@ package body Kit.Generate.Public_Interface is
          end;
 
       end Add_Fetch;
-
-      --------------------------------
-      -- Add_Reference_Get_Function --
-      --------------------------------
-
-      procedure Add_Reference_Get_Function is
-         use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
-         Block : Aquarius.Drys.Blocks.Block_Type;
-         Fn    : Subprogram_Declaration;
-         Get   : Function_Call_Expression :=
-                   New_Function_Call_Expression
-                     ("Ship_Cache.Get");
-         Lock_Sequence : Sequence_Of_Statements;
-         Invalid_Sequence : Sequence_Of_Statements;
-
-         procedure Get_Base (Base   : Kit.Tables.Table_Type'Class);
-
-         procedure Set_Field
-           (Seq        : in out Sequence_Of_Statements;
-            Field_Name : String;
-            Value      : String);
-
-         --------------
-         -- Get_Base --
-         --------------
-
-         procedure Get_Base (Base   : Kit.Tables.Table_Type'Class) is
-            Base_Target : constant String :=
-                            "Result.Local_Context."
-                              & Base.Ada_Name
-                              & "_Data";
-            Cache_Package : constant String :=
-                              Base.Ada_Name & "_Cache";
-            Index_Variable : constant String :=
-                               (if Base.Ada_Name = Table.Ada_Name
-                                then "Index"
-                                else "Result.Local_Context." & Table.Ada_Name
-                                  & "_Data.Db." & Base.Ada_Name & "_Index");
-         begin
-            Lock_Sequence.Append
-              (New_Assignment_Statement
-                 (Base_Target,
-                  New_Function_Call_Expression
-                    (Cache_Package & ".Get",
-                     "Marlowe_Keys.Handle",
-                     Index_Variable)));
-         end Get_Base;
-
-         ---------------
-         -- Set_Field --
-         ---------------
-
-         procedure Set_Field
-           (Seq        : in out Sequence_Of_Statements;
-            Field_Name : String;
-            Value      : String)
-         is
-         begin
-            Seq.Append
-              (New_Assignment_Statement
-                 ("Result." & Field_Name,
-                  Object (Value)));
-         end Set_Field;
-
-      begin
-         Get.Add_Actual_Argument (Object ("Handle"));
-         Get.Add_Actual_Argument
-           (Object ("Index"));
-
-         Block.Add_Declaration
-           (New_Constant_Declaration
-              ("Index",
-               "Marlowe.Database_Index",
-               Object ("Marlowe.Database_Index (Reference)")));
-         Block.Add_Declaration
-           (New_Object_Declaration (Name       => "Result",
-                                    Object_Type => Implementation_Type));
-
-         Block.Add_Statement
-           (New_Procedure_Call_Statement
-              (Table.Ada_Name & "_Impl.File_Mutex.Lock"));
-
-         Table.Iterate (Get_Base'Access,
-                        Inclusive   => True,
-                        Table_First => True);
-
-         Set_Field (Lock_Sequence, "First", "False");
-         Set_Field (Lock_Sequence, "Finished", "True");
-         Set_Field (Lock_Sequence, "Forward", "False");
-         Set_Field (Lock_Sequence, "Scanning", "False");
-         Set_Field (Lock_Sequence, "Index", "Index");
-         Set_Field (Lock_Sequence, "Link_Context.S_Locked", "True");
-
-         Set_Field (Invalid_Sequence, "First", "False");
-         Set_Field (Invalid_Sequence, "Finished", "True");
-         Set_Field (Invalid_Sequence, "Forward", "False");
-         Set_Field (Invalid_Sequence, "Scanning", "False");
-         Set_Field (Invalid_Sequence, "Index", "0");
-         Set_Field (Invalid_Sequence, "Link_Context.S_Locked", "False");
-
-         Block.Add_Statement
-           (If_Statement
-              (New_Function_Call_Expression
-                 ("Marlowe.Btree_Handles.Valid_Index",
-                  "Marlowe_Keys.Handle",
-                  Table.Ada_Name & "_Table_Index",
-                  "Index"),
-               Lock_Sequence,
-               Invalid_Sequence));
-
-         Block.Add_Statement
-           (New_Procedure_Call_Statement
-              (Table.Ada_Name & "_Impl.File_Mutex.Unlock"));
-
-         Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Return_Statement
-              (Object ("Result")));
-         Fn := New_Function
-           ("Get", Table_Class_Wide_Name,
-            Block);
-         Fn.Add_Formal_Argument
-           (New_Formal_Argument
-              ("Reference",
-               Named_Subtype (Table.Ada_Name & "_Reference")));
-
-         Table_Package.Append (Fn);
-         Table_Package.Append (New_Separator);
-      end Add_Reference_Get_Function;
 
       ---------------
       -- Add_Store --
@@ -1130,6 +1224,10 @@ package body Kit.Generate.Public_Interface is
                Store_Block.Append (S);
             end;
 
+            Store_Block.Add_Statement
+              (New_Procedure_Call_Statement
+                 ("Database_Mutex.Shared_Unlock"));
+
             Store := New_Procedure
               ("Set_" & Field.Ada_Name,
                New_Inout_Argument ("Item",
@@ -1193,9 +1291,9 @@ package body Kit.Generate.Public_Interface is
                  ("Local_Lock_Context_Record'Class",
                   Access_All => True)));
 
-         Record_Defn.Add_Parent ("Ada.Finalization.Controlled");
+         Record_Defn.Set_Limited;
+         Record_Defn.Add_Parent ("Ada.Finalization.Limited_Controlled");
          Record_Defn.Add_Parent (Table.Ada_Name & "_Interface");
-         Record_Defn.Add_Component ("First", "Boolean");
          Record_Defn.Add_Component ("Finished", "Boolean");
          Record_Defn.Add_Component ("Forward", "Boolean");
          Record_Defn.Add_Component ("Created", "Boolean");
@@ -1250,6 +1348,7 @@ package body Kit.Generate.Public_Interface is
 
       Table.Iterate (Add_Base_With'Access, Inclusive => False);
 
+      Table_Interface.Set_Limited;
       Table_Interface.Add_Parent ("Record_Interface");
       Table_Interface.Add_Parent ("Search_Interface");
 
@@ -1290,7 +1389,24 @@ package body Kit.Generate.Public_Interface is
       Table.Iterate_All (Add_Store'Access);
 
       Add_Create_Function;
-      Add_Reference_Get_Function;
+
+      Create_Get_Function
+        (Db            => Db,
+         Table         => Table,
+         Table_Package => Table_Package,
+         Scan          => False,
+         First         => True,
+         Key           => Kit.Tables.Null_Key_Cursor,
+         Key_Value     => False);
+
+      Create_Get_Function
+        (Db            => Db,
+         Table         => Table,
+         Table_Package => Table_Package,
+         Scan          => True,
+         First         => True,
+         Key           => Kit.Tables.Null_Key_Cursor,
+         Key_Value     => False);
 
       return Table_Package;
    end Generate_Public_Interface;

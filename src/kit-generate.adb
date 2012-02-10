@@ -200,6 +200,7 @@ package body Kit.Generate is
       pragma Unreferenced (Db);
       Record_Interface : Aquarius.Drys.Interface_Type_Definition;
    begin
+      Record_Interface.Set_Limited;
       Top.Append (New_Full_Type_Declaration
                   ("Record_Interface", Record_Interface));
       Top.Add_Separator;
@@ -277,6 +278,7 @@ package body Kit.Generate is
       pragma Unreferenced (Db);
       Search_Interface : Aquarius.Drys.Interface_Type_Definition;
    begin
+      Search_Interface.Set_Limited;
       Top.Append (New_Full_Type_Declaration
                   ("Search_Interface", Search_Interface));
       Top.Add_Separator;

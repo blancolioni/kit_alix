@@ -436,6 +436,9 @@ package body Aquarius.Drys is
    is
       Current_Indent : constant Natural := Writer.Indent;
    begin
+      if Item.Is_Limited then
+         Writer.Put ("limited ");
+      end if;
       Writer.Put ("interface");
       if Item.Parents.Last_Index > 0 then
          Writer.Indent (Current_Indent + 2);
