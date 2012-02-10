@@ -6,9 +6,9 @@ package body Kit.Names is
    -- Ada_Name --
    --------------
 
-   function Ada_Name (Item : Root_Named_Object) return String is
+   function Ada_Name (Raw_Name : String) return String is
       use Ada.Characters.Handling;
-      Result : String := Name (Root_Named_Object'Class (Item));
+      Result : String := Raw_Name;
       Capital : Boolean := True;
    begin
       for I in Result'Range loop
@@ -22,6 +22,15 @@ package body Kit.Names is
          end if;
       end loop;
       return Result;
+   end Ada_Name;
+
+   --------------
+   -- Ada_Name --
+   --------------
+
+   function Ada_Name (Item : Root_Named_Object) return String is
+   begin
+      return Ada_Name (Name (Root_Named_Object'Class (Item)));
    end Ada_Name;
 
    ------------

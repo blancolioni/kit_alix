@@ -28,6 +28,7 @@ package Kit.Tables is
    function Implementation_Record_Type (Item : Table_Type) return String;
 
    function Has_String_Type (Item : Table_Type) return Boolean;
+   function Has_Key_Field (Item : Table_Type) return Boolean;
 
    procedure Scan_Fields
      (Table    : Table_Type;
@@ -178,6 +179,7 @@ private
          Fields          : Field_Vectors.Vector;
          Magic           : Natural;
          Has_String_Type : Boolean := False;
+         Has_Key_Field   : Boolean := False;
       end record;
 
 end Kit.Tables;

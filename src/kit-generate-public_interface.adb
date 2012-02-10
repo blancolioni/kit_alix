@@ -1332,8 +1332,10 @@ package body Kit.Generate.Public_Interface is
       Table_Package.With_Package ("Marlowe.Btree_Handles",
                                 Body_With => True);
 
-      Table_Package.With_Package ("Marlowe.Key_Storage",
-                                Body_With => True);
+      if Table.Has_Key_Field then
+         Table_Package.With_Package ("Marlowe.Key_Storage",
+                                     Body_With => True);
+      end if;
 
       Table_Package.With_Package ("Kit.Cache",
                                   Body_With => True);

@@ -37,6 +37,10 @@ package Kit.Types is
    function Standard_Natural  return Kit_Type'Class;
    function Standard_String (Length : Positive) return Kit_Type'Class;
 
+   function Table_Reference_Type
+     (Table_Name : String)
+      return Kit_Type'Class;
+
 private
 
    type Kit_Type is

@@ -8,11 +8,17 @@ package Test_Database is
       unique key Name : String (64);
    end Named_Object;
 
-   record Ship : Named_Object is
+   record Transporter;
+
+   record Transported is
+      key Transporter;
+   end Transported;
+
+   record Ship : Named_Object, Transporter is
       key Owner : Integer;
    end Ship;
 
-   record Unit : Named_Object is
+   record Unit : Named_Object, Transported is
       key Owner : Integer;
    end Unit;
 
