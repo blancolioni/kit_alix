@@ -104,13 +104,17 @@ package body Kit.Generate.Private_Interface is
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
-      procedure Add_Mutex (Key : Kit.Tables.Key_Cursor);
+      procedure Add_Mutex (Base : Kit.Tables.Table_Type'Class;
+                           Key  : Kit.Tables.Key_Cursor);
 
       ---------------
       -- Add_Mutex --
       ---------------
 
-      procedure Add_Mutex (Key : Kit.Tables.Key_Cursor) is
+      procedure Add_Mutex (Base : Kit.Tables.Table_Type'Class;
+                           Key  : Kit.Tables.Key_Cursor)
+      is
+         pragma Unreferenced (Base);
       begin
          Impl.Append
            (Aquarius.Drys.Declarations.New_Object_Declaration
