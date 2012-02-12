@@ -84,6 +84,12 @@ package Aquarius.Drys.Declarations is
       Object_Type : String)
      return Object_Declaration'Class;
 
+   function New_Object_Declaration
+     (Name        : String;
+      Object_Type : String;
+      Initialiser : Expression'Class)
+     return Object_Declaration'Class;
+
    function New_Constant_Declaration
      (Name        : String;
       Value       : Expression'Class)

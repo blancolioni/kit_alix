@@ -685,6 +685,26 @@ package body Aquarius.Drys.Declarations is
    ----------------------------
 
    function New_Object_Declaration
+     (Name        : String;
+      Object_Type : String;
+      Initialiser : Expression'Class)
+     return Object_Declaration'Class
+   is
+   begin
+      return New_Object_Declaration
+        (Identifiers => Identifier (Name),
+         Is_Aliased  => False,
+         Is_Constant => False,
+         Is_Deferred => False,
+         Object_Type => Named_Subtype (Object_Type),
+         Initialiser => Initialiser);
+   end New_Object_Declaration;
+
+   ----------------------------
+   -- New_Object_Declaration --
+   ----------------------------
+
+   function New_Object_Declaration
      (Identifiers : Defining_Identifier_List;
       Is_Aliased  : Boolean;
       Is_Constant : Boolean;
