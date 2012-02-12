@@ -1,5 +1,3 @@
-with Marlowe;
-
 with Kit.Tables;
 
 with Aquarius.Drys.Blocks;
@@ -125,8 +123,7 @@ package body Kit.Generate.Database_Package is
                Call_Add_Key.Add_Actual_Argument
                  (Object (Table.Ada_Name & "_Table_Index"));
                Call_Add_Key.Add_Actual_Argument
-                 (Literal (Key_Size (Position)
-                  + Marlowe.Database_Index'Size / 8));
+                 (Literal (Key_Size (Position)));
 
                Block.Add_Statement
                  (New_Assignment_Statement
