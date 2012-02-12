@@ -467,11 +467,10 @@ package body Kit.Tables is
       use Field_Vectors;
       Item : constant Table_Field_Access := Element (Cursor (Position));
    begin
-      if Item.Is_Compound then
-         return Item.Compound_Field.Size;
-      else
-         return Item.Field.Size;
-      end if;
+      return Marlowe.Database_Index'Size / 8
+        + (if Item.Is_Compound
+           then Item.Compound_Field.Size
+           else Item.Field.Size);
    end Key_Size;
 
    ------------------
