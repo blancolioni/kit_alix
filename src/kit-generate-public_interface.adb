@@ -280,9 +280,9 @@ package body Kit.Generate.Public_Interface is
          Field_Name : String;
          Value      : Boolean);
 
-      -------------------
+      ------------------
       -- Declare_Index --
-      -------------------
+      ------------------
 
       procedure Declare_Index
         (Block : in out Aquarius.Drys.Blocks.Block_Type)
@@ -291,22 +291,23 @@ package body Kit.Generate.Public_Interface is
       begin
          if not Scan then
             if not Using_Key then
-               Block.Add_Declaration
-                 (New_Constant_Declaration
-                    ("Index",
-                     "Marlowe.Database_Index",
-                     Object ("Marlowe.Database_Index (Reference)")));
+               null;
+--                 Block.Add_Declaration
+--                   (New_Constant_Declaration
+--                      ("Index",
+--                       "Marlowe.Database_Index",
+--                       Object ("Marlowe.Database_Index (Reference)")));
             else
                null;
             end if;
          else
-            Block.Add_Declaration
-              (New_Object_Declaration
-                 ("Index",
-                  "Marlowe.Database_Index"));
             if not Using_Key then
                pragma Assert (First);
                Block.Add_Declaration (Use_Type ("Marlowe.Database_Index"));
+               Block.Add_Declaration
+                 (New_Object_Declaration
+                    ("Index",
+                     "Marlowe.Database_Index"));
 
                Block.Add_Statement ("Index := 1");
                declare
@@ -334,6 +335,10 @@ package body Kit.Generate.Public_Interface is
                           Operator ("+", Object ("Index"), Literal (1)))));
                end;
 
+            else
+
+               null;
+
             end if;
          end if;
       end Declare_Index;
@@ -352,7 +357,7 @@ package body Kit.Generate.Public_Interface is
                         else "First");
       begin
          if Using_Key then
-            return Base_Name & "_By" & Kit.Tables.Ada_Name (Key);
+            return Base_Name & "_By_" & Kit.Tables.Ada_Name (Key);
          else
             return Base_Name;
          end if;
@@ -381,9 +386,44 @@ package body Kit.Generate.Public_Interface is
 
       Return_Sequence.Append
         (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Lock"));
+           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
 
-      Lock_Sequence.Append ("Result.Index := Index");
+      if Using_Key then
+         Return_Sequence.Append
+           (Table.Ada_Name & "_Impl." & Kit.Tables.Ada_Name (Key)
+            & "_Key_Mutex.Shared_Lock");
+      end if;
+
+      if not Scan then
+         if not Using_Key then
+            Return_Sequence.Append
+              (New_Assignment_Statement
+                 ("Result.Index",
+                  Object ("Marlowe.Database_Index (Reference)")));
+         else
+            null;
+         end if;
+      else
+         if not Using_Key then
+            Return_Sequence.Append ("Result.Index := Index");
+         else
+            Lock_Sequence.Append
+              (New_Assignment_Statement
+                 ("Result.Key_Value",
+                  Object
+                    ("(K_" & Table.Ada_Name & "_"
+                     & Tables.Ada_Name (Key)
+                     & ", M)")));
+            Lock_Sequence.Append
+              (New_Assignment_Statement
+                 ("Result.Index",
+                  New_Function_Call_Expression
+                    ("Marlowe.Key_Storage.To_Database_Index",
+                     New_Function_Call_Expression
+                       ("Marlowe.Btree_Handles.Get_Key",
+                        "M"))));
+         end if;
+      end if;
 
       Fetch_From_Index (Table       => Table,
                         Object_Name => "Result",
@@ -391,6 +431,8 @@ package body Kit.Generate.Public_Interface is
 
       Set_Field (Lock_Sequence, "Finished", not Scan);
       Set_Field (Lock_Sequence, "Forward", First);
+      Set_Field (Lock_Sequence, "Using_Key", Using_Key);
+      Set_Field (Lock_Sequence, "Using_Key_Value", Key_Value);
       Set_Field (Lock_Sequence, "Scanning", Scan);
       Set_Field (Lock_Sequence, "Link_Context.S_Locked", True);
 
@@ -400,19 +442,58 @@ package body Kit.Generate.Public_Interface is
       Invalid_Sequence.Append ("Result.Index := 0");
       Set_Field (Invalid_Sequence, "Link_Context.S_Locked", False);
 
-      Return_Sequence.Append
-        (If_Statement
-           (New_Function_Call_Expression
-              ("Marlowe.Btree_Handles.Valid_Index",
-               "Marlowe_Keys.Handle",
-               Table.Ada_Name & "_Table_Index",
-               "Index"),
-            Lock_Sequence,
-            Invalid_Sequence));
+      if not Using_Key then
+         Return_Sequence.Append
+           (If_Statement
+              (New_Function_Call_Expression
+                 ("Marlowe.Btree_Handles.Valid_Index",
+                  "Marlowe_Keys.Handle",
+                  Table.Ada_Name & "_Table_Index",
+                  "Result.Index"),
+               Lock_Sequence,
+               Invalid_Sequence));
+      else
+         declare
+            use Aquarius.Drys.Declarations;
+            Mark_Block : Aquarius.Drys.Blocks.Block_Type;
+         begin
+            if Key_Value then
+               null;
+            else
+               Mark_Block.Add_Declaration
+                 (New_Constant_Declaration
+                    ("M", "Marlowe.Btree_Handles.Btree_Mark",
+                     New_Function_Call_Expression
+                       ("Marlowe.Btree_Handles.Search",
+                        "Marlowe_Keys.Handle",
+                        "Marlowe_Keys." & Table.Ada_Name
+                        & "_" & Tables.Ada_Name (Key) & "_Ref",
+                        (if First
+                         then "Marlowe.Forward"
+                         else "Marlowe.Backward"))));
+            end if;
+
+            Mark_Block.Append
+              (If_Statement
+                 (New_Function_Call_Expression
+                    ("Marlowe.Btree_Handles.Valid", "M"),
+                  Lock_Sequence,
+                  Invalid_Sequence));
+            Return_Sequence.Append
+              (Declare_Statement
+                 (Mark_Block));
+         end;
+      end if;
 
       Return_Sequence.Append
         (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Unlock"));
+           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+
+      if Using_Key then
+         Return_Sequence.Append
+           (Table.Ada_Name & "_Impl." & Kit.Tables.Ada_Name (Key)
+            & "_Key_Mutex.Shared_Unlock");
+      end if;
 
       declare
          use Aquarius.Drys.Declarations;
@@ -736,6 +817,49 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Next is
          use Aquarius.Drys.Statements;
          Next_Block        : Aquarius.Drys.Blocks.Block_Type;
+         Key_Case          : Case_Statement_Record'Class :=
+                               Case_Statement ("Item.Key_Value.K");
+
+         procedure Add_Key_Case (Base : Kit.Tables.Table_Type'Class;
+                                 Key  : Kit.Tables.Key_Cursor);
+
+         ------------------
+         -- Add_Key_Case --
+         ------------------
+
+         procedure Add_Key_Case (Base : Kit.Tables.Table_Type'Class;
+                                 Key  : Kit.Tables.Key_Cursor)
+         is
+            pragma Unreferenced (Base);
+            Key_Context : constant String :=
+                            "Item.Key_Value."
+                              & Tables.Ada_Name (Key) & "_Context";
+            Sequence : Sequence_Of_Statements;
+         begin
+            Sequence.Append
+              (New_Procedure_Call_Statement
+                 ("Marlowe.Btree_Handles.Next",
+                  Object (Key_Context)));
+            Sequence.Append
+              (New_Assignment_Statement
+                 ("Got_Valid_Index",
+                  New_Function_Call_Expression
+                    ("Marlowe.Btree_Handles.Valid", Key_Context)));
+            Sequence.Append
+              (If_Statement
+                 (Object ("Got_Valid_Index"),
+                  New_Assignment_Statement
+                    ("Item.Index",
+                     New_Function_Call_Expression
+                       ("Marlowe.Key_Storage.To_Database_Index",
+                        New_Function_Call_Expression
+                          ("Marlowe.Btree_Handles.Get_Key",
+                           Key_Context)))));
+            Key_Case.Add_Case_Option
+              ("K_" & Table.Ada_Name & "_" & Tables.Ada_Name (Key),
+               Sequence);
+         end Add_Key_Case;
+
       begin
          Next_Block.Add_Declaration
            (Use_Type ("Marlowe.Database_Index"));
@@ -758,7 +882,6 @@ package body Kit.Generate.Public_Interface is
 
          declare
             Index_Scan : Sequence_Of_Statements;
-            Key_Scan   : Sequence_Of_Statements;
          begin
 
             declare
@@ -795,15 +918,17 @@ package body Kit.Generate.Public_Interface is
                      Valid_Index));
             end;
 
-            Key_Scan.Append
-              (New_Assignment_Statement
-                 ("Got_Valid_Index", Object ("False")));
+            Key_Case.Add_Case_Option
+              ("K_None", Index_Scan);
 
-            Next_Block.Add_Statement
-              (If_Statement
-                 (Operator ("not", Object ("Item.Using_Key")),
-                  Index_Scan,
-                  Key_Scan));
+            Table.Scan_Keys (Add_Key_Case'Access);
+
+            Next_Block.Add_Statement (Key_Case);
+--
+--                (If_Statement
+--                   (Operator ("not", Object ("Item.Using_Key")),
+--                    Index_Scan,
+--                    Key_Scan));
          end;
 
          Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
@@ -925,6 +1050,9 @@ package body Kit.Generate.Public_Interface is
                            Field : Kit.Fields.Field_Type'Class);
       procedure Add_Store (Base  : Kit.Tables.Table_Type'Class;
                            Field : Kit.Fields.Field_Type'Class);
+
+      procedure Create_Key_Get (Base  : Kit.Tables.Table_Type'Class;
+                                Key   : Kit.Tables.Key_Cursor);
 
       procedure Add_Create_Function;
 
@@ -1448,6 +1576,25 @@ package body Kit.Generate.Public_Interface is
 
       end Create_Implementation_Type;
 
+      --------------------
+      -- Create_Key_Get --
+      --------------------
+
+      procedure Create_Key_Get (Base  : Kit.Tables.Table_Type'Class;
+                                Key   : Kit.Tables.Key_Cursor)
+      is
+         pragma Unreferenced (Base);
+      begin
+         Create_Get_Function
+           (Db            => Db,
+            Table         => Table,
+            Table_Package => Table_Package,
+            Scan          => True,
+            First         => True,
+            Key           => Key,
+            Key_Value     => False);
+      end Create_Key_Get;
+
    begin
 
       Table_Package.With_Package ("Ada.Finalization",
@@ -1536,6 +1683,8 @@ package body Kit.Generate.Public_Interface is
          First         => True,
          Key           => Kit.Tables.Null_Key_Cursor,
          Key_Value     => False);
+
+      Table.Scan_Keys (Create_Key_Get'Access);
 
       return Table_Package;
    end Generate_Public_Interface;
