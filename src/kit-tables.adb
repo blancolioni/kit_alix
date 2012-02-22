@@ -285,11 +285,16 @@ package body Kit.Tables is
    is
    begin
       for F of Item.Fields loop
-         if not F.Is_Compound
-           and then F.Field.Name = Field.Name
-           and then F.Is_Key
-         then
-            return True;
+         if not F.Is_Compound then
+            if F.Field.Name = Field.Name
+              and then F.Is_Key
+            then
+               return True;
+            end if;
+         else
+            if F.Compound_Field.Contains (Field) then
+               return True;
+            end if;
          end if;
       end loop;
       return False;
