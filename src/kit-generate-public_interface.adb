@@ -1313,6 +1313,8 @@ package body Kit.Generate.Public_Interface is
 
          use Aquarius.Drys.Statements;
 
+         Is_Key : constant Boolean :=
+                    Base.Is_Key_Field (Field);
          Update_Sequence  : Sequence_Of_Statements;
 
          procedure Update_Key (Key_Base : Kit.Tables.Table_Type'Class;
@@ -1439,9 +1441,11 @@ package body Kit.Generate.Public_Interface is
             Store            : Subprogram_Declaration;
          begin
 
-            Store_Block.Add_Declaration
-              (Aquarius.Drys.Declarations.Use_Type
-                 ("System.Storage_Elements.Storage_Array"));
+            if Is_Key then
+               Store_Block.Add_Declaration
+                 (Aquarius.Drys.Declarations.Use_Type
+                    ("System.Storage_Elements.Storage_Array"));
+            end if;
 
             Store_Block.Add_Declaration
               (Aquarius.Drys.Declarations.Renaming_Declaration
@@ -1451,11 +1455,13 @@ package body Kit.Generate.Public_Interface is
                     & Base.Ada_Name & "_Data.Db."
                     & Field.Ada_Name)));
 
-            Store_Block.Add_Declaration
-              (Aquarius.Drys.Declarations.New_Constant_Declaration
-                 ("Old_Key_Value",
-                  Field.Get_Field_Type.Return_Subtype,
-                  Object ("Item." & Field.Ada_Name)));
+            if Is_Key then
+               Store_Block.Add_Declaration
+                 (Aquarius.Drys.Declarations.New_Constant_Declaration
+                    ("Old_Key_Value",
+                     Field.Get_Field_Type.Return_Subtype,
+                     Object ("Item." & Field.Ada_Name)));
+            end if;
 
             Store_Block.Add_Statement
               (New_Procedure_Call_Statement
@@ -1469,15 +1475,17 @@ package body Kit.Generate.Public_Interface is
                Value_Name  => "Value",
                Sequence    => Store_Block);
 
-            Table.Scan_Keys (Field, Update_Key'Access);
+            if Is_Key then
+               Table.Scan_Keys (Field, Update_Key'Access);
 
-            declare
-               S : constant Statement'Class :=
-                     If_Statement (Object ("not Item.Created"),
-                                   Update_Sequence);
-            begin
-               Store_Block.Append (S);
-            end;
+               declare
+                  S : constant Statement'Class :=
+                        If_Statement (Object ("not Item.Created"),
+                                      Update_Sequence);
+               begin
+                  Store_Block.Append (S);
+               end;
+            end if;
 
             Store_Block.Add_Statement
               (New_Procedure_Call_Statement
