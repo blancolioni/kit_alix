@@ -64,7 +64,7 @@ private
    type Kit_Type is
      abstract new Kit.Names.Root_Named_Object with
       record
-         Size         : Natural;
+         Size         : Natural := 0;
          User_Defined : Boolean := True;
       end record;
 
