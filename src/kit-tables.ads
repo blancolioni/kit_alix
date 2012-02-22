@@ -138,6 +138,38 @@ package Kit.Tables is
      (Table     : in out Table_Type;
       Item      : in     Table_Type'Class);
 
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class)
+      return String;
+
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base_1      : Table_Type'Class;
+      Base_2      : Table_Type'Class)
+      return String;
+
+   function Base_Component_Name
+     (Table : Table_Type'Class)
+      return String;
+
+   function Base_Index_Name
+     (Table : Table_Type'Class)
+      return String;
+
+   function Base_Field_Name
+     (Table  : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class;
+      Field       : Kit.Fields.Field_Type'Class)
+      return String;
+
+   function Index_Image
+     (Table : Table_Type'Class)
+      return String;
+
 private
 
    type Field_Access is access all Kit.Fields.Field_Type'Class;
