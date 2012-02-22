@@ -10,11 +10,11 @@ project Kit is
    for Main use ("kit-driver");
 
    package Builder is
-      for Default_Switches ("ada") use ("-g", "-k", "-s");
+      for Default_Switches ("ada") use ("-g", "-k", "-gnat2012", "-s");
    end Builder;
 
    package Compiler is
-      for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprstBCdOSux", "-gnat2012");
+      for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012");
    end Compiler;
 
    package Linker is
