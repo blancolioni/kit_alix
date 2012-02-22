@@ -275,6 +275,26 @@ package body Kit.Tables is
       return Item.Is_Compound;
    end Is_Compound_Key;
 
+   ------------------
+   -- Is_Key_Field --
+   ------------------
+
+   function Is_Key_Field (Item : Table_Type;
+                          Field : Kit.Fields.Field_Type'Class)
+                          return Boolean
+   is
+   begin
+      for F of Item.Fields loop
+         if not F.Is_Compound
+           and then F.Field.Name = Field.Name
+           and then F.Is_Key
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Is_Key_Field;
+
    ---------------
    -- Is_Unique --
    ---------------
