@@ -29,6 +29,9 @@ package Kit.Tables is
 
    function Has_String_Type (Item : Table_Type) return Boolean;
    function Has_Key_Field (Item : Table_Type) return Boolean;
+   function Is_Key_Field (Item : Table_Type;
+                          Field : Kit.Fields.Field_Type'Class)
+                          return Boolean;
 
    procedure Scan_Fields
      (Table    : Table_Type;
