@@ -29,4 +29,10 @@ private
      (Item : Enumerated_Type)
       return Aquarius.Drys.Declaration'Class;
 
+   overriding
+   function To_Storage_Array
+     (Item        : Enumerated_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class;
+
 end Kit.Types.Enumerated;

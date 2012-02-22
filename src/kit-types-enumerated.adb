@@ -1,4 +1,5 @@
 with Aquarius.Drys.Declarations;
+with Aquarius.Drys.Expressions;
 
 package body Kit.Types.Enumerated is
 
@@ -12,6 +13,11 @@ package body Kit.Types.Enumerated is
    is
    begin
       To.Literals.Append (Literal);
+      if To.Literals.Last_Index = 2 then
+         To.Size := 1;
+      elsif To.Literals.Last_Index mod 256 = 0 then
+         To.Size := To.Size + 1;
+      end if;
    end Add_Literal;
 
    --------------------
@@ -43,5 +49,20 @@ package body Kit.Types.Enumerated is
       return Aquarius.Drys.Declarations.New_Full_Type_Declaration
         (Item.Ada_Name, Definition);
    end To_Declaration;
+
+   function To_Storage_Array
+     (Item        : Enumerated_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
+   is
+      use Aquarius.Drys, Aquarius.Drys.Expressions;
+   begin
+      return New_Function_Call_Expression
+        ("Marlowe.Key_Storage.To_Storage_Array",
+         New_Function_Call_Expression
+           (Item.Ada_Name & "'Pos",
+            Object_Name),
+         Literal (Item.Size));
+   end To_Storage_Array;
 
 end Kit.Types.Enumerated;
