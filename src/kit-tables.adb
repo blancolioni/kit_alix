@@ -1,3 +1,5 @@
+with Ada.Strings.Fixed;
+
 with Aquarius.Drys.Expressions;
 
 package body Kit.Tables is
@@ -86,6 +88,47 @@ package body Kit.Tables is
       Table.Fields.Append (Field);
    end Append;
 
+   -------------------------
+   -- Base_Component_Name --
+   -------------------------
+
+   function Base_Component_Name
+     (Table : Table_Type'Class)
+      return String
+   is
+   begin
+      return ".Local.T" & Table.Index_Image & "_Data";
+   end Base_Component_Name;
+
+   ---------------------
+   -- Base_Field_Name --
+   ---------------------
+
+   function Base_Field_Name
+     (Table  : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class;
+      Field       : Kit.Fields.Field_Type'Class)
+      return String
+   is
+      pragma Unreferenced (Table);
+   begin
+      return Object_Name & Base.Base_Component_Name
+        & ".Db." & Field.Ada_Name;
+   end Base_Field_Name;
+
+   ---------------------
+   -- Base_Index_Name --
+   ---------------------
+
+   function Base_Index_Name
+     (Table : Table_Type'Class)
+      return String
+   is
+   begin
+      return ".T" & Table.Index_Image & "_Idx";
+   end Base_Index_Name;
+
    -------------------
    -- Contains_Base --
    -------------------
@@ -138,6 +181,44 @@ package body Kit.Tables is
       Item.Index := Current_Table;
       Current_Table := Current_Table + 1;
    end Create;
+
+   ------------------------------
+   -- Database_Index_Component --
+   ------------------------------
+
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class)
+      return String
+   is
+   begin
+      if Table.Ada_Name = Base.Ada_Name then
+         return Object_Name & ".Index";
+      else
+         return Object_Name
+           & Table.Base_Component_Name & ".Db"
+           & Base.Base_Index_Name;
+      end if;
+   end Database_Index_Component;
+
+   ------------------------------
+   -- Database_Index_Component --
+   ------------------------------
+
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base_1      : Table_Type'Class;
+      Base_2      : Table_Type'Class)
+      return String
+   is
+      pragma Unreferenced (Table);
+   begin
+      return Object_Name
+        & Base_1.Base_Component_Name & ".Db"
+        & Base_2.Base_Index_Name;
+   end Database_Index_Component;
 
    -------------
    -- Element --
@@ -261,6 +342,20 @@ package body Kit.Tables is
    begin
       return Item.Ada_Name & "_Database_Record";
    end Implementation_Record_Type;
+
+   -----------------
+   -- Index_Image --
+   -----------------
+
+   function Index_Image
+     (Table : Table_Type'Class)
+      return String
+   is
+   begin
+      return Ada.Strings.Fixed.Trim
+        (Marlowe.Table_Index'Image (Table.Index),
+         Ada.Strings.Left);
+   end Index_Image;
 
    ---------------------
    -- Is_Compound_Key --
@@ -726,11 +821,8 @@ package body Kit.Tables is
             Field_Vectors.Element (Field_Vectors.Cursor (Key));
 
       Key_Index : constant String :=
-                    (if Table.Ada_Name = Key_Table.Ada_Name
-                     then Object_Name & ".Index"
-                     else Object_Name & ".Local_Context."
-                     & Table.Ada_Name & "_Data.Db."
-                     & Key_Table.Ada_Name & "_Index");
+                    Table.Database_Index_Component
+                      (Object_Name, Key_Table);
    begin
       if F.Is_Compound then
          declare

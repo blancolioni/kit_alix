@@ -46,7 +46,7 @@ package body Kit.Generate.Private_Interface is
 
       procedure Add_Base_Index (Base : Kit.Tables.Table_Type'Class) is
       begin
-         Record_Defn.Add_Component (Base.Ada_Name & "_Index",
+         Record_Defn.Add_Component ("T" & Base.Index_Image & "_Idx",
                                     "Marlowe.Database_Index");
       end Add_Base_Index;
 

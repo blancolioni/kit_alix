@@ -129,7 +129,7 @@ package body Kit.Generate.Public_Interface is
 
          declare
             X_Locked : constant Expression'Class :=
-                         Object ("Item.Link_Context.X_Locked");
+                         Object ("Item.Link.X_Locked");
             Created  : constant Expression'Class :=
                          Object ("Item.Created");
             X_L_And_C : constant Expression'Class :=
@@ -142,9 +142,9 @@ package body Kit.Generate.Public_Interface is
 
          declare
             S_Locked : constant Expression'Class :=
-                         Object ("Item.Link_Context.S_Locked");
+                         Object ("Item.Link.S_Locked");
             X_Locked : constant Expression'Class :=
-                         Object ("Item.Link_Context.X_Locked");
+                         Object ("Item.Link.X_Locked");
             S_And_X  : constant Expression'Class :=
                          Operator ("or else", S_Locked, X_Locked);
             Same_Context  : constant Expression'Class :=
@@ -154,7 +154,7 @@ package body Kit.Generate.Public_Interface is
                                              S_And_X, Same_Context);
             Unlock        : constant Statement'Class :=
                               New_Procedure_Call_Statement
-                                ("Item.Local_Context.Unlock");
+                                ("Item.Local.Unlock");
             If_Do_Unlock  : constant Statement'Class :=
                               If_Statement (Do_Unlock, Unlock);
          begin
@@ -201,7 +201,7 @@ package body Kit.Generate.Public_Interface is
               ("Memory_Mutex.Lock"));
          Initialize_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Assignment_Statement
-              ("Item.Local_Context",
+              ("Item.Local",
                Aquarius.Drys.Expressions.New_Allocation_Expression
                  ("Local_Lock_Context_Record")));
          Initialize_Block.Add_Statement
@@ -210,9 +210,9 @@ package body Kit.Generate.Public_Interface is
 
          Initialize_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Assignment_Statement
-              ("Item.Link_Context",
+              ("Item.Link",
                Aquarius.Drys.Object
-                 ("Lock_Context (Item.Local_Context)")));
+                 ("Lock_Context (Item.Local)")));
 
          Set_Field ("Finished", "True");
          Set_Field ("Forward", "True");
@@ -224,8 +224,8 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Using_Key", "False");
          Set_Field ("Index", "0");
 
-         Set_Field ("Local_Context.X_Locked", "False");
-         Set_Field ("Local_Context.S_Locked", "False");
+         Set_Field ("Local.X_Locked", "False");
+         Set_Field ("Local.S_Locked", "False");
 
          declare
             Initialize : Subprogram_Declaration :=
@@ -434,13 +434,13 @@ package body Kit.Generate.Public_Interface is
       Set_Field (Lock_Sequence, "Using_Key", Using_Key);
       Set_Field (Lock_Sequence, "Using_Key_Value", Key_Value);
       Set_Field (Lock_Sequence, "Scanning", Scan);
-      Set_Field (Lock_Sequence, "Link_Context.S_Locked", True);
+      Set_Field (Lock_Sequence, "Link.S_Locked", True);
 
       Set_Field (Invalid_Sequence, "Finished", True);
       Set_Field (Invalid_Sequence, "Forward", False);
       Set_Field (Invalid_Sequence, "Scanning", False);
       Invalid_Sequence.Append ("Result.Index := 0");
-      Set_Field (Invalid_Sequence, "Link_Context.S_Locked", False);
+      Set_Field (Invalid_Sequence, "Link.S_Locked", False);
 
       if not Using_Key then
          Return_Sequence.Append
@@ -658,7 +658,7 @@ package body Kit.Generate.Public_Interface is
       begin
          S_Lock_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
-              ("Item." & T.Ada_Name
+              ("Item.T" & T.Index_Image
                & "_Data.S_Lock"));
       end S_Lock;
 
@@ -670,7 +670,7 @@ package body Kit.Generate.Public_Interface is
       begin
          Unlock_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
-              ("Item." & T.Ada_Name
+              ("Item.T" & T.Index_Image
                & "_Data.Unlock"));
       end Unlock;
 
@@ -682,7 +682,7 @@ package body Kit.Generate.Public_Interface is
       begin
          X_Lock_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
-              ("Item." & T.Ada_Name
+              ("Item.T" & T.Index_Image
                & "_Data.X_Lock"));
       end X_Lock;
 
@@ -735,15 +735,15 @@ package body Kit.Generate.Public_Interface is
       X_Lock_Block : Aquarius.Drys.Blocks.Block_Type;
    begin
       Locking_Sequence.Append
-        (New_Procedure_Call_Statement ("Item.Link_Context.Unlock"));
+        (New_Procedure_Call_Statement ("Item.Link.Unlock"));
       Locking_Sequence.Append
-        (New_Procedure_Call_Statement ("Item.Link_Context.X_Lock"));
+        (New_Procedure_Call_Statement ("Item.Link.X_Lock"));
 
       X_Lock_Block.Add_Statement
         (If_Statement
            (Operator
               ("not",
-               Object ("Item.Link_Context.X_Locked")),
+               Object ("Item.Link.X_Locked")),
             Locking_Sequence));
 
       declare
@@ -878,7 +878,7 @@ package body Kit.Generate.Public_Interface is
 
          Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
                                      & ".Shared_Lock");
-         Next_Block.Add_Statement ("Item.Local_Context.Unlock");
+         Next_Block.Add_Statement ("Item.Local.Unlock");
 
          declare
             Index_Scan : Sequence_Of_Statements;
@@ -988,16 +988,12 @@ package body Kit.Generate.Public_Interface is
          use Aquarius.Drys.Statements;
 
          Base_Target    : constant String :=
-                               Object_Name & ".Local_Context."
-                                 & Base.Ada_Name & "_Data";
+                            Object_Name & Base.Base_Component_Name;
          Cache_Package  : constant String :=
                             Base.Ada_Name & "_Cache";
          Index_Variable : constant String :=
-                            (if Base.Ada_Name = Table.Ada_Name
-                             then Object_Name & ".Index"
-                             else Object_Name & ".Local_Context."
-                             & Table.Ada_Name
-                             & "_Data.Db." & Base.Ada_Name & "_Index");
+                            Table.Database_Index_Component
+                              (Object_Name, Base);
       begin
          Target.Append
            (New_Assignment_Statement
@@ -1053,6 +1049,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Key_Get (Base  : Kit.Tables.Table_Type'Class;
                                 Key   : Kit.Tables.Key_Cursor);
+      procedure Create_Reference_Get (Base : Kit.Tables.Table_Type'Class);
 
       procedure Add_Create_Function;
 
@@ -1112,7 +1109,7 @@ package body Kit.Generate.Public_Interface is
          begin
             Sequence.Append
               (New_Assignment_Statement
-                 ("Result.Local_Context." & Base.Ada_Name & "_Data",
+                 ("Result" & Base.Base_Component_Name,
                   New_Allocation_Expression
                     (Base.Ada_Name & "_Cache.Cache_Record")));
          end Allocate_Context;
@@ -1125,10 +1122,8 @@ package body Kit.Generate.Public_Interface is
             use Aquarius.Drys.Expressions;
 
             Index_Field : constant String :=
-                            (if Base.Ada_Name = Table.Ada_Name
-                             then "Result.Index"
-                             else "Result.Local_Context." & Table.Ada_Name
-                             & "_Data.Db." & Base.Ada_Name & "_Index");
+                            Table.Database_Index_Component
+                              ("Result", Base);
 
             procedure Set_Base_Index
               (Meta_Base : Kit.Tables.Table_Type'Class);
@@ -1143,11 +1138,12 @@ package body Kit.Generate.Public_Interface is
             begin
                Sequence.Append
                  (New_Assignment_Statement
-                    ("Result.Local_Context." & Base.Ada_Name & "_Data"
-                     & ".Db." & Meta_Base.Ada_Name & "_Index",
+                    (Table.Database_Index_Component
+                       ("Result", Base, Meta_Base),
                      Object
-                       ("Result.Local_Context." & Table.Ada_Name & "_Data"
-                        & ".Db." & Meta_Base.Ada_Name & "_Index")));
+                       (Table.Database_Index_Component
+                          ("Result",
+                           Meta_Base))));
             end Set_Base_Index;
 
          begin
@@ -1166,7 +1162,7 @@ package body Kit.Generate.Public_Interface is
 
             Sequence.Append
               (New_Procedure_Call_Statement
-                 ("Result.Local_Context." & Base.Ada_Name & "_Data.Initialise",
+                 ("Result" & Base.Base_Component_Name & ".Initialise",
                   Literal (Integer (Base.Reference_Index)),
                   Object (Index_Field)));
 
@@ -1175,18 +1171,16 @@ package body Kit.Generate.Public_Interface is
                  ("Kit.Cache.Insert",
                   New_Function_Call_Expression
                     ("Kit.Cache.Cache_Entry",
-                     "Result.Local_Context." & Base.Ada_Name & "_Data")));
+                     "Result" & Base.Base_Component_Name)));
 
             Sequence.Append
               (New_Procedure_Call_Statement
                  (Base.Ada_Name & "_Impl.Write",
                   Object (Index_Field),
-                  Object
-                    ("Result.Local_Context." & Base.Ada_Name & "_Data"
-                     & ".Db")));
+                  Object ("Result" & Base.Base_Component_Name & ".Db")));
 
             Sequence.Append
-              ("Result.Local_Context." & Base.Ada_Name & "_Data.X_Lock");
+              ("Result" & Base.Base_Component_Name & ".X_Lock");
 
             Sequence.Append (Base.Ada_Name & "_Impl.File_Mutex.Unlock");
          end Database_Insert;
@@ -1211,8 +1205,8 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Created", "True");
          Set_Field ("Deleted", "False");
          Set_Field ("Scanning", "False");
-         Set_Field ("Link_Context.X_Locked", "True");
-         Set_Field ("Link_Context.S_Locked", "False");
+         Set_Field ("Link.X_Locked", "True");
+         Set_Field ("Link.S_Locked", "False");
          Set_Field ("Using_Key", "False");
          Set_Field ("Index", "0");
 
@@ -1230,7 +1224,7 @@ package body Kit.Generate.Public_Interface is
                         Inclusive => True,
                         Table_First => False);
 
-         Sequence.Append ("Result.Local_Context.X_Locked := True");
+         Sequence.Append ("Result.Local.X_Locked := True");
 
          declare
             Block : Aquarius.Drys.Blocks.Block_Type;
@@ -1280,9 +1274,9 @@ package body Kit.Generate.Public_Interface is
               (Aquarius.Drys.Declarations.Renaming_Declaration
                  ("Result",
                   Field.Get_Field_Type.Unconstrained_Record_Subtype,
-                  Object ("Item.Local_Context."
-                    & Base.Ada_Name & "_Data.Db."
-                    & Field.Ada_Name)));
+                  Object
+                    (Table.Base_Field_Name ("Item", Base, Field))));
+
             Block.Add_Statement
               (New_Return_Statement
                  (Field.Get_Field_Type.Return_Value ("Result")));
@@ -1329,11 +1323,8 @@ package body Kit.Generate.Public_Interface is
          is
             Update_Block : Aquarius.Drys.Blocks.Block_Type;
             Record_Index : constant String :=
-                             (if Key_Base.Ada_Name = Table.Ada_Name
-                              then "Item.Index"
-                              else "Item.Local_Context." & Table.Ada_Name
-                                & "_Data.Db." & Key_Base.Ada_Name & "_Index");
-
+                             Table.Database_Index_Component
+                               ("Item", Key_Base);
          begin
             Update_Sequence.Append
               (New_Procedure_Call_Statement
@@ -1451,9 +1442,8 @@ package body Kit.Generate.Public_Interface is
               (Aquarius.Drys.Declarations.Renaming_Declaration
                  ("Target",
                   Field.Get_Field_Type.Unconstrained_Record_Subtype,
-                  Object ("Item.Local_Context."
-                    & Base.Ada_Name & "_Data.Db."
-                    & Field.Ada_Name)));
+                  Object
+                    (Table.Base_Field_Name ("Item", Base, Field))));
 
             if Is_Key then
                Store_Block.Add_Declaration
@@ -1527,11 +1517,11 @@ package body Kit.Generate.Public_Interface is
          procedure Add_Base_Component
            (It : Kit.Tables.Table_Type'Class)
          is
-            Name : constant String := It.Ada_Name;
+            Name : constant String := "T" & It.Index_Image;
          begin
             Context_Defn.Add_Component
               (Name & "_Data",
-               Name & "_Cache.Cache_Access");
+               It.Ada_Name & "_Cache.Cache_Access");
          end Add_Base_Component;
 
       begin
@@ -1570,9 +1560,9 @@ package body Kit.Generate.Public_Interface is
          Record_Defn.Add_Component ("Using_Key_Value", "Boolean");
          Record_Defn.Add_Component ("Key_Value", "Context_Key_Value");
          Record_Defn.Add_Component ("Index", "Marlowe.Database_Index");
-         Record_Defn.Add_Component ("Local_Context",
+         Record_Defn.Add_Component ("Local",
                                     "Local_Lock_Context");
-         Record_Defn.Add_Component ("Link_Context",
+         Record_Defn.Add_Component ("Link",
                                     "Lock_Context");
 
          Table_Package.Append_To_Body
@@ -1602,6 +1592,49 @@ package body Kit.Generate.Public_Interface is
             Key           => Key,
             Key_Value     => False);
       end Create_Key_Get;
+
+      procedure Create_Reference_Get (Base : Kit.Tables.Table_Type'Class) is
+         use Aquarius.Drys.Expressions;
+      begin
+
+         if Base.Ada_Name = Table.Ada_Name then
+            declare
+               Abstract_Get : constant Subprogram_Declaration :=
+                                New_Abstract_Function
+                                  ("Reference",
+                                   New_Formal_Argument ("Item",
+                                     Named_Subtype
+                                       (Table.Ada_Name & "_Interface")),
+                                   Named_Subtype
+                                     (Base.Ada_Name & "_Reference"));
+            begin
+               Table_Package.Append (Abstract_Get);
+               Table_Package.Append (New_Separator);
+            end;
+         end if;
+
+         declare
+               Index_Expression : constant String :=
+                                    Table.Database_Index_Component
+                 ("Item", Base);
+            Get          : Subprogram_Declaration :=
+                             New_Function
+                               ("Reference",
+                                Base.Ada_Name & "_Reference",
+                                New_Function_Call_Expression
+                                  (Base.Ada_Name & "_Reference",
+                                   Index_Expression));
+         begin
+
+            Get.Add_Formal_Argument
+              ("Item",
+               Table.Ada_Name & "_Implementation");
+
+            Get.Set_Overriding;
+            Table_Package.Append_To_Body (Get);
+         end;
+
+      end Create_Reference_Get;
 
    begin
 
@@ -1668,6 +1701,10 @@ package body Kit.Generate.Public_Interface is
         (New_Separator);
 
       Create_Overrides (Db, Table, Table_Package);
+
+      Table.Iterate (Create_Reference_Get'Access,
+                     Inclusive   => True,
+                     Table_First => False);
 
       Table.Iterate_All (Add_Fetch'Access);
       Table.Iterate_All (Add_Store'Access);
