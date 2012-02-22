@@ -36,7 +36,6 @@ package body Kit.Parser is
    begin
       return Tok = Tok_Identifier
         or else Tok = Tok_Key
-        or else Tok = Tok_Compound
         or else Tok = Tok_Unique;
    end At_Field;
 
@@ -113,25 +112,44 @@ package body Kit.Parser is
       begin
          Scan;
 
-         if Tok /= Tok_Colon then
+         if Tok = Tok_Is then
+            --  compound key
 
-            if Db.Contains (Field_Name) then
-
-               declare
-                  Field_Type : constant Kit.Types.Kit_Type'Class :=
-                                 Kit.Types.Table_Reference_Type
-                                   (Field_Name);
-                  Field      : Kit.Fields.Field_Type;
-               begin
-                  Field.Create_Field (Field_Name, Field_Type);
-                  Table.Append (Item      => Field,
-                                Is_Key    => Is_Key,
-                                Is_Unique => Is_Unique);
-               end;
-            else
-               Error ("unknown table");
+            if not Is_Key then
+               Error ("key assumed");
             end if;
-         else
+
+            Scan;
+
+            if Tok /= Tok_Identifier then
+               Error ("missing compound key definition");
+               Skip_To (+(Tok_Semi, Tok_End));
+            else
+               declare
+                  Compound_Field : Kit.Fields.Compound_Field_Type;
+               begin
+                  Compound_Field.Create_Field (Field_Name);
+                  loop
+                     if not Table.Contains_Field (Tok_Text) then
+                        Error (Tok_Raw_Text & ": no such field in table");
+                     else
+                        Table.Add_Field (Compound_Field, Tok_Text);
+                     end if;
+                     Scan;
+                     exit when Tok /= Tok_Comma;
+                     Scan;
+                     if Tok /= Tok_Identifier then
+                        Error ("extra ',' ignored");
+                        exit;
+                     end if;
+                  end loop;
+
+                  Table.Append (Compound_Field);
+               end;
+            end if;
+
+         elsif Tok = Tok_Colon then
+            --  field with explicit type
 
             Scan;
 
@@ -154,6 +172,27 @@ package body Kit.Parser is
                              Is_Key    => Is_Key,
                              Is_Unique => Is_Unique);
             end;
+
+         else
+
+            if Db.Contains (Field_Name) then
+
+               declare
+                  Field_Type : constant Kit.Types.Kit_Type'Class :=
+                                 Kit.Types.Table_Reference_Type
+                                   (Field_Name);
+                  Field      : Kit.Fields.Field_Type;
+               begin
+                  Field.Create_Field (Field_Name, Field_Type);
+                  Table.Append (Item      => Field,
+                                Is_Key    => Is_Key,
+                                Is_Unique => Is_Unique);
+               end;
+            else
+               Error (Field_Name & ": unknown table");
+               Skip_To (+(Tok_Semi, Tok_End));
+            end if;
+
          end if;
 
       end;
