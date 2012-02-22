@@ -49,6 +49,12 @@ package body Kit.Types is
      (Item : Table_Reference_Type_Record)
       return String;
 
+   overriding
+   function To_Storage_Array
+     (Item        : Table_Reference_Type_Record;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class;
+
    type String_Type is new Kit_Type with
       record
          Length : Positive;
@@ -487,6 +493,25 @@ package body Kit.Types is
         ("Marlowe.Key_Storage.To_Storage_Array",
          Object (Object_Name),
          Literal (Item.Size));
+   end To_Storage_Array;
+
+   ----------------------
+   -- To_Storage_Array --
+   ----------------------
+
+   function To_Storage_Array
+     (Item        : Table_Reference_Type_Record;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+      use Aquarius.Drys, Aquarius.Drys.Expressions;
+   begin
+      return New_Function_Call_Expression
+        ("Marlowe.Key_Storage.To_Storage_Array",
+         New_Function_Call_Expression
+           ("Marlowe.Database_Index",
+            Object_Name));
    end To_Storage_Array;
 
    ----------------------
