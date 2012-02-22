@@ -59,6 +59,10 @@ package Kit.Tables is
    function Has_Element (Position : Field_Cursor)
                         return Boolean;
 
+   procedure Scan_References (Table : Table_Type;
+                              Process  : not null access
+                                procedure (Item : Table_Type'Class));
+
    procedure Scan_Keys (Table : Table_Type;
                         Process  : not null access
                           procedure (Item : Key_Cursor));
@@ -131,6 +135,16 @@ package Kit.Tables is
       Is_Key    : in     Boolean;
       Is_Unique : in     Boolean   := False);
 
+   procedure Append
+     (Table     : in out Table_Type;
+      Item      : in     Kit.Fields.Compound_Field_Type'Class;
+      Is_Unique : in     Boolean   := False);
+
+   procedure Add_Field
+     (Table        : in     Table_Type'Class;
+      Compound_Key : in out Kit.Fields.Compound_Field_Type'Class;
+      Field_Name   : in     String);
+
    procedure Add_Base
      (Table     : in out Table_Type;
       Item      : in     Table_Type'Class);
@@ -169,6 +183,10 @@ private
    package Table_Vectors is
       new Ada.Containers.Vectors (Positive, Table_Access);
 
+   function Find_Reference (Table     : Table_Type'Class;
+                            Reference : Table_Type'Class)
+                            return Table_Access;
+
    type Base_Cursor is new Table_Vectors.Cursor;
 
    type Table_Type is
@@ -176,6 +194,7 @@ private
       record
          Index           : Marlowe.Table_Index;
          Bases           : Table_Vectors.Vector;
+         References      : Table_Vectors.Vector;
          Fields          : Field_Vectors.Vector;
          Magic           : Natural;
          Has_String_Type : Boolean := False;

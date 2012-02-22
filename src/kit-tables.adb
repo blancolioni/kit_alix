@@ -4,8 +4,6 @@ package body Kit.Tables is
 
    Current_Table : Marlowe.Table_Index := 1;
 
-   Recursively_Add_Bases : constant Boolean := False;
-
    function Get_Magic_Number
      (From_Text : String)
       return Natural;
@@ -44,20 +42,47 @@ package body Kit.Tables is
          Table.Has_Key_Field := True;
       end if;
 
-      Table.Bases.Append (new Table_Type'Class'(Item));
-      if Recursively_Add_Bases then
-         declare
-            It : Base_Cursor := Item.First_Base;
-         begin
-            while Has_Element (It) loop
-               if not Table.Contains_Base (Element (It).Name) then
-                  Table.Add_Base (Element (It));
-               end if;
-               Next (It);
-            end loop;
-         end;
-      end if;
+      declare
+         New_Item : Table_Access :=
+                      Table.Find_Reference (Item);
+      begin
+         if New_Item = null then
+            New_Item := new Table_Type'Class'(Item);
+            Table.References.Append (New_Item);
+         end if;
+         Table.Bases.Append (New_Item);
+      end;
+
+      for R of Item.References loop
+         if Table.Find_Reference (R.all) = null then
+            Table.References.Append (R);
+         end if;
+      end loop;
+
    end Add_Base;
+
+   ---------------
+   -- Add_Field --
+   ---------------
+
+   procedure Add_Field
+     (Table        : in     Table_Type'Class;
+      Compound_Key : in out Kit.Fields.Compound_Field_Type'Class;
+      Field_Name   : in     String)
+   is
+   begin
+      for F of Table.Fields loop
+         if not F.Is_Compound
+           and then F.Field.Name = Field_Name
+         then
+            Compound_Key.Add_Field (F.Field);
+            return;
+         end if;
+      end loop;
+      raise Constraint_Error with
+        "compound key field " & Field_Name
+          & " does not exist in table " & Table.Ada_Name;
+   end Add_Field;
 
    ------------
    -- Append --
@@ -82,6 +107,28 @@ package body Kit.Tables is
       if Is_Key then
          Table.Has_Key_Field := True;
       end if;
+
+      Table.Fields.Append (Field);
+   end Append;
+
+   ------------
+   -- Append --
+   ------------
+
+   procedure Append
+     (Table     : in out Table_Type;
+      Item      : in     Kit.Fields.Compound_Field_Type'Class;
+      Is_Unique : in     Boolean   := False)
+   is
+      Field : constant Table_Field_Access :=
+                new Table_Field (Is_Compound => True);
+   begin
+      Field.Is_Key := True;
+      Field.Is_Unique_Key := Is_Unique;
+      Field.Compound_Field :=
+        new Kit.Fields.Compound_Field_Type'Class'(Item);
+
+      Table.Has_Key_Field := True;
 
       Table.Fields.Append (Field);
    end Append;
@@ -163,6 +210,23 @@ package body Kit.Tables is
       return Field_Vectors.Element
         (Field_Vectors.Cursor (Position)).Field.all;
    end Element;
+
+   --------------------
+   -- Find_Reference --
+   --------------------
+
+   function Find_Reference (Table     : Table_Type'Class;
+                            Reference : Table_Type'Class)
+                            return Table_Access
+   is
+   begin
+      for R of Table.References loop
+         if R.Ada_Name = Reference.Ada_Name then
+            return R;
+         end if;
+      end loop;
+      return null;
+   end Find_Reference;
 
    -----------------
    -- First_Base --
@@ -684,6 +748,20 @@ package body Kit.Tables is
    begin
       Table.Iterate_All (Call_Process'Access);
    end Scan_Keys;
+
+   ---------------------
+   -- Scan_References --
+   ---------------------
+
+   procedure Scan_References (Table : Table_Type;
+                              Process  : not null access
+                                procedure (Item : Table_Type'Class))
+   is
+   begin
+      for R of Table.References loop
+         Process (R.all);
+      end loop;
+   end Scan_References;
 
    ----------------
    -- To_Storage --
