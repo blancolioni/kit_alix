@@ -6,6 +6,7 @@ with Marlowe;
 
 with Kit.Fields;
 with Kit.Names;
+with Kit.Types;
 
 package Kit.Tables is
 
@@ -103,6 +104,8 @@ package Kit.Tables is
                       return String;
    function Key_Size (Position : Key_Cursor)
                       return Positive;
+   function Key_Type (Position : Key_Cursor)
+                      return Kit.Types.Kit_Type'Class;
    function Has_Element (Position : Key_Cursor)
                          return Boolean;
 
