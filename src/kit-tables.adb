@@ -593,6 +593,21 @@ package body Kit.Tables is
            else Item.Field.Size);
    end Key_Size;
 
+   --------------
+   -- Key_Type --
+   --------------
+
+   function Key_Type (Position : Key_Cursor)
+                      return Kit.Types.Kit_Type'Class
+   is
+      use Field_Vectors;
+      Item : constant Table_Field_Access := Element (Cursor (Position));
+      pragma Assert (not Item.Is_Compound);
+      pragma Assert (Item.Is_Key);
+   begin
+      return Item.Field.Get_Field_Type;
+   end Key_Type;
+
    ------------------
    -- Magic_Number --
    ------------------
