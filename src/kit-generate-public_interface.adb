@@ -85,33 +85,48 @@ package body Kit.Generate.Public_Interface is
          Insert_Keys : Sequence_Of_Statements;
          Finalize_Block : Aquarius.Drys.Blocks.Block_Type;
 
-         procedure Insert_Key (Key_Table : Kit.Tables.Table_Type'Class;
-                               Key       : Kit.Tables.Key_Cursor);
+         procedure Insert_Table_Keys (Base  : Kit.Tables.Table_Type'Class);
 
-         ----------------
-         -- Insert_Key --
-         ----------------
 
-         procedure Insert_Key (Key_Table : Kit.Tables.Table_Type'Class;
-                               Key       : Kit.Tables.Key_Cursor)
+         -----------------------
+         -- Insert_Table_Keys --
+         -----------------------
+
+         procedure Insert_Table_Keys
+           (Base  : Kit.Tables.Table_Type'Class)
          is
-            Insert : Procedure_Call_Statement :=
-                       New_Procedure_Call_Statement
-                         ("Marlowe.Btree_Handles.Insert");
+            procedure Insert_Key (Key_Table : Kit.Tables.Table_Type'Class;
+                                  Key       : Kit.Tables.Key_Cursor);
+
+            ----------------
+            -- Insert_Key --
+            ----------------
+
+            procedure Insert_Key (Key_Table : Kit.Tables.Table_Type'Class;
+                                  Key       : Kit.Tables.Key_Cursor)
+            is
+               pragma Unreferenced (Key_Table);
+               Insert : Procedure_Call_Statement :=
+                          New_Procedure_Call_Statement
+                            ("Marlowe.Btree_Handles.Insert");
+            begin
+               Insert.Add_Actual_Argument ("Marlowe_Keys.Handle");
+               Insert.Add_Actual_Argument ("Marlowe_Keys."
+                                           & Base.Ada_Name
+                                           & "_"
+                                           & Kit.Tables.Ada_Name (Key)
+                                           & "_Ref");
+               Insert.Add_Actual_Argument
+                 (Kit.Tables.To_Storage (Table       => Table,
+                                         Base_Table  => Base,
+                                         Object_Name => "Item",
+                                         Key         => Key));
+               Insert_Keys.Append (Insert);
+            end Insert_Key;
+
          begin
-            Insert.Add_Actual_Argument ("Marlowe_Keys.Handle");
-            Insert.Add_Actual_Argument ("Marlowe_Keys."
-                                        & Table.Ada_Name
-                                        & "_"
-                                        & Kit.Tables.Ada_Name (Key)
-                                        & "_Ref");
-            Insert.Add_Actual_Argument
-              (Kit.Tables.To_Storage (Table       => Table,
-                                      Key_Table   => Key_Table,
-                                      Object_Name => "Item",
-                                      Key         => Key));
-            Insert_Keys.Append (Insert);
-         end Insert_Key;
+            Base.Scan_Keys (Insert_Key'Access);
+         end Insert_Table_Keys;
 
       begin
 
@@ -122,7 +137,11 @@ package body Kit.Generate.Public_Interface is
          Insert_Keys.Append
            (New_Procedure_Call_Statement
               ("Database_Mutex.Shared_Lock"));
-         Table.Scan_Keys (Insert_Key'Access);
+
+         Table.Iterate (Insert_Table_Keys'Access,
+                        Inclusive   => True,
+                        Table_First => False);
+
          Insert_Keys.Append
            (New_Procedure_Call_Statement
               ("Database_Mutex.Shared_Unlock"));
