@@ -810,12 +810,11 @@ package body Kit.Tables is
    ----------------
 
    function To_Storage (Table       : Table_Type'Class;
-                        Key_Table   : Table_Type'Class;
+                        Base_Table  : Table_Type'Class;
                         Object_Name : String;
                         Key         : Key_Cursor)
                         return Aquarius.Drys.Expression'Class
    is
-      pragma Unreferenced (Key_Table);
       use Aquarius.Drys;
       use Aquarius.Drys.Expressions;
       F : constant Table_Field_Access :=
@@ -823,7 +822,7 @@ package body Kit.Tables is
 
       Key_Index : constant String :=
                     Table.Database_Index_Component
-                      (Object_Name, Table);
+                      (Object_Name, Base_Table);
    begin
       if F.Is_Compound then
          declare

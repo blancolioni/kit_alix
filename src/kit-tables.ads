@@ -107,7 +107,7 @@ package Kit.Tables is
                          return Boolean;
 
    function To_Storage (Table       : Table_Type'Class;
-                        Key_Table   : Table_Type'Class;
+                        Base_Table  : Table_Type'Class;
                         Object_Name : String;
                         Key         : Key_Cursor)
                         return Aquarius.Drys.Expression'Class;
