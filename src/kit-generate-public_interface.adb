@@ -6,6 +6,7 @@ with Aquarius.Drys.Statements;
 with Aquarius.Drys.Types;
 
 with Kit.Fields;
+with Kit.Types;
 
 package body Kit.Generate.Public_Interface is
 
@@ -477,7 +478,50 @@ package body Kit.Generate.Public_Interface is
             Mark_Block : Aquarius.Drys.Blocks.Block_Type;
          begin
             if Key_Value then
-               null;
+               declare
+                  Key_To_Storage : constant Expression'Class :=
+                                     Kit.Types.To_Storage_Array
+                                       (Kit.Tables.Key_Type (Key),
+                                        Kit.Tables.Ada_Name (Key));
+                  Start_Storage  : constant Expression'Class :=
+                                     New_Function_Call_Expression
+                                       ("Marlowe.Key_Storage.To_Storage_Array",
+                                        "Marlowe.Database_Index'First");
+                  Last_Storage   : constant Expression'Class :=
+                                     New_Function_Call_Expression
+                                       ("Marlowe.Key_Storage.To_Storage_Array",
+                                        "Marlowe.Database_Index'Last");
+                  Initialiser    : Function_Call_Expression :=
+                                     New_Function_Call_Expression
+                                       ("Marlowe.Btree_Handles.Search");
+               begin
+                  Initialiser.Add_Actual_Argument
+                    (Object ("Marlowe_Keys.Handle"));
+                  Initialiser.Add_Actual_Argument
+                    (Object
+                       ("Marlowe_Keys." & Table.Ada_Name
+                        & "_" & Tables.Ada_Name (Key) & "_Ref"));
+                  Initialiser.Add_Actual_Argument
+                    (Operator ("&", Key_To_Storage, Start_Storage));
+                  Initialiser.Add_Actual_Argument
+                    (Operator ("&", Key_To_Storage, Last_Storage));
+                  Initialiser.Add_Actual_Argument
+                    (Object ("Marlowe.Closed"));
+                  Initialiser.Add_Actual_Argument
+                    (Object ("Marlowe.Closed"));
+                  Initialiser.Add_Actual_Argument
+                    (Object
+                       ((if First
+                        then "Marlowe.Forward"
+                        else "Marlowe.Backward")));
+                  Mark_Block.Add_Declaration
+                    (Use_Type ("System.Storage_Elements.Storage_Array"));
+                  Mark_Block.Add_Declaration
+                    (New_Constant_Declaration
+                       ("M", "Marlowe.Btree_Handles.Btree_Mark",
+                        Initialiser));
+               end;
+
             else
                Mark_Block.Add_Declaration
                  (New_Constant_Declaration
@@ -537,6 +581,14 @@ package body Kit.Generate.Public_Interface is
               (New_Formal_Argument
                  ("Reference",
                   Named_Subtype (Table.Ada_Name & "_Reference")));
+         end if;
+
+         if Using_Key and then Key_Value then
+            Fn.Add_Formal_Argument
+              (New_Formal_Argument
+                 (Kit.Tables.Ada_Name (Key),
+                  Named_Subtype
+                    (Kit.Tables.Key_Type (Key).Argument_Subtype)));
          end if;
 
          Table_Package.Append (Fn);
@@ -1602,15 +1654,21 @@ package body Kit.Generate.Public_Interface is
       is
          pragma Unreferenced (Base);
       begin
-         Create_Get_Function
-           (Db            => Db,
-            Table         => Table,
-            Table_Package => Table_Package,
-            Scan          => True,
-            First         => True,
-            Key           => Key,
-            Key_Value     => False);
+         for Use_Key_Value in Boolean loop
+            Create_Get_Function
+              (Db            => Db,
+               Table         => Table,
+               Table_Package => Table_Package,
+               Scan          => True,
+               First         => True,
+               Key           => Key,
+               Key_Value     => Use_Key_Value);
+         end loop;
       end Create_Key_Get;
+
+      --------------------------
+      -- Create_Reference_Get --
+      --------------------------
 
       procedure Create_Reference_Get (Base : Kit.Tables.Table_Type'Class) is
          use Aquarius.Drys.Expressions;
@@ -1633,16 +1691,16 @@ package body Kit.Generate.Public_Interface is
          end if;
 
          declare
-               Index_Expression : constant String :=
-                                    Table.Database_Index_Component
-                 ("Item", Base);
-            Get          : Subprogram_Declaration :=
-                             New_Function
-                               ("Reference",
-                                Base.Ada_Name & "_Reference",
-                                New_Function_Call_Expression
-                                  (Base.Ada_Name & "_Reference",
-                                   Index_Expression));
+            Index_Expression : constant String :=
+                                 Table.Database_Index_Component
+                                   ("Item", Base);
+            Get              : Subprogram_Declaration :=
+                                 New_Function
+                                   ("Reference",
+                                    Base.Ada_Name & "_Reference",
+                                    New_Function_Call_Expression
+                                      (Base.Ada_Name & "_Reference",
+                                       Index_Expression));
          begin
 
             Get.Add_Formal_Argument
