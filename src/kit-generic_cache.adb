@@ -62,7 +62,7 @@ package body Kit.Generic_Cache is
             Result := Kit.Cache.Cache_Entry (New_Cached_Record);
             Kit.Cache.Insert (Result);
             New_Cached_Record.Unlock;
-            Cache_Mutex.Unlock;
+            Cache_Mutex.Shared_Unlock;
          end;
       end if;
 
