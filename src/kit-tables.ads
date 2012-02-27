@@ -50,6 +50,10 @@ package Kit.Tables is
                             Name     : String)
                            return Boolean;
 
+   function Inherited_Field (Table : Table_Type;
+                             Field : Kit.Fields.Field_Type'Class)
+                             return Boolean;
+
    function First_Base (Table : Table_Type) return Base_Cursor;
    function Contains_Base (Table : Table_Type;
                            Name     : String)
@@ -109,6 +113,11 @@ package Kit.Tables is
    function Has_Element (Position : Key_Cursor)
                          return Boolean;
 
+   function Field_Count (Position : Key_Cursor) return Natural;
+   function Field (Position : Key_Cursor;
+                   Index    : Positive)
+                   return Kit.Fields.Field_Type'Class;
+
    function To_Storage (Table       : Table_Type'Class;
                         Base_Table  : Table_Type'Class;
                         Object_Name : String;
@@ -131,11 +140,31 @@ package Kit.Tables is
                       Inclusive : Boolean;
                       Table_First : Boolean := False);
 
+   procedure Add_Compound_Key_Field
+     (Table        : in out Table_Type;
+      Compound_Key : in out Kit.Fields.Compound_Field_Type;
+      Field_Name   : String)
+   with Pre => Table.Contains_Field (Field_Name);
+
+   function Compound_Field_Count
+     (Key : Key_Cursor)
+      return Natural;
+
+   function Compound_Field
+     (Key : Key_Cursor;
+      Index : Positive)
+      return Kit.Fields.Field_Type'Class;
+
    procedure Append
      (Table     : in out Table_Type;
       Item      : in     Kit.Fields.Field_Type'Class;
       Is_Key    : in     Boolean;
       Is_Unique : in     Boolean   := False);
+
+   procedure Append
+     (Table     : in out Table_Type;
+      Item      : in     Kit.Fields.Compound_Field_Type'Class;
+      Is_Unique : in     Boolean);
 
    procedure Add_Base
      (Table     : in out Table_Type;
@@ -172,6 +201,12 @@ package Kit.Tables is
    function Index_Image
      (Table : Table_Type'Class)
       return String;
+
+   function Key_To_Storage
+     (Table       : Table_Type'Class;
+      Key         : Key_Cursor;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class;
 
 private
 
