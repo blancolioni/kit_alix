@@ -215,6 +215,15 @@ package body Kit.Generate is
            ("X_Lock",
             New_Inout_Argument
               ("Item", Named_Subtype ("Record_Interface"))));
+
+      Top.Append
+        (New_Abstract_Function
+           ("Top_Record",
+            New_Formal_Argument
+              ("Item",
+               Named_Subtype
+                 ("Record_Interface")),
+            Named_Subtype ("Record_Type")));
       Top.Add_Separator;
 
    end Create_Record_Interface;
@@ -291,9 +300,10 @@ package body Kit.Generate is
         (New_Abstract_Function
            ("Has_Element",
             New_Formal_Argument
-              ("Item", Named_Subtype
+              ("Item",
+               Named_Subtype
                  ("Search_Interface")),
-                     Named_Subtype ("Boolean")));
+            Named_Subtype ("Boolean")));
       Top.Add_Separator;
 
       Top.Append
@@ -326,15 +336,15 @@ package body Kit.Generate is
         (Item : Kit.Tables.Table_Type'Class)
       is
       begin
-         Table_Type_Definition.New_Literal ("T_" & Item.Name);
+         Table_Type_Definition.New_Literal ("R_" & Item.Name);
       end Add_Table_Type_Literal;
 
    begin
-      Table_Type_Definition.New_Literal ("T_None");
+      Table_Type_Definition.New_Literal ("R_None");
       Db.Iterate (Add_Table_Type_Literal'Access);
       Top.Append
         (Aquarius.Drys.Declarations.New_Full_Type_Declaration
-           ("Table_Type", Table_Type_Definition));
+           ("Record_Type", Table_Type_Definition));
       Top.Append (Aquarius.Drys.Declarations.New_Separator);
 
    end Create_Table_Type;
