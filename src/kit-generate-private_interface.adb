@@ -46,7 +46,7 @@ package body Kit.Generate.Private_Interface is
 
       procedure Add_Base_Index (Base : Kit.Tables.Table_Type'Class) is
       begin
-         Record_Defn.Add_Component (Base.Ada_Name & "_Index",
+         Record_Defn.Add_Component ("T" & Base.Index_Image & "_Idx",
                                     "Marlowe.Database_Index");
       end Add_Base_Index;
 
@@ -82,6 +82,10 @@ package body Kit.Generate.Private_Interface is
         ("Deleted",
          Aquarius.Drys.Named_Subtype ("Boolean"),
          Aquarius.Drys.Object ("False"));
+
+      Record_Defn.Add_Component
+        ("Actual_Type",
+         Aquarius.Drys.Named_Subtype ("Record_Type"));
 
       Table.Iterate (Process     => Add_Base_Index'Access,
                      Inclusive   => False);

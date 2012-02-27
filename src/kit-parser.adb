@@ -6,13 +6,19 @@ with Kit.Parser.Lexical;               use Kit.Parser.Lexical;
 with Kit.Tables;
 with Kit.Fields;
 with Kit.Types;
+with Kit.Types.Enumerated;
 
 package body Kit.Parser is
 
    procedure Read_Package (Db : in out Kit.Databases.Database_Type);
 
+   function At_Declaration return Boolean;
+
    procedure Parse_Record (Db : in out Kit.Databases.Database_Type)
      with Pre => Tok = Tok_Record;
+
+   procedure Parse_Type_Declaration (Db : in out Kit.Databases.Database_Type)
+     with Pre => Tok = Tok_Type;
 
    procedure Parse_Bases (Db    : Kit.Databases.Database_Type;
                           Table : in out Kit.Tables.Table_Type);
@@ -23,10 +29,21 @@ package body Kit.Parser is
 
    function At_Type return Boolean;
    function Parse_Type
-     (Db : Kit.Databases.Database_Type)
+     (Db           : Kit.Databases.Database_Type;
+      Table_Name   : String;
+      Context_Name : String)
       return Kit.Types.Kit_Type'Class;
 
    function Parse_Qualified_Identifier return String;
+
+   --------------------
+   -- At_Declaration --
+   --------------------
+
+   function At_Declaration return Boolean is
+   begin
+      return Tok = Tok_Record or else Tok = Tok_Type;
+   end At_Declaration;
 
    --------------
    -- At_Field --
@@ -55,7 +72,6 @@ package body Kit.Parser is
    procedure Parse_Bases (Db    : Kit.Databases.Database_Type;
                           Table : in out Kit.Tables.Table_Type)
    is
-      use Set_Of_Tokens;
    begin
       while Tok = Tok_Identifier loop
          if not Db.Contains (Tok_Text) then
@@ -68,7 +84,7 @@ package body Kit.Parser is
          Scan;
          if Tok /= Tok_Identifier then
             Error ("missing base record name");
-            Skip_To (+(Tok_Identifier, Tok_Is));
+            Skip_To ((Tok_Identifier, Tok_Is));
          end if;
       end loop;
    end Parse_Bases;
@@ -80,7 +96,6 @@ package body Kit.Parser is
    procedure Parse_Field (Db    : Kit.Databases.Database_Type;
                           Table : in out Kit.Tables.Table_Type)
    is
-      use Set_Of_Tokens;
       Is_Key    : Boolean := False;
       Is_Unique : Boolean := False;
    begin
@@ -100,7 +115,7 @@ package body Kit.Parser is
 
       if Tok /= Tok_Identifier then
          Error ("missing field name");
-         Skip_To (+(Tok_Semi, Tok_End));
+         Skip_To ((Tok_Semi, Tok_End));
          if Tok = Tok_Semi then
             Scan;
          end if;
@@ -113,69 +128,38 @@ package body Kit.Parser is
          Scan;
 
          if Tok = Tok_Is then
-            --  compound key
-
-            if not Is_Key then
-               Error ("key assumed");
-            end if;
-
             Scan;
-
-            if Tok /= Tok_Identifier then
-               Error ("missing compound key definition");
-               Skip_To (+(Tok_Semi, Tok_End));
-            else
-               declare
-                  Compound_Field : Kit.Fields.Compound_Field_Type;
-               begin
-                  Compound_Field.Create_Field (Field_Name);
-                  loop
-                     if not Table.Contains_Field (Tok_Text) then
-                        Error (Tok_Raw_Text & ": no such field in table");
-                     else
-                        Table.Add_Field (Compound_Field, Tok_Text);
-                     end if;
-                     Scan;
-                     exit when Tok /= Tok_Comma;
-                     Scan;
-                     if Tok /= Tok_Identifier then
-                        Error ("extra ',' ignored");
-                        exit;
-                     end if;
-                  end loop;
-
-                  Table.Append (Compound_Field);
-               end;
-            end if;
-
-         elsif Tok = Tok_Colon then
-            --  field with explicit type
-
-            Scan;
-
-            if not At_Type then
-               Error ("missing field type");
-               Skip_To (+(Tok_Semi, Tok_End));
-               if Tok = Tok_Semi then
-                  Scan;
-               end if;
-               return;
-            end if;
 
             declare
-               Field_Type : constant Kit.Types.Kit_Type'Class :=
-                              Parse_Type (Db);
-               Field      : Kit.Fields.Field_Type;
+               Field : Kit.Fields.Compound_Field_Type;
             begin
-               Field.Create_Field (Field_Name, Field_Type);
-               Table.Append (Item      => Field,
-                             Is_Key    => Is_Key,
-                             Is_Unique => Is_Unique);
+               Field.Create_Field (Field_Name);
+               loop
+                  if Table.Contains_Field (Tok_Text) then
+                     Table.Add_Compound_Key_Field
+                       (Field, Tok_Text);
+                  else
+                     Error ("table " & Table.Ada_Name
+                            & " does not contain field "
+                            & Tok_Raw_Text);
+                  end if;
+                  Scan;
+                  exit when Tok /= Tok_Comma;
+                  Scan;
+                  if Tok /= Tok_Identifier then
+                     Error ("extra ',' ignored");
+                     exit;
+                  end if;
+               end loop;
+
+               Table.Append (Field, Is_Unique);
             end;
 
-         else
+         elsif Tok /= Tok_Colon then
 
-            if Db.Contains (Field_Name) then
+            if Field_Name = Table.Name
+              or else Db.Contains (Field_Name)
+            then
 
                declare
                   Field_Type : constant Kit.Types.Kit_Type'Class :=
@@ -189,10 +173,31 @@ package body Kit.Parser is
                                 Is_Unique => Is_Unique);
                end;
             else
-               Error (Field_Name & ": unknown table");
-               Skip_To (+(Tok_Semi, Tok_End));
+               Error ("unknown table");
+            end if;
+         else
+
+            Scan;
+
+            if not At_Type then
+               Error ("missing field type");
+               Skip_To (Tok_Semi, Tok_End);
+               if Tok = Tok_Semi then
+                  Scan;
+               end if;
+               return;
             end if;
 
+            declare
+               Field_Type : constant Kit.Types.Kit_Type'Class :=
+                              Parse_Type (Db, Table.Name, Field_Name);
+               Field      : Kit.Fields.Field_Type;
+            begin
+               Field.Create_Field (Field_Name, Field_Type);
+               Table.Append (Item      => Field,
+                             Is_Key    => Is_Key,
+                             Is_Unique => Is_Unique);
+            end;
          end if;
 
       end;
@@ -226,13 +231,12 @@ package body Kit.Parser is
    ------------------
 
    procedure Parse_Record (Db : in out Kit.Databases.Database_Type) is
-      use Set_Of_Tokens;
    begin
       Scan;   --  Tok_Record
 
       if Tok /= Tok_Identifier then
          Error ("expected record name");
-         Skip_To (+Tok_End);
+         Skip_To (Tok_End);
       else
          declare
             Record_Name : constant String := Tok_Text;
@@ -252,7 +256,7 @@ package body Kit.Parser is
                   Parse_Field (Db, Table);
                end loop;
 
-               Expect (Tok_End, +Tok_End);
+               Expect (Tok_End, Tok_End);
 
                if Tok = Tok_End then
                   Scan;
@@ -284,47 +288,128 @@ package body Kit.Parser is
    ----------------
 
    function Parse_Type
-     (Db : Kit.Databases.Database_Type)
+     (Db           : Kit.Databases.Database_Type;
+      Table_Name   : String;
+      Context_Name : String)
       return Kit.Types.Kit_Type'Class
    is
-      use Set_Of_Tokens;
-      Name     : constant String := Tok_Text;
-      Raw_Name : constant String := Tok_Raw_Text;
       Location : constant GCS.Positions.File_Position :=
                    Get_Current_Position;
    begin
       pragma Assert (At_Type);
-      Scan;
-      if Name = "positive" then
-         return Kit.Types.Standard_Positive;
-      elsif Name = "natural" then
-         return Kit.Types.Standard_Natural;
-      elsif Name = "integer" then
-         return Kit.Types.Standard_Integer;
-      elsif Name = "string" then
-         if Tok /= Tok_Left_Paren
-           or else Next_Tok /= Tok_Integer_Constant
-           or else Next_Tok (2) /= Tok_Right_Paren
-         then
-            Error ("missing constraint");
-            Skip_To (+(Tok_Semi, Tok_End));
-            return Kit.Types.Standard_String (32);
-         end if;
-         Scan;
+
+      if Tok = Tok_Identifier then
          declare
-            Length : constant Natural := Natural'Value (Tok_Text);
+            Name     : constant String := Tok_Text;
+            Raw_Name : constant String := Tok_Raw_Text;
          begin
             Scan;
-            Scan;
-            return Kit.Types.Standard_String (Length);
+
+            if Kit.Types.Is_Type_Name (Name) then
+               return Kit.Types.Get_Type (Name);
+            elsif Name = "string" then
+               if Tok /= Tok_Left_Paren
+                 or else Next_Tok /= Tok_Integer_Constant
+                 or else Next_Tok (2) /= Tok_Right_Paren
+               then
+                  Error ("missing constraint");
+                  Skip_To (Tok_Semi, Tok_End);
+                  return Kit.Types.Standard_String (32);
+               end if;
+               Scan;
+               declare
+                  Length : constant Natural := Natural'Value (Tok_Text);
+               begin
+                  Scan;
+                  Scan;
+                  return Kit.Types.Standard_String (Length);
+               end;
+            elsif Name = Table_Name or else Db.Contains (Name) then
+               return Kit.Types.Table_Reference_Type (Name);
+            else
+               Error (Location, Raw_Name & ": no such type or record name");
+               return Kit.Types.Standard_Integer;
+            end if;
          end;
-      elsif Db.Contains (Name) then
-         return Kit.Types.Table_Reference_Type (Name);
+      elsif Tok = Tok_Left_Paren then
+         declare
+            Result : Kit.Types.Enumerated.Enumerated_Type;
+         begin
+            Result.Create (Context_Name);
+            Scan;
+            loop
+               if Tok = Tok_Identifier then
+                  Result.Add_Literal (Tok_Text);
+                  Scan;
+                  exit when Tok /= Tok_Comma;
+                  Scan;
+               else
+                  Error ("missing enumerator literal");
+                  Skip_To (Tok_Right_Paren, Tok_Semi, Tok_End);
+                  exit;
+               end if;
+            end loop;
+
+            if Tok = Tok_Right_Paren then
+               Scan;
+            else
+               Error ("missing ')'");
+            end if;
+
+            return Result;
+         end;
       else
-         Error (Location, Raw_Name & ": no such type or record name");
-         return Kit.Types.Standard_Integer;
+         raise Program_Error with "expected to be at a type";
       end if;
+
    end Parse_Type;
+
+   ----------------------------
+   -- Parse_Type_Declaration --
+   ----------------------------
+
+   procedure Parse_Type_Declaration
+     (Db : in out Kit.Databases.Database_Type)
+   is
+   begin
+      Scan;  --  Tok_Type
+
+      if Tok /= Tok_Identifier then
+         Error ("expected a type name");
+         Skip_To (Skip_To_And_Parse => (1 => Tok_Semi),
+                  Skip_To_And_Stop  =>  (1 => Tok_End));
+         return;
+      end if;
+
+      declare
+         Name : constant String := Tok_Text;
+      begin
+         Scan;
+         if Tok /= Tok_Is then
+            Error ("missing 'is'");
+            Skip_To (Skip_To_And_Parse => (1 => Tok_Semi),
+                     Skip_To_And_Stop  =>  (1 => Tok_End));
+            return;
+         end if;
+
+         Scan;
+
+         declare
+            New_Type : constant Kit.Types.Kit_Type'Class :=
+                         Parse_Type (Db, "", Name);
+         begin
+            Kit.Types.New_Type (New_Type);
+         end;
+
+         if Tok = Tok_Semi then
+            Scan;
+         else
+            Error ("missing ';'");
+         end if;
+      end;
+
+
+   end Parse_Type_Declaration;
 
    -------------------
    -- Read_Kit_File --
@@ -347,7 +432,6 @@ package body Kit.Parser is
    ------------------
 
    procedure Read_Package (Db : in out Kit.Databases.Database_Type) is
-      use Set_Of_Tokens;
    begin
       if Tok /= Tok_Package then
          Error ("missing package");
@@ -358,15 +442,21 @@ package body Kit.Parser is
       declare
          Package_Name : constant String := Parse_Qualified_Identifier;
       begin
-         Expect (Tok_Is, +(Tok_Record, Tok_End));
+         Expect (Tok_Is, (Tok_Record, Tok_End));
 
          Db.Create_Database (Package_Name);
 
-         while Tok = Tok_Record loop
-            Parse_Record (Db);
+         while At_Declaration loop
+            if Tok = Tok_Record then
+               Parse_Record (Db);
+            elsif Tok = Tok_Type then
+               Parse_Type_Declaration (Db);
+            else
+               pragma Assert (False);
+            end if;
          end loop;
 
-         Expect (Tok_End, +Tok_End);
+         Expect (Tok_End, Tok_End);
 
          if Tok = Tok_End then
             Scan;

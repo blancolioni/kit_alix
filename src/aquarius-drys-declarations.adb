@@ -117,6 +117,18 @@ package body Aquarius.Drys.Declarations is
       Item.Add_Generic_Actual_Argument (Image);
    end Add_Generic_Actual_Argument;
 
+   ---------------------------
+   -- Add_Local_Declaration --
+   ---------------------------
+
+   procedure Add_Local_Declaration
+     (Subprogram : in out Subprogram_Declaration;
+      Dec        : in     Declaration'Class)
+   is
+   begin
+      Subprogram.Sub_Body.Add_Declaration (Dec);
+   end Add_Local_Declaration;
+
    -------------------
    -- Add_Separator --
    -------------------
@@ -1318,7 +1330,8 @@ package body Aquarius.Drys.Declarations is
 
       if Item.Is_Function then
          if Item.Arguments.Last_Index > 1 then
-            Writer.Set_Col (Arg_Start_Column);
+            Writer.New_Line;
+            Writer.Set_Col (Arg_Start_Column + 2);
          else
             Writer.Put (" ");
          end if;

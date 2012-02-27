@@ -1,5 +1,18 @@
 package body Kit.Fields is
 
+
+   --------------
+   -- Ada_Name --
+   --------------
+
+   function Ada_Name (Item  : Compound_Field_Type;
+                      Index : Positive)
+                      return String
+   is
+   begin
+      return Item.Fields.Element (Index).Ada_Name;
+   end Ada_Name;
+
    ---------------
    -- Add_Field --
    ---------------
@@ -64,6 +77,27 @@ package body Kit.Fields is
    begin
       return Left.Ada_Name = Right.Ada_Name;
    end Equal_Fields;
+
+   -----------
+   -- Field --
+   -----------
+
+   function Field (Item : Compound_Field_Type;
+                   Index : Positive)
+                   return Field_Type'Class
+   is
+   begin
+      return Field_Type'Class (Item.Fields.Element (Index).all);
+   end Field;
+
+   -----------------
+   -- Field_Count --
+   -----------------
+
+   function Field_Count (Item : Compound_Field_Type) return Natural is
+   begin
+      return Item.Fields.Last_Index;
+   end Field_Count;
 
    --------------------
    -- Get_Field_Type --

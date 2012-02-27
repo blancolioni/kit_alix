@@ -8,11 +8,15 @@ with Kit.Databases;
 with Kit.Parser;
 with Kit.Generate;
 
+with Kit.Types;
+
 with GCS.Errors;
 
 procedure Kit.Driver is
    Db : Kit.Databases.Database_Type;
 begin
+
+   Kit.Types.Create_Standard_Types;
 
    Kit.Parser.Read_Kit_File (Ada.Command_Line.Argument (1), Db);
 

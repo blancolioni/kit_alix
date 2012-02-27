@@ -6,6 +6,7 @@ with Marlowe;
 
 with Kit.Fields;
 with Kit.Names;
+with Kit.Types;
 
 package Kit.Tables is
 
@@ -29,6 +30,9 @@ package Kit.Tables is
 
    function Has_String_Type (Item : Table_Type) return Boolean;
    function Has_Key_Field (Item : Table_Type) return Boolean;
+   function Is_Key_Field (Item : Table_Type;
+                          Field : Kit.Fields.Field_Type'Class)
+                          return Boolean;
 
    procedure Scan_Fields
      (Table    : Table_Type;
@@ -46,6 +50,10 @@ package Kit.Tables is
                             Name     : String)
                            return Boolean;
 
+   function Inherited_Field (Table : Table_Type;
+                             Field : Kit.Fields.Field_Type'Class)
+                             return Boolean;
+
    function First_Base (Table : Table_Type) return Base_Cursor;
    function Contains_Base (Table : Table_Type;
                            Name     : String)
@@ -58,10 +66,6 @@ package Kit.Tables is
                     return Kit.Fields.Field_Type'Class;
    function Has_Element (Position : Field_Cursor)
                         return Boolean;
-
-   procedure Scan_References (Table : Table_Type;
-                              Process  : not null access
-                                procedure (Item : Table_Type'Class));
 
    procedure Scan_Keys (Table : Table_Type;
                         Process  : not null access
@@ -104,11 +108,18 @@ package Kit.Tables is
                       return String;
    function Key_Size (Position : Key_Cursor)
                       return Positive;
+   function Key_Type (Position : Key_Cursor)
+                      return Kit.Types.Kit_Type'Class;
    function Has_Element (Position : Key_Cursor)
                          return Boolean;
 
+   function Field_Count (Position : Key_Cursor) return Natural;
+   function Field (Position : Key_Cursor;
+                   Index    : Positive)
+                   return Kit.Fields.Field_Type'Class;
+
    function To_Storage (Table       : Table_Type'Class;
-                        Key_Table   : Table_Type'Class;
+                        Base_Table  : Table_Type'Class;
                         Object_Name : String;
                         Key         : Key_Cursor)
                         return Aquarius.Drys.Expression'Class;
@@ -129,6 +140,21 @@ package Kit.Tables is
                       Inclusive : Boolean;
                       Table_First : Boolean := False);
 
+   procedure Add_Compound_Key_Field
+     (Table        : in out Table_Type;
+      Compound_Key : in out Kit.Fields.Compound_Field_Type;
+      Field_Name   : String)
+   with Pre => Table.Contains_Field (Field_Name);
+
+   function Compound_Field_Count
+     (Key : Key_Cursor)
+      return Natural;
+
+   function Compound_Field
+     (Key : Key_Cursor;
+      Index : Positive)
+      return Kit.Fields.Field_Type'Class;
+
    procedure Append
      (Table     : in out Table_Type;
       Item      : in     Kit.Fields.Field_Type'Class;
@@ -138,16 +164,49 @@ package Kit.Tables is
    procedure Append
      (Table     : in out Table_Type;
       Item      : in     Kit.Fields.Compound_Field_Type'Class;
-      Is_Unique : in     Boolean   := False);
-
-   procedure Add_Field
-     (Table        : in     Table_Type'Class;
-      Compound_Key : in out Kit.Fields.Compound_Field_Type'Class;
-      Field_Name   : in     String);
+      Is_Unique : in     Boolean);
 
    procedure Add_Base
      (Table     : in out Table_Type;
       Item      : in     Table_Type'Class);
+
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class)
+      return String;
+
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base_1      : Table_Type'Class;
+      Base_2      : Table_Type'Class)
+      return String;
+
+   function Base_Component_Name
+     (Table : Table_Type'Class)
+      return String;
+
+   function Base_Index_Name
+     (Table : Table_Type'Class)
+      return String;
+
+   function Base_Field_Name
+     (Table  : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class;
+      Field       : Kit.Fields.Field_Type'Class)
+      return String;
+
+   function Index_Image
+     (Table : Table_Type'Class)
+      return String;
+
+   function Key_To_Storage
+     (Table       : Table_Type'Class;
+      Key         : Key_Cursor;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class;
 
 private
 
@@ -183,10 +242,6 @@ private
    package Table_Vectors is
       new Ada.Containers.Vectors (Positive, Table_Access);
 
-   function Find_Reference (Table     : Table_Type'Class;
-                            Reference : Table_Type'Class)
-                            return Table_Access;
-
    type Base_Cursor is new Table_Vectors.Cursor;
 
    type Table_Type is
@@ -194,7 +249,6 @@ private
       record
          Index           : Marlowe.Table_Index;
          Bases           : Table_Vectors.Vector;
-         References      : Table_Vectors.Vector;
          Fields          : Field_Vectors.Vector;
          Magic           : Natural;
          Has_String_Type : Boolean := False;

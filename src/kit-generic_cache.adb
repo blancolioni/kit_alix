@@ -1,7 +1,11 @@
+with Ada.Text_IO;
+
 with Kit.Exceptions;
 with Kit.Mutex;
 
 package body Kit.Generic_Cache is
+
+   Debug_Cache : constant Boolean := False;
 
    Cache_Mutex : Kit.Mutex.Mutex_Type;
 
@@ -20,6 +24,10 @@ package body Kit.Generic_Cache is
    begin
       Cache.Lock_Cache;
       Result := Kit.Cache.Retrieve (Table, Index);
+
+      if Debug_Cache then
+         Ada.Text_IO.Put_Line ("cache-get:" & Table'Img & Index'Img);
+      end if;
 
       if Result = null then
          declare
@@ -54,7 +62,7 @@ package body Kit.Generic_Cache is
             Result := Kit.Cache.Cache_Entry (New_Cached_Record);
             Kit.Cache.Insert (Result);
             New_Cached_Record.Unlock;
-            Cache_Mutex.Unlock;
+            Cache_Mutex.Shared_Unlock;
          end;
       end if;
 

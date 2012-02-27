@@ -1,8 +1,12 @@
+with Ada.Strings.Fixed;
+
 with Aquarius.Drys.Expressions;
 
 package body Kit.Tables is
 
    Current_Table : Marlowe.Table_Index := 1;
+
+   Recursively_Add_Bases : constant Boolean := False;
 
    function Get_Magic_Number
      (From_Text : String)
@@ -42,33 +46,29 @@ package body Kit.Tables is
          Table.Has_Key_Field := True;
       end if;
 
-      declare
-         New_Item : Table_Access :=
-                      Table.Find_Reference (Item);
-      begin
-         if New_Item = null then
-            New_Item := new Table_Type'Class'(Item);
-            Table.References.Append (New_Item);
-         end if;
-         Table.Bases.Append (New_Item);
-      end;
-
-      for R of Item.References loop
-         if Table.Find_Reference (R.all) = null then
-            Table.References.Append (R);
-         end if;
-      end loop;
-
+      Table.Bases.Append (new Table_Type'Class'(Item));
+      if Recursively_Add_Bases then
+         declare
+            It : Base_Cursor := Item.First_Base;
+         begin
+            while Has_Element (It) loop
+               if not Table.Contains_Base (Element (It).Name) then
+                  Table.Add_Base (Element (It));
+               end if;
+               Next (It);
+            end loop;
+         end;
+      end if;
    end Add_Base;
 
-   ---------------
-   -- Add_Field --
-   ---------------
+   ----------------------------
+   -- Add_Compound_Key_Field --
+   ----------------------------
 
-   procedure Add_Field
-     (Table        : in     Table_Type'Class;
-      Compound_Key : in out Kit.Fields.Compound_Field_Type'Class;
-      Field_Name   : in     String)
+   procedure Add_Compound_Key_Field
+     (Table        : in out Table_Type;
+      Compound_Key : in out Kit.Fields.Compound_Field_Type;
+      Field_Name   : String)
    is
    begin
       for F of Table.Fields loop
@@ -79,10 +79,7 @@ package body Kit.Tables is
             return;
          end if;
       end loop;
-      raise Constraint_Error with
-        "compound key field " & Field_Name
-          & " does not exist in table " & Table.Ada_Name;
-   end Add_Field;
+   end Add_Compound_Key_Field;
 
    ------------
    -- Append --
@@ -118,10 +115,9 @@ package body Kit.Tables is
    procedure Append
      (Table     : in out Table_Type;
       Item      : in     Kit.Fields.Compound_Field_Type'Class;
-      Is_Unique : in     Boolean   := False)
+      Is_Unique : in     Boolean)
    is
-      Field : constant Table_Field_Access :=
-                new Table_Field (Is_Compound => True);
+      Field : constant Table_Field_Access := new Table_Field (True);
    begin
       Field.Is_Key := True;
       Field.Is_Unique_Key := Is_Unique;
@@ -132,6 +128,76 @@ package body Kit.Tables is
 
       Table.Fields.Append (Field);
    end Append;
+
+   -------------------------
+   -- Base_Component_Name --
+   -------------------------
+
+   function Base_Component_Name
+     (Table : Table_Type'Class)
+      return String
+   is
+   begin
+      return ".Local.T" & Table.Index_Image & "_Data";
+   end Base_Component_Name;
+
+   ---------------------
+   -- Base_Field_Name --
+   ---------------------
+
+   function Base_Field_Name
+     (Table  : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class;
+      Field       : Kit.Fields.Field_Type'Class)
+      return String
+   is
+      pragma Unreferenced (Table);
+   begin
+      return Object_Name & Base.Base_Component_Name
+        & ".Db." & Field.Ada_Name;
+   end Base_Field_Name;
+
+   ---------------------
+   -- Base_Index_Name --
+   ---------------------
+
+   function Base_Index_Name
+     (Table : Table_Type'Class)
+      return String
+   is
+   begin
+      return ".T" & Table.Index_Image & "_Idx";
+   end Base_Index_Name;
+
+   function Compound_Field
+     (Key : Key_Cursor;
+      Index : Positive)
+      return Kit.Fields.Field_Type'Class
+   is
+      It    : constant Field_Vectors.Cursor :=
+                Field_Vectors.Cursor (Key);
+      Field : Kit.Fields.Compound_Field_Type'Class
+      renames Field_Vectors.Element (It).Compound_Field.all;
+   begin
+      return Field.Field (Index);
+   end Compound_Field;
+
+   --------------------------
+   -- Compound_Field_Count --
+   --------------------------
+
+   function Compound_Field_Count
+     (Key : Key_Cursor)
+      return Natural
+   is
+      It    : constant Field_Vectors.Cursor :=
+                Field_Vectors.Cursor (Key);
+      Field : Kit.Fields.Compound_Field_Type'Class
+      renames Field_Vectors.Element (It).Compound_Field.all;
+   begin
+      return Field.Field_Count;
+   end Compound_Field_Count;
 
    -------------------
    -- Contains_Base --
@@ -186,6 +252,44 @@ package body Kit.Tables is
       Current_Table := Current_Table + 1;
    end Create;
 
+   ------------------------------
+   -- Database_Index_Component --
+   ------------------------------
+
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base        : Table_Type'Class)
+      return String
+   is
+   begin
+      if Table.Ada_Name = Base.Ada_Name then
+         return Object_Name & ".Index";
+      else
+         return Object_Name
+           & Table.Base_Component_Name & ".Db"
+           & Base.Base_Index_Name;
+      end if;
+   end Database_Index_Component;
+
+   ------------------------------
+   -- Database_Index_Component --
+   ------------------------------
+
+   function Database_Index_Component
+     (Table       : Table_Type'Class;
+      Object_Name : String;
+      Base_1      : Table_Type'Class;
+      Base_2      : Table_Type'Class)
+      return String
+   is
+      pragma Unreferenced (Table);
+   begin
+      return Object_Name
+        & Base_1.Base_Component_Name & ".Db"
+        & Base_2.Base_Index_Name;
+   end Database_Index_Component;
+
    -------------
    -- Element --
    -------------
@@ -211,26 +315,45 @@ package body Kit.Tables is
         (Field_Vectors.Cursor (Position)).Field.all;
    end Element;
 
-   --------------------
-   -- Find_Reference --
-   --------------------
+   -----------
+   -- Field --
+   -----------
 
-   function Find_Reference (Table     : Table_Type'Class;
-                            Reference : Table_Type'Class)
-                            return Table_Access
+   function Field (Position : Key_Cursor;
+                   Index    : Positive)
+                   return Kit.Fields.Field_Type'Class
    is
+      F : constant Table_Field_Access :=
+            Field_Vectors.Element
+              (Field_Vectors.Cursor (Position));
    begin
-      for R of Table.References loop
-         if R.Ada_Name = Reference.Ada_Name then
-            return R;
-         end if;
-      end loop;
-      return null;
-   end Find_Reference;
+      if F.Is_Compound then
+         return F.Compound_Field.Field (Index);
+      else
+         pragma Assert (Index = 1);
+         return F.Field.all;
+      end if;
+   end Field;
 
    -----------------
-   -- First_Base --
+   -- Field_Count --
    -----------------
+
+   function Field_Count (Position : Key_Cursor) return Natural is
+      F : constant Table_Field_Access :=
+            Field_Vectors.Element
+              (Field_Vectors.Cursor (Position));
+   begin
+      if F.Is_Compound then
+         return F.Compound_Field.Field_Count;
+      else
+         return 1;
+      end if;
+   end Field_Count;
+
+   ----------------
+   -- First_Base --
+   ----------------
 
    function First_Base (Table : Table_Type) return Base_Cursor is
    begin
@@ -326,6 +449,39 @@ package body Kit.Tables is
       return Item.Ada_Name & "_Database_Record";
    end Implementation_Record_Type;
 
+   -----------------
+   -- Index_Image --
+   -----------------
+
+   function Index_Image
+     (Table : Table_Type'Class)
+      return String
+   is
+   begin
+      return Ada.Strings.Fixed.Trim
+        (Marlowe.Table_Index'Image (Table.Index),
+         Ada.Strings.Left);
+   end Index_Image;
+
+   ---------------------
+   -- Inherited_Field --
+   ---------------------
+
+   function Inherited_Field (Table : Table_Type;
+                             Field : Kit.Fields.Field_Type'Class)
+                             return Boolean
+   is
+   begin
+      for F of Table.Fields loop
+         if not F.Is_Compound
+           and then F.Field.Ada_Name = Field.Ada_Name
+         then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Inherited_Field;
+
    ---------------------
    -- Is_Compound_Key --
    ---------------------
@@ -338,6 +494,31 @@ package body Kit.Tables is
    begin
       return Item.Is_Compound;
    end Is_Compound_Key;
+
+   ------------------
+   -- Is_Key_Field --
+   ------------------
+
+   function Is_Key_Field (Item : Table_Type;
+                          Field : Kit.Fields.Field_Type'Class)
+                          return Boolean
+   is
+   begin
+      for F of Item.Fields loop
+         if not F.Is_Compound then
+            if F.Field.Name = Field.Name
+              and then F.Is_Key
+            then
+               return True;
+            end if;
+         else
+            if F.Compound_Field.Contains (Field) then
+               return True;
+            end if;
+         end if;
+      end loop;
+      return False;
+   end Is_Key_Field;
 
    ---------------
    -- Is_Unique --
@@ -491,9 +672,14 @@ package body Kit.Tables is
          It : Field_Vectors.Cursor := T.Fields.First;
       begin
          while Field_Vectors.Has_Element (It) loop
-            if not Field_Vectors.Element (It).Is_Compound then
-               Process (T, Field_Cursor (It));
-            end if;
+            declare
+               F : constant Table_Field_Access :=
+                     Field_Vectors.Element (It);
+            begin
+               if not F.Is_Compound then
+                  Process (T, Field_Cursor (It));
+               end if;
+            end;
             Field_Vectors.Next (It);
          end loop;
       end Iterate_Fields;
@@ -536,6 +722,62 @@ package body Kit.Tables is
            then Item.Compound_Field.Size
            else Item.Field.Size);
    end Key_Size;
+
+   --------------------
+   -- Key_To_Storage --
+   --------------------
+
+   function Key_To_Storage
+     (Table       : Table_Type'Class;
+      Key         : Key_Cursor;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Table);
+      F : constant Table_Field_Access :=
+            Field_Vectors.Element (Field_Vectors.Cursor (Key));
+      Prefix : constant String :=
+                 (if Object_Name = "" then "" else Object_Name & ".");
+   begin
+      if F.Is_Compound then
+         declare
+            use Aquarius.Drys;
+            use Aquarius.Drys.Expressions;
+            Result : Function_Call_Expression :=
+                       New_Function_Call_Expression
+                         (Ada_Name (Key) & "_To_Storage");
+         begin
+            for I in 1 .. Field_Count (Key) loop
+               Result.Add_Actual_Argument
+                 (Object (Prefix  & Field (Key, I).Ada_Name));
+            end loop;
+
+--              for I in 1 .. F.Compound_Field.Field_Count loop
+--                 Result.Add_Actual_Argument
+--                   (Object (Prefix & F.Compound_Field.all.Ada_Name (I)));
+--              end loop;
+            return Result;
+         end;
+      else
+         return Key_Type (Key).To_Storage_Array
+           (Prefix & Ada_Name (Key));
+      end if;
+   end Key_To_Storage;
+
+   --------------
+   -- Key_Type --
+   --------------
+
+   function Key_Type (Position : Key_Cursor)
+                      return Kit.Types.Kit_Type'Class
+   is
+      use Field_Vectors;
+      Item : constant Table_Field_Access := Element (Cursor (Position));
+      pragma Assert (not Item.Is_Compound);
+      pragma Assert (Item.Is_Key);
+   begin
+      return Item.Field.Get_Field_Type;
+   end Key_Type;
 
    ------------------
    -- Magic_Number --
@@ -722,53 +964,37 @@ package body Kit.Tables is
    is
 
       procedure Call_Process (Base  : Table_Type'Class;
-                              Field : Field_Cursor);
+                              Key   : Key_Cursor);
 
       ------------------
       -- Call_Process --
       ------------------
 
       procedure Call_Process (Base  : Table_Type'Class;
-                              Field : Field_Cursor)
+                              Key   : Key_Cursor)
       is
          F : constant Table_Field_Access :=
-               Field_Vectors.Element (Field_Vectors.Cursor (Field));
+               Field_Vectors.Element (Field_Vectors.Cursor (Key));
       begin
          if F.Is_Compound then
             if F.Compound_Field.Contains (Containing_Field) then
-               Process (Base, Key_Cursor (Field));
+               Process (Base, Key);
             end if;
-         else
-            if F.Field.Ada_Name = Containing_Field.Ada_Name then
-               Process (Base, Key_Cursor (Field));
-            end if;
+         elsif F.Field.Ada_Name = Containing_Field.Ada_Name then
+            Process (Base, Key);
          end if;
       end Call_Process;
 
    begin
-      Table.Iterate_All (Call_Process'Access);
+      Table.Scan_Keys (Call_Process'Access);
    end Scan_Keys;
-
-   ---------------------
-   -- Scan_References --
-   ---------------------
-
-   procedure Scan_References (Table : Table_Type;
-                              Process  : not null access
-                                procedure (Item : Table_Type'Class))
-   is
-   begin
-      for R of Table.References loop
-         Process (R.all);
-      end loop;
-   end Scan_References;
 
    ----------------
    -- To_Storage --
    ----------------
 
    function To_Storage (Table       : Table_Type'Class;
-                        Key_Table   : Table_Type'Class;
+                        Base_Table  : Table_Type'Class;
                         Object_Name : String;
                         Key         : Key_Cursor)
                         return Aquarius.Drys.Expression'Class
@@ -779,11 +1005,12 @@ package body Kit.Tables is
             Field_Vectors.Element (Field_Vectors.Cursor (Key));
 
       Key_Index : constant String :=
-                    (if Table.Ada_Name = Key_Table.Ada_Name
-                     then Object_Name & ".Index"
-                     else Object_Name & ".Local_Context."
-                     & Table.Ada_Name & "_Data.Db."
-                     & Key_Table.Ada_Name & "_Index");
+                    Table.Database_Index_Component
+                      (Object_Name, Base_Table);
+      Index_Part : constant Expression'Class :=
+                     New_Function_Call_Expression
+                       ("Marlowe.Key_Storage.To_Storage_Array",
+                        Object (Key_Index));
    begin
       if F.Is_Compound then
          declare
@@ -791,19 +1018,17 @@ package body Kit.Tables is
                        New_Function_Call_Expression
                          (Ada_Name (Key) & "_To_Storage");
          begin
-            Result.Add_Actual_Argument
-              (Aquarius.Drys.Object (Key_Index));
-            return Result;
+            for I in 1 .. F.Compound_Field.Field_Count loop
+               Result.Add_Actual_Argument
+                 (Object ("Item." & F.Compound_Field.Field (I).Ada_Name));
+            end loop;
+            return Long_Operator ("&", Result, Index_Part);
          end;
       else
          declare
             Key_Part : constant Expression'Class :=
                          F.Field.Get_Field_Type.To_Storage_Array
                            (Object_Name & "." & Ada_Name (Key));
-            Index_Part : constant Expression'Class :=
-                           New_Function_Call_Expression
-                             ("Marlowe.Key_Storage.To_Storage_Array",
-                              Object (Key_Index));
          begin
             return Long_Operator ("&", Key_Part, Index_Part);
          end;

@@ -31,6 +31,15 @@ package Kit.Fields is
                       Field : Field_Type'Class)
                       return Boolean;
 
+   function Field_Count (Item : Compound_Field_Type) return Natural;
+   function Field (Item : Compound_Field_Type;
+                   Index : Positive)
+                   return Field_Type'Class;
+   function Ada_Name (Item  : Compound_Field_Type;
+                      Index : Positive)
+                      return String;
+
+
 private
 
    type Root_Field_Type is
