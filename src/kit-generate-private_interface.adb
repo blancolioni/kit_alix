@@ -83,6 +83,10 @@ package body Kit.Generate.Private_Interface is
          Aquarius.Drys.Named_Subtype ("Boolean"),
          Aquarius.Drys.Object ("False"));
 
+      Record_Defn.Add_Component
+        ("Actual_Type",
+         Aquarius.Drys.Named_Subtype ("Record_Type"));
+
       Table.Iterate (Process     => Add_Base_Index'Access,
                      Inclusive   => False);
 
