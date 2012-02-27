@@ -32,21 +32,40 @@ package Kit.Types is
       Target_Name : String)
       return Aquarius.Drys.Expression'Class;
 
-   function Standard_Integer  return Kit_Type'Class;
-   function Standard_Positive return Kit_Type'Class;
-   function Standard_Natural  return Kit_Type'Class;
+   function To_Declaration
+     (From_Type : Kit_Type)
+      return Aquarius.Drys.Declaration'Class;
+
+   function Standard_Integer    return Kit_Type'Class;
+   function Standard_Positive   return Kit_Type'Class;
+   function Standard_Natural    return Kit_Type'Class;
+   function Standard_Float      return Kit_Type'Class;
+   function Standard_Long_Float return Kit_Type'Class;
+   function Standard_Boolean    return Kit_Type'Class;
+
    function Standard_String (Length : Positive) return Kit_Type'Class;
 
    function Table_Reference_Type
      (Table_Name : String)
       return Kit_Type'Class;
 
+   procedure New_Type (New_Type : Kit.Types.Kit_Type'Class);
+
+   function Is_Type_Name (Name : String) return Boolean;
+   function Get_Type (Name : String) return Kit_Type'Class;
+
+   procedure Create_Standard_Types;
+
+   procedure Iterate_User_Defined_Types
+     (Process : not null access procedure (User_Type : Kit_Type'Class));
+
 private
 
    type Kit_Type is
      abstract new Kit.Names.Root_Named_Object with
       record
-         Size : Natural;
+         Size         : Natural := 0;
+         User_Defined : Boolean := True;
       end record;
 
 end Kit.Types;

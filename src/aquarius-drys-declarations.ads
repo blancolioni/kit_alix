@@ -213,6 +213,10 @@ package Aquarius.Drys.Declarations is
    procedure Write (Item        : Subprogram_Declaration;
                     Writer      : in out Writer_Interface'Class);
 
+   procedure Add_Local_Declaration
+     (Subprogram : in out Subprogram_Declaration;
+      Dec        : in     Declaration'Class);
+
    type Argument_Mode is (In_Argument, Out_Argument, Inout_Argument,
                           Access_Argument);
 

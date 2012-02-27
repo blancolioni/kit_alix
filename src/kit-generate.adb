@@ -2,6 +2,7 @@ with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Types;
 
 with Kit.Tables;
+with Kit.Types;
 
 with Kit.Generate.Database_Package;
 with Kit.Generate.Get_From_Cache;
@@ -26,6 +27,10 @@ package body Kit.Generate is
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_Reference_Types
+     (Db  : Kit.Databases.Database_Type;
+      Top : in out Aquarius.Drys.Declarations.Package_Type);
+
+   procedure Create_User_Defined_Types
      (Db  : Kit.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
@@ -210,6 +215,15 @@ package body Kit.Generate is
            ("X_Lock",
             New_Inout_Argument
               ("Item", Named_Subtype ("Record_Interface"))));
+
+      Top.Append
+        (New_Abstract_Function
+           ("Top_Record",
+            New_Formal_Argument
+              ("Item",
+               Named_Subtype
+                 ("Record_Interface")),
+            Named_Subtype ("Record_Type")));
       Top.Add_Separator;
 
    end Create_Record_Interface;
@@ -286,9 +300,10 @@ package body Kit.Generate is
         (New_Abstract_Function
            ("Has_Element",
             New_Formal_Argument
-              ("Item", Named_Subtype
+              ("Item",
+               Named_Subtype
                  ("Search_Interface")),
-                     Named_Subtype ("Boolean")));
+            Named_Subtype ("Boolean")));
       Top.Add_Separator;
 
       Top.Append
@@ -321,18 +336,46 @@ package body Kit.Generate is
         (Item : Kit.Tables.Table_Type'Class)
       is
       begin
-         Table_Type_Definition.New_Literal ("T_" & Item.Name);
+         Table_Type_Definition.New_Literal ("R_" & Item.Name);
       end Add_Table_Type_Literal;
 
    begin
-      Table_Type_Definition.New_Literal ("T_None");
+      Table_Type_Definition.New_Literal ("R_None");
       Db.Iterate (Add_Table_Type_Literal'Access);
       Top.Append
         (Aquarius.Drys.Declarations.New_Full_Type_Declaration
-           ("Table_Type", Table_Type_Definition));
+           ("Record_Type", Table_Type_Definition));
       Top.Append (Aquarius.Drys.Declarations.New_Separator);
 
    end Create_Table_Type;
+
+   -------------------------------
+   -- Create_User_Defined_Types --
+   -------------------------------
+
+   procedure Create_User_Defined_Types
+     (Db  : Kit.Databases.Database_Type;
+      Top : in out Aquarius.Drys.Declarations.Package_Type)
+   is
+
+      pragma Unreferenced (Db);
+
+      procedure Create_Type (User_Type : Kit.Types.Kit_Type'Class);
+
+      -----------------
+      -- Create_Type --
+      -----------------
+
+      procedure Create_Type (User_Type : Kit.Types.Kit_Type'Class) is
+      begin
+         Top.Append (User_Type.To_Declaration);
+      end Create_Type;
+
+   begin
+      Kit.Types.Iterate_User_Defined_Types (Create_Type'Access);
+   end Create_User_Defined_Types;
+
+
 
    -----------------------
    -- Generate_Database --
@@ -404,6 +447,8 @@ package body Kit.Generate is
    begin
       Top_Package.With_Package ("Marlowe", Private_With => True);
       Top_Package.With_Package ("Kit.Mutex", Private_With => True);
+
+      Create_User_Defined_Types (Db, Top_Package);
 
       --  Create_Handle_Function (Db, Top_Package);
       Create_Table_Type (Db, Top_Package);
