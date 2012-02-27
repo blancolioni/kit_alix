@@ -53,7 +53,6 @@ package body Kit.Parser is
    begin
       return Tok = Tok_Identifier
         or else Tok = Tok_Key
-        or else Tok = Tok_Compound
         or else Tok = Tok_Unique;
    end At_Field;
 
@@ -128,7 +127,35 @@ package body Kit.Parser is
       begin
          Scan;
 
-         if Tok /= Tok_Colon then
+         if Tok = Tok_Is then
+            Scan;
+
+            declare
+               Field : Kit.Fields.Compound_Field_Type;
+            begin
+               Field.Create_Field (Field_Name);
+               loop
+                  if Table.Contains_Field (Tok_Text) then
+                     Table.Add_Compound_Key_Field
+                       (Field, Tok_Text);
+                  else
+                     Error ("table " & Table.Ada_Name
+                            & " does not contain field "
+                            & Tok_Raw_Text);
+                  end if;
+                  Scan;
+                  exit when Tok /= Tok_Comma;
+                  Scan;
+                  if Tok /= Tok_Identifier then
+                     Error ("extra ',' ignored");
+                     exit;
+                  end if;
+               end loop;
+
+               Table.Append (Field, Is_Unique);
+            end;
+
+         elsif Tok /= Tok_Colon then
 
             if Field_Name = Table.Name
               or else Db.Contains (Field_Name)
