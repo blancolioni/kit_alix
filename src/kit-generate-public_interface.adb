@@ -6,7 +6,8 @@ with Aquarius.Drys.Statements;
 with Aquarius.Drys.Types;
 
 with Kit.Fields;
-with Kit.Types;
+with Kit.Generate.Fetch;
+with Kit.Generate.Public_Get;
 
 package body Kit.Generate.Public_Interface is
 
@@ -40,19 +41,90 @@ package body Kit.Generate.Public_Interface is
       Table : in     Kit.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
-   procedure Create_Get_Function
-     (Db            : in     Kit.Databases.Database_Type;
-      Table         : in     Kit.Tables.Table_Type'Class;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
-      Scan          : in     Boolean;
-      First         : in     Boolean;
-      Key           : in     Kit.Tables.Key_Cursor;
-      Key_Value     : in     Boolean);
+   procedure Create_Compound_Key_To_Storage_Functions
+     (Db    : in     Kit.Databases.Database_Type;
+      Table : in     Kit.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
-   procedure Fetch_From_Index
-     (Table       : Kit.Tables.Table_Type'Class;
-      Object_Name : String;
-      Target      : in out Aquarius.Drys.Statement_Sequencer'Class);
+   procedure Create_Field_Store_Procedure
+     (Table : in     Kit.Tables.Table_Type'Class;
+      Base  : in     Kit.Tables.Table_Type'Class;
+      Field : in     Kit.Fields.Field_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+
+   ----------------------------------------------
+   -- Create_Compound_Key_To_Storage_Functions --
+   ----------------------------------------------
+
+   procedure Create_Compound_Key_To_Storage_Functions
+     (Db    : in     Kit.Databases.Database_Type;
+      Table : in     Kit.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+   is
+      pragma Unreferenced (Db);
+
+      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor);
+      function To_Storage_Expression
+        (Key   : Kit.Tables.Key_Cursor;
+         Index : Positive)
+         return Aquarius.Drys.Expression'Class;
+
+      ---------------------------
+      -- Create_Key_To_Storage --
+      ---------------------------
+
+      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor) is
+         use Kit.Tables;
+      begin
+         if Is_Compound_Key (Key) then
+            declare
+               use Aquarius.Drys, Aquarius.Drys.Declarations;
+               Fn : Subprogram_Declaration'Class :=
+                      Aquarius.Drys.Declarations.New_Function
+                        (Ada_Name (Key) & "_To_Storage",
+                         "System.Storage_Elements.Storage_Array",
+                         To_Storage_Expression
+                           (Key, Compound_Field_Count (Key)));
+            begin
+               for I in 1 .. Compound_Field_Count (Key) loop
+                  Fn.Add_Formal_Argument
+                    (Compound_Field (Key, I).Ada_Name,
+                     Compound_Field (Key, I).Get_Field_Type.Argument_Subtype);
+               end loop;
+               Fn.Add_Local_Declaration
+                 (Use_Type ("System.Storage_Elements.Storage_Array"));
+               Top.Append_To_Body (Fn);
+            end;
+         end if;
+      end Create_Key_To_Storage;
+
+      ---------------------------
+      -- To_Storage_Expression --
+      ---------------------------
+
+      function To_Storage_Expression
+        (Key   : Kit.Tables.Key_Cursor;
+         Index : Positive)
+         return Aquarius.Drys.Expression'Class
+      is
+         use Aquarius.Drys.Expressions;
+         Field : constant Kit.Fields.Field_Type'Class :=
+                   Kit.Tables.Compound_Field (Key, Index);
+         This  : constant Aquarius.Drys.Expression'Class :=
+                   Field.Get_Field_Type.To_Storage_Array
+                     (Field.Ada_Name);
+      begin
+         if Index = 1 then
+            return This;
+         else
+            return Operator ("&", This,
+                             To_Storage_Expression (Key, Index - 1));
+         end if;
+      end To_Storage_Expression;
+
+   begin
+      Table.Scan_Keys (Create_Key_To_Storage'Access);
+   end Create_Compound_Key_To_Storage_Functions;
 
    -------------------------------
    -- Create_Control_Procedures --
@@ -262,340 +334,327 @@ package body Kit.Generate.Public_Interface is
       Create_Finalize;
    end Create_Control_Procedures;
 
-   -------------------------
-   -- Create_Get_Function --
-   -------------------------
+   ----------------------------------
+   -- Create_Field_Store_Procedure --
+   ----------------------------------
 
-   procedure Create_Get_Function
-     (Db            : in     Kit.Databases.Database_Type;
-      Table         : in     Kit.Tables.Table_Type'Class;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
-      Scan          : in     Boolean;
-      First         : in     Boolean;
-      Key           : in     Kit.Tables.Key_Cursor;
-      Key_Value     : in     Boolean)
+   procedure Create_Field_Store_Procedure
+     (Table : in     Kit.Tables.Table_Type'Class;
+      Base  : in     Kit.Tables.Table_Type'Class;
+      Field : in     Kit.Fields.Field_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
-      pragma Unreferenced (Db);
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
 
-      Get              : Function_Call_Expression :=
-                           New_Function_Call_Expression
-                             ("Ship_Cache.Get");
-      Return_Sequence  : Sequence_Of_Statements;
-      Lock_Sequence    : Sequence_Of_Statements;
-      Invalid_Sequence : Sequence_Of_Statements;
+      Store_Block : Aquarius.Drys.Blocks.Block_Type;
 
-      Using_Key : constant Boolean :=
-                    Kit.Tables."/="
-                      (Key, Kit.Tables.Null_Key_Cursor);
+      procedure Create_Abstract_Store;
 
-      procedure Declare_Index
-        (Block : in out Aquarius.Drys.Blocks.Block_Type);
+      procedure Lock_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor);
 
-      function Function_Name return String;
+      procedure Unlock_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor);
 
-      procedure Set_Field
-        (Seq        : in out Sequence_Of_Statements;
-         Field_Name : String;
-         Value      : Boolean);
+      procedure Perform_Lock
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor;
+         Lock     : Boolean);
 
-      ------------------
-      -- Declare_Index --
-      ------------------
+      procedure Delete_Old_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor);
 
-      procedure Declare_Index
-        (Block : in out Aquarius.Drys.Blocks.Block_Type)
-      is
+      procedure Insert_New_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor);
+
+      procedure Key_Operation
+        (Key_Base  : Kit.Tables.Table_Type'Class;
+         Key       : Kit.Tables.Key_Cursor;
+         Operation : String);
+
+      procedure Release_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor);
+
+      procedure Process_Keys
+        (Process : not null access
+           procedure (Key_Base : Kit.Tables.Table_Type'Class;
+                      Key : Kit.Tables.Key_Cursor));
+
+      ---------------------------
+      -- Create_Abstract_Store --
+      ---------------------------
+
+      procedure Create_Abstract_Store is
          use Aquarius.Drys.Declarations;
+         Store : Subprogram_Declaration :=
+                   New_Abstract_Procedure
+                     ("Set_" & Field.Ada_Name,
+                      New_Inout_Argument ("Item",
+                        Aquarius.Drys.Named_Subtype
+                          (Table.Ada_Name & "_Interface")));
       begin
-         if not Scan then
-            if not Using_Key then
-               null;
---                 Block.Add_Declaration
---                   (New_Constant_Declaration
---                      ("Index",
---                       "Marlowe.Database_Index",
---                       Object ("Marlowe.Database_Index (Reference)")));
-            else
-               null;
-            end if;
-         else
-            if not Using_Key then
-               pragma Assert (First);
-               Block.Add_Declaration (Use_Type ("Marlowe.Database_Index"));
-               Block.Add_Declaration
-                 (New_Object_Declaration
-                    ("Index",
-                     "Marlowe.Database_Index"));
+         Store.Add_Formal_Argument
+           (New_Formal_Argument ("Value",
+            Aquarius.Drys.Named_Subtype
+              (Field.Get_Field_Type.Argument_Subtype)));
 
-               Block.Add_Statement ("Index := 1");
-               declare
-                  Valid_Index : constant Expression'Class :=
-                                  New_Function_Call_Expression
-                                    ("Marlowe.Btree_Handles.Valid_Index",
-                                     "Marlowe_Keys.Handle",
-                                     Table.Ada_Name & "_Table_Index",
-                                     "Index");
-                  Is_Deleted  : constant Expression'Class :=
-                                  New_Function_Call_Expression
-                                    ("Marlowe.Btree_Handles.Deleted_Record",
-                                     "Marlowe_Keys.Handle",
-                                     Table.Ada_Name & "_Table_Index",
-                                     "Index");
-                  Condition   : constant Expression'Class :=
-                                  Operator ("and then",
-                                            Valid_Index, Is_Deleted);
-               begin
-                  Block.Add_Statement
-                    (While_Statement
-                       (Condition,
-                        New_Assignment_Statement
-                          ("Index",
-                          Operator ("+", Object ("Index"), Literal (1)))));
-               end;
+         Top.Append (Store);
+         Top.Append (New_Separator);
+      end Create_Abstract_Store;
 
-            else
+      --------------------
+      -- Delete_Old_Key --
+      --------------------
 
-               null;
-
-            end if;
-         end if;
-      end Declare_Index;
-
-      -------------------
-      -- Function_Name --
-      -------------------
-
-      function Function_Name return String is
-
-         Base_Name : constant String :=
-                       (if not Scan
-                        then "Get"
-                        elsif not First
-                        then "Last"
-                        else "First");
-      begin
-         if Using_Key then
-            return Base_Name & "_By_" & Kit.Tables.Ada_Name (Key);
-         else
-            return Base_Name;
-         end if;
-      end Function_Name;
-
-      ---------------
-      -- Set_Field --
-      ---------------
-
-      procedure Set_Field
-        (Seq        : in out Sequence_Of_Statements;
-         Field_Name : String;
-         Value      : Boolean)
+      procedure Delete_Old_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor)
       is
       begin
-         Seq.Append
-           (New_Assignment_Statement
-              ("Result." & Field_Name,
-               (if Value then Object ("True") else Object ("False"))));
-      end Set_Field;
+         Key_Operation (Key_Base, Key, "Delete");
+      end Delete_Old_Key;
+
+      --------------------
+      -- Insert_New_Key --
+      --------------------
+
+      procedure Insert_New_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor)
+      is
+      begin
+         Key_Operation (Key_Base, Key, "Insert");
+      end Insert_New_Key;
+
+      -------------------
+      -- Key_Operation --
+      -------------------
+
+      procedure Key_Operation
+        (Key_Base  : Kit.Tables.Table_Type'Class;
+         Key       : Kit.Tables.Key_Cursor;
+         Operation : String)
+      is
+         S : Aquarius.Drys.Statements.Procedure_Call_Statement :=
+               Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                 ("Marlowe.Btree_Handles." & Operation);
+      begin
+
+         S.Add_Actual_Argument
+           ("Marlowe_Keys.Handle");
+         S.Add_Actual_Argument
+           ("Marlowe_Keys."
+            & Key_Base.Ada_Name
+            & "_"
+            & Kit.Tables.Ada_Name (Key)
+            & "_Ref");
+         S.Add_Actual_Argument
+           (Aquarius.Drys.Expressions.Operator
+              ("&",
+               Key_Base.Key_To_Storage (Key, "Item"),
+               Aquarius.Drys.Expressions.New_Function_Call_Expression
+                 ("Marlowe.Key_Storage.To_Storage_Array",
+                  Table.Database_Index_Component ("Item", Key_Base))));
+
+         Store_Block.Add_Statement
+           (Aquarius.Drys.Statements.If_Statement
+              (Aquarius.Drys.Expressions.Operator
+                 ("not", Aquarius.Drys.Object ("Item.Created")),
+               S));
+      end Key_Operation;
+
+      --------------
+      -- Lock_Key --
+      --------------
+
+      procedure Lock_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor)
+      is
+      begin
+         Perform_Lock (Key_Base, Key, True);
+      end Lock_Key;
+
+      ------------------
+      -- Perform_Lock --
+      ------------------
+
+      procedure Perform_Lock
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor;
+         Lock     : Boolean)
+      is
+         Lock_Name : constant String :=
+                       (if Lock then "Lock" else "Unlock");
+         S : constant Aquarius.Drys.Statement'Class :=
+               Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                 (Key_Base.Ada_Name
+                  & "_Impl." & Kit.Tables.Ada_Name (Key)
+                  & "_Key_Mutex." & Lock_Name);
+      begin
+         Store_Block.Add_Statement
+           (Aquarius.Drys.Statements.If_Statement
+              (Aquarius.Drys.Expressions.Operator
+                 ("not", Aquarius.Drys.Object ("Item.Created")),
+               S));
+      end Perform_Lock;
+
+      ------------------
+      -- Process_Keys --
+      ------------------
+
+      procedure Process_Keys
+        (Process : not null access
+           procedure (Key_Base : Kit.Tables.Table_Type'Class;
+                      Key : Kit.Tables.Key_Cursor))
+      is
+
+         procedure Process_Base
+           (Base : Kit.Tables.Table_Type'Class);
+
+         ------------------
+         -- Process_Base --
+         ------------------
+
+         procedure Process_Base
+           (Base : Kit.Tables.Table_Type'Class)
+         is
+         begin
+            Base.Scan_Keys (Field, Process);
+         end Process_Base;
+
+      begin
+         Table.Iterate (Process_Base'Access,
+                        Inclusive   => True,
+                        Table_First => False);
+      end Process_Keys;
+
+      -----------------
+      -- Release_Key --
+      -----------------
+
+      procedure Release_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor)
+      is
+         pragma Unreferenced (Key_Base);
+         use Aquarius.Drys;
+         use Aquarius.Drys.Expressions;
+         use Aquarius.Drys.Statements;
+         Not_Created    : constant Expression'Class :=
+                            Operator
+                              ("not", Aquarius.Drys.Object ("Item.Created"));
+         Using_Key      : constant Expression'Class :=
+                            Object ("Item.Using_Key");
+         This_Key       : constant Expression'Class :=
+                            Operator
+                              ("=",
+                               Object ("Item.Key_Value.K"),
+                               Object ("K_" & Table.Ada_Name & "_"
+                                 & Kit.Tables.Ada_Name (Key)));
+         Release        : constant Statement'Class :=
+                            New_Procedure_Call_Statement
+                              ("Marlowe.Btree_Handles.Release",
+                               Object
+                                 ("Item.Key_Value."
+                                  & Kit.Tables.Ada_Name (Key)
+                                  & "_Context"));
+      begin
+
+         Store_Block.Add_Statement
+           (If_Statement
+              (Long_Operator
+                 ("and then",
+                  Operator ("and then", Not_Created, Using_Key),
+                  This_Key),
+               Release));
+
+      end Release_Key;
+
+      ----------------
+      -- Unlock_Key --
+      ----------------
+
+      procedure Unlock_Key
+        (Key_Base : Kit.Tables.Table_Type'Class;
+         Key      : Kit.Tables.Key_Cursor)
+      is
+      begin
+         Perform_Lock (Key_Base, Key, False);
+      end Unlock_Key;
 
    begin
-      Get.Add_Actual_Argument (Object ("Handle"));
-      Get.Add_Actual_Argument
-        (Object ("Index"));
 
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
-
-      if Using_Key then
-         Return_Sequence.Append
-           (Table.Ada_Name & "_Impl." & Kit.Tables.Ada_Name (Key)
-            & "_Key_Mutex.Shared_Lock");
+      if not Table.Inherited_Field (Field) then
+         Create_Abstract_Store;
       end if;
 
-      if not Scan then
-         if not Using_Key then
-            Return_Sequence.Append
-              (New_Assignment_Statement
-                 ("Result.Index",
-                  Object ("Marlowe.Database_Index (Reference)")));
-         else
-            null;
-         end if;
-      else
-         if not Using_Key then
-            Return_Sequence.Append ("Result.Index := Index");
-         else
-            Lock_Sequence.Append
-              (New_Assignment_Statement
-                 ("Result.Key_Value",
-                  Object
-                    ("(K_" & Table.Ada_Name & "_"
-                     & Tables.Ada_Name (Key)
-                     & ", M)")));
-            Lock_Sequence.Append
-              (New_Assignment_Statement
-                 ("Result.Index",
-                  New_Function_Call_Expression
-                    ("Marlowe.Key_Storage.To_Database_Index",
-                     New_Function_Call_Expression
-                       ("Marlowe.Btree_Handles.Get_Key",
-                        "M"))));
-         end if;
-      end if;
+      Store_Block.Add_Declaration
+        (Aquarius.Drys.Declarations.Use_Type
+           ("System.Storage_Elements.Storage_Array"));
+      Store_Block.Add_Declaration
+        (Aquarius.Drys.Declarations.Renaming_Declaration
+           ("Target",
+            Field.Get_Field_Type.Unconstrained_Record_Subtype,
+            Aquarius.Drys.Object
+              (Table.Base_Field_Name ("Item", Base, Field))));
 
-      Fetch_From_Index (Table       => Table,
-                        Object_Name => "Result",
-                        Target      => Lock_Sequence);
+      declare
+         use Aquarius.Drys.Statements;
+      begin
+         Store_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Database_Mutex.Shared_Lock"));
 
-      Set_Field (Lock_Sequence, "Finished", not Scan);
-      Set_Field (Lock_Sequence, "Forward", First);
-      Set_Field (Lock_Sequence, "Using_Key", Using_Key);
-      Set_Field (Lock_Sequence, "Using_Key_Value", Key_Value);
-      Set_Field (Lock_Sequence, "Scanning", Scan);
-      Set_Field (Lock_Sequence, "Link.S_Locked", True);
+         Store_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Item.X_Lock"));
+      end;
 
-      Set_Field (Invalid_Sequence, "Finished", True);
-      Set_Field (Invalid_Sequence, "Forward", False);
-      Set_Field (Invalid_Sequence, "Scanning", False);
-      Invalid_Sequence.Append ("Result.Index := 0");
-      Set_Field (Invalid_Sequence, "Link.S_Locked", False);
+      Process_Keys (Lock_Key'Access);
+      Table.Scan_Keys (Field, Release_Key'Access);
+      Process_Keys (Delete_Old_Key'Access);
 
-      if not Using_Key then
-         Return_Sequence.Append
-           (If_Statement
-              (New_Function_Call_Expression
-                 ("Marlowe.Btree_Handles.Valid_Index",
-                  "Marlowe_Keys.Handle",
-                  Table.Ada_Name & "_Table_Index",
-                  "Result.Index"),
-               Lock_Sequence,
-               Invalid_Sequence));
-      else
-         declare
-            use Aquarius.Drys.Declarations;
-            Mark_Block : Aquarius.Drys.Blocks.Block_Type;
-         begin
-            if Key_Value then
-               declare
-                  Key_To_Storage : constant Expression'Class :=
-                                     Kit.Types.To_Storage_Array
-                                       (Kit.Tables.Key_Type (Key),
-                                        Kit.Tables.Ada_Name (Key));
-                  Start_Storage  : constant Expression'Class :=
-                                     New_Function_Call_Expression
-                                       ("Marlowe.Key_Storage.To_Storage_Array",
-                                        "Marlowe.Database_Index'First");
-                  Last_Storage   : constant Expression'Class :=
-                                     New_Function_Call_Expression
-                                       ("Marlowe.Key_Storage.To_Storage_Array",
-                                        "Marlowe.Database_Index'Last");
-                  Initialiser    : Function_Call_Expression :=
-                                     New_Function_Call_Expression
-                                       ("Marlowe.Btree_Handles.Search");
-               begin
-                  Initialiser.Add_Actual_Argument
-                    (Object ("Marlowe_Keys.Handle"));
-                  Initialiser.Add_Actual_Argument
-                    (Object
-                       ("Marlowe_Keys." & Table.Ada_Name
-                        & "_" & Tables.Ada_Name (Key) & "_Ref"));
-                  Initialiser.Add_Actual_Argument
-                    (Operator ("&", Key_To_Storage, Start_Storage));
-                  Initialiser.Add_Actual_Argument
-                    (Operator ("&", Key_To_Storage, Last_Storage));
-                  Initialiser.Add_Actual_Argument
-                    (Object ("Marlowe.Closed"));
-                  Initialiser.Add_Actual_Argument
-                    (Object ("Marlowe.Closed"));
-                  Initialiser.Add_Actual_Argument
-                    (Object
-                       ((if First
-                        then "Marlowe.Forward"
-                        else "Marlowe.Backward")));
-                  Mark_Block.Add_Declaration
-                    (Use_Type ("System.Storage_Elements.Storage_Array"));
-                  Mark_Block.Add_Declaration
-                    (New_Constant_Declaration
-                       ("M", "Marlowe.Btree_Handles.Btree_Mark",
-                        Initialiser));
-               end;
+      Field.Get_Field_Type.Set_Value
+        (Target_Name => "Target",
+         Value_Name  => "Value",
+         Sequence    => Store_Block);
 
-            else
-               Mark_Block.Add_Declaration
-                 (New_Constant_Declaration
-                    ("M", "Marlowe.Btree_Handles.Btree_Mark",
-                     New_Function_Call_Expression
-                       ("Marlowe.Btree_Handles.Search",
-                        "Marlowe_Keys.Handle",
-                        "Marlowe_Keys." & Table.Ada_Name
-                        & "_" & Tables.Ada_Name (Key) & "_Ref",
-                        (if First
-                         then "Marlowe.Forward"
-                         else "Marlowe.Backward"))));
-            end if;
+      Process_Keys (Insert_New_Key'Access);
 
-            Mark_Block.Append
-              (If_Statement
-                 (New_Function_Call_Expression
-                    ("Marlowe.Btree_Handles.Valid", "M"),
-                  Lock_Sequence,
-                  Invalid_Sequence));
-            Return_Sequence.Append
-              (Declare_Statement
-                 (Mark_Block));
-         end;
-      end if;
+      declare
+         use Aquarius.Drys.Statements;
+      begin
+         Store_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Database_Mutex.Shared_Unlock"));
+      end;
 
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
-
-      if Using_Key then
-         Return_Sequence.Append
-           (Table.Ada_Name & "_Impl." & Kit.Tables.Ada_Name (Key)
-            & "_Key_Mutex.Shared_Unlock");
-      end if;
+      Process_Keys (Unlock_Key'Access);
 
       declare
          use Aquarius.Drys.Declarations;
-         Table_Class_Wide_Name  : constant String :=
-                                    Table.Ada_Name & "_Type";
-         Implementation_Type    : constant String :=
-                                    Table.Ada_Name & "_Implementation";
-         Block                  : Aquarius.Drys.Blocks.Block_Type;
-         Fn                     : Subprogram_Declaration;
+         Store : Subprogram_Declaration :=
+                   New_Procedure
+                     ("Set_" & Field.Ada_Name,
+                      New_Inout_Argument ("Item",
+                        Aquarius.Drys.Named_Subtype
+                          (Table.Ada_Name & "_Implementation")),
+                      Store_Block);
       begin
-         Declare_Index (Block);
-         Block.Append
-           (Aquarius.Drys.Statements.New_Return_Statement
-              ("Result", Implementation_Type, Return_Sequence));
+         Store.Add_Formal_Argument
+           (New_Formal_Argument ("Value",
+            Aquarius.Drys.Named_Subtype
+              (Field.Get_Field_Type.Argument_Subtype)));
 
-         Fn := New_Function
-           (Function_Name, Table_Class_Wide_Name,
-            Block);
-
-         if not Scan and then not Using_Key then
-            Fn.Add_Formal_Argument
-              (New_Formal_Argument
-                 ("Reference",
-                  Named_Subtype (Table.Ada_Name & "_Reference")));
-         end if;
-
-         if Using_Key and then Key_Value then
-            Fn.Add_Formal_Argument
-              (New_Formal_Argument
-                 (Kit.Tables.Ada_Name (Key),
-                  Named_Subtype
-                    (Kit.Tables.Key_Type (Key).Argument_Subtype)));
-         end if;
-
-         Table_Package.Append (Fn);
+         Store.Set_Overriding;
+         Top.Append_To_Body (Store);
       end;
-
-      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
-   end Create_Get_Function;
+   end Create_Field_Store_Procedure;
 
    -----------------------------
    -- Create_Key_Context_Type --
@@ -1009,7 +1068,7 @@ package body Kit.Generate.Public_Interface is
             Fetch_Found : Sequence_Of_Statements;
             Not_Found   : Sequence_Of_Statements;
          begin
-            Fetch_From_Index (Table, "Item", Fetch_Found);
+            Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
             Not_Found.Append ("Item.Index := 0");
             Next_Block.Add_Statement
               (If_Statement
@@ -1037,49 +1096,6 @@ package body Kit.Generate.Public_Interface is
       Create_Has_Element;
       Create_Next;
    end Create_Search_Procedures;
-
-   ----------------------
-   -- Fetch_From_Index --
-   ----------------------
-
-   procedure Fetch_From_Index
-     (Table       : Kit.Tables.Table_Type'Class;
-      Object_Name : String;
-      Target      : in out Aquarius.Drys.Statement_Sequencer'Class)
-   is
-
-      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class);
-
-      --------------
-      -- Get_Base --
-      --------------
-
-      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class) is
-         use Aquarius.Drys.Expressions;
-         use Aquarius.Drys.Statements;
-
-         Base_Target    : constant String :=
-                            Object_Name & Base.Base_Component_Name;
-         Cache_Package  : constant String :=
-                            Base.Ada_Name & "_Cache";
-         Index_Variable : constant String :=
-                            Table.Database_Index_Component
-                              (Object_Name, Base);
-      begin
-         Target.Append
-           (New_Assignment_Statement
-              (Base_Target,
-               New_Function_Call_Expression
-                 (Cache_Package & ".Get",
-                  "Marlowe_Keys.Handle",
-                  Index_Variable)));
-      end Get_Base;
-
-   begin
-      Table.Iterate (Get_Base'Access,
-                     Inclusive   => True,
-                     Table_First => True);
-   end Fetch_From_Index;
 
    -------------------------------
    -- Generate_Public_Interface --
@@ -1121,6 +1137,7 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Key_Get (Base  : Kit.Tables.Table_Type'Class;
                                 Key   : Kit.Tables.Key_Cursor);
       procedure Create_Reference_Get (Base : Kit.Tables.Table_Type'Class);
+      procedure Create_Actual_Type_Fetch;
 
       procedure Add_Create_Function;
 
@@ -1183,6 +1200,11 @@ package body Kit.Generate.Public_Interface is
                  ("Result" & Base.Base_Component_Name,
                   New_Allocation_Expression
                     (Base.Ada_Name & "_Cache.Cache_Record")));
+            Sequence.Append
+              (New_Assignment_Statement
+                 ("Result" & Base.Base_Component_Name
+                  & ".Db.Actual_Type",
+                  Object ("R_" & Table.Ada_Name)));
          end Allocate_Context;
 
          ---------------------
@@ -1371,203 +1393,40 @@ package body Kit.Generate.Public_Interface is
       -- Add_Store --
       ---------------
 
-      procedure Add_Store
-        (Base  : Kit.Tables.Table_Type'Class;
-         Field : Kit.Fields.Field_Type'Class)
+      procedure Add_Store (Base  : Kit.Tables.Table_Type'Class;
+                           Field : Kit.Fields.Field_Type'Class)
       is
-
-         use Aquarius.Drys.Statements;
-
-         Is_Key : constant Boolean :=
-                    Base.Is_Key_Field (Field);
-         Update_Sequence  : Sequence_Of_Statements;
-
-         procedure Update_Key (Key_Base : Kit.Tables.Table_Type'Class;
-                               Key      : Kit.Tables.Key_Cursor);
-
-         ----------------
-         -- Update_Key --
-         ----------------
-
-         procedure Update_Key (Key_Base : Kit.Tables.Table_Type'Class;
-                               Key      : Kit.Tables.Key_Cursor)
-         is
-            Update_Block : Aquarius.Drys.Blocks.Block_Type;
-            Record_Index : constant String :=
-                             Table.Database_Index_Component
-                               ("Item", Key_Base);
-         begin
-            Update_Sequence.Append
-              (New_Procedure_Call_Statement
-                 (Base.Ada_Name & "_Impl."
-                  & Kit.Tables.Ada_Name (Key) & "_Key_Mutex.Lock"));
-
-            Update_Block.Add_Declaration
-              (Aquarius.Drys.Declarations.Renaming_Declaration
-                 ("Index",
-                  "Marlowe.Database_Index",
-                  Object (Record_Index)));
-
-            declare
-               use Aquarius.Drys.Expressions;
-               Using_Key : constant Expression'Class :=
-                             Object ("Item.Using_Key");
-               This_Key  : constant Expression'Class :=
-                             Operator
-                               ("=",
-                                Object ("Item.Key_Value.K"),
-                                Object ("K_" & Table.Ada_Name & "_"
-                                  & Kit.Tables.Ada_Name (Key)));
-               Release   : constant Statement'Class :=
-                             New_Procedure_Call_Statement
-                               ("Marlowe.Btree_Handles.Release",
-                                Object
-                                  ("Item.Key_Value."
-                                   & Kit.Tables.Ada_Name (Key)
-                                   & "_Context"));
-               Delete_Old_Key : Procedure_Call_Statement :=
-                                  New_Procedure_Call_Statement
-                                    ("Marlowe.Btree_Handles.Delete");
-               Insert_New_Key : Procedure_Call_Statement :=
-                                  New_Procedure_Call_Statement
-                                    ("Marlowe.Btree_Handles.Insert");
-            begin
-
-               Update_Block.Add_Statement
-                 (If_Statement
-                    (Long_Operator ("and then", Using_Key, This_Key),
-                     Release));
-
-               Delete_Old_Key.Add_Actual_Argument
-                 ("Marlowe_Keys.Handle");
-               Delete_Old_Key.Add_Actual_Argument
-                 ("Marlowe_Keys."
-                  & Key_Base.Ada_Name
-                  & "_"
-                  & Kit.Tables.Ada_Name (Key)
-                  & "_Ref");
-               Delete_Old_Key.Add_Actual_Argument
-                 (Kit.Tables.To_Storage
-                    (Key_Value_Name   => "Old_Key_Value",
-                     Index_Value_Name => "Index",
-                     Key              => Key));
-               Update_Block.Add_Statement (Delete_Old_Key);
-
-               Insert_New_Key.Add_Actual_Argument
-                 ("Marlowe_Keys.Handle");
-               Insert_New_Key.Add_Actual_Argument
-                 ("Marlowe_Keys."
-                  & Key_Base.Ada_Name
-                  & "_"
-                  & Kit.Tables.Ada_Name (Key)
-                  & "_Ref");
-               Insert_New_Key.Add_Actual_Argument
-                 (Kit.Tables.To_Storage
-                    (Key_Value_Name   => "Item." & Kit.Tables.Ada_Name (Key),
-                     Index_Value_Name => "Index",
-                     Key              => Key));
-               Update_Block.Add_Statement (Insert_New_Key);
-
-            end;
-
-            Update_Sequence.Append
-              (Declare_Statement (Update_Block));
-            Update_Sequence.Append
-              (New_Procedure_Call_Statement
-                 (Base.Ada_Name & "_Impl."
-                  & Kit.Tables.Ada_Name (Key) & "_Key_Mutex.Unlock"));
-         end Update_Key;
-
       begin
-         if Base.Name = Table.Name then
-            declare
-               Store : Subprogram_Declaration :=
-                         New_Abstract_Procedure
-                           ("Set_" & Field.Ada_Name,
-                            New_Inout_Argument ("Item",
-                              Named_Subtype
-                                (Table.Ada_Name & "_Interface")));
-            begin
-               Store.Add_Formal_Argument
-                 (New_Formal_Argument ("Value",
-                  Named_Subtype
-                    (Field.Get_Field_Type.Argument_Subtype)));
-
-               Table_Package.Append (Store);
-               Table_Package.Append (New_Separator);
-            end;
-         end if;
-
-         declare
-            Store_Block      : Aquarius.Drys.Blocks.Block_Type;
-            Store            : Subprogram_Declaration;
-         begin
-
-            if Is_Key then
-               Store_Block.Add_Declaration
-                 (Aquarius.Drys.Declarations.Use_Type
-                    ("System.Storage_Elements.Storage_Array"));
-            end if;
-
-            Store_Block.Add_Declaration
-              (Aquarius.Drys.Declarations.Renaming_Declaration
-                 ("Target",
-                  Field.Get_Field_Type.Unconstrained_Record_Subtype,
-                  Object
-                    (Table.Base_Field_Name ("Item", Base, Field))));
-
-            if Is_Key then
-               Store_Block.Add_Declaration
-                 (Aquarius.Drys.Declarations.New_Constant_Declaration
-                    ("Old_Key_Value",
-                     Field.Get_Field_Type.Return_Subtype,
-                     Object ("Item." & Field.Ada_Name)));
-            end if;
-
-            Store_Block.Add_Statement
-              (New_Procedure_Call_Statement
-                 ("Database_Mutex.Shared_Lock"));
-            Store_Block.Add_Statement
-              (New_Procedure_Call_Statement
-                 ("Item.X_Lock"));
-
-            Field.Get_Field_Type.Set_Value
-              (Target_Name => "Target",
-               Value_Name  => "Value",
-               Sequence    => Store_Block);
-
-            if Is_Key then
-               Table.Scan_Keys (Field, Update_Key'Access);
-
-               declare
-                  S : constant Statement'Class :=
-                        If_Statement (Object ("not Item.Created"),
-                                      Update_Sequence);
-               begin
-                  Store_Block.Append (S);
-               end;
-            end if;
-
-            Store_Block.Add_Statement
-              (New_Procedure_Call_Statement
-                 ("Database_Mutex.Shared_Unlock"));
-
-            Store := New_Procedure
-              ("Set_" & Field.Ada_Name,
-               New_Inout_Argument ("Item",
-                 Named_Subtype
-                   (Table.Ada_Name & "_Implementation")),
-              Store_Block);
-            Store.Add_Formal_Argument
-              (New_Formal_Argument ("Value",
-               Named_Subtype
-                 (Field.Get_Field_Type.Argument_Subtype)));
-
-            Store.Set_Overriding;
-            Table_Package.Append_To_Body (Store);
-         end;
-
+         Create_Field_Store_Procedure
+           (Table => Table,
+            Base  => Base,
+            Field => Field,
+            Top   => Table_Package);
       end Add_Store;
+
+      ------------------------------
+      -- Create_Actual_Type_Fetch --
+      ------------------------------
+
+      procedure Create_Actual_Type_Fetch is
+         Get              : Subprogram_Declaration :=
+                              New_Function
+                                ("Top_Record",
+                                 "Record_Type",
+                                 Object
+                                   ("Item"
+                                    & Table.Base_Component_Name
+                                    & ".Db.Actual_Type"));
+      begin
+
+         Get.Add_Formal_Argument
+           ("Item",
+            Table.Ada_Name & "_Implementation");
+
+         Get.Set_Overriding;
+         Table_Package.Append_To_Body (Get);
+
+      end Create_Actual_Type_Fetch;
 
       --------------------------------
       -- Create_Implementation_Type --
@@ -1655,7 +1514,7 @@ package body Kit.Generate.Public_Interface is
          pragma Unreferenced (Base);
       begin
          for Use_Key_Value in Boolean loop
-            Create_Get_Function
+            Public_Get.Create_Get_Function
               (Db            => Db,
                Table         => Table,
                Table_Package => Table_Package,
@@ -1783,12 +1642,17 @@ package body Kit.Generate.Public_Interface is
                      Inclusive   => True,
                      Table_First => False);
 
+      Create_Actual_Type_Fetch;
+
       Table.Iterate_All (Add_Fetch'Access);
       Table.Iterate_All (Add_Store'Access);
 
+      Create_Compound_Key_To_Storage_Functions
+        (Db, Table, Table_Package);
+
       Add_Create_Function;
 
-      Create_Get_Function
+      Public_Get.Create_Get_Function
         (Db            => Db,
          Table         => Table,
          Table_Package => Table_Package,
@@ -1797,7 +1661,7 @@ package body Kit.Generate.Public_Interface is
          Key           => Kit.Tables.Null_Key_Cursor,
          Key_Value     => False);
 
-      Create_Get_Function
+      Public_Get.Create_Get_Function
         (Db            => Db,
          Table         => Table,
          Table_Package => Table_Package,
