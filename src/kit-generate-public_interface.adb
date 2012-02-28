@@ -350,38 +350,46 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Abstract_Store;
 
       procedure Lock_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
-         Key      : Kit.Tables.Key_Cursor);
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
+         Key        : Kit.Tables.Key_Cursor);
 
       procedure Unlock_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
-         Key      : Kit.Tables.Key_Cursor);
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
+         Key        : Kit.Tables.Key_Cursor);
 
       procedure Perform_Lock
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor;
          Lock     : Boolean);
 
       procedure Delete_Old_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor);
 
       procedure Insert_New_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor);
 
       procedure Key_Operation
-        (Key_Base  : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key       : Kit.Tables.Key_Cursor;
          Operation : String);
 
       procedure Release_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor);
 
       procedure Process_Keys
         (Process : not null access
-           procedure (Key_Base : Kit.Tables.Table_Type'Class;
+           procedure (Table_Base : Kit.Tables.Table_Type'Class;
+                      Key_Base : Kit.Tables.Table_Type'Class;
                       Key : Kit.Tables.Key_Cursor));
 
       ---------------------------
@@ -411,11 +419,12 @@ package body Kit.Generate.Public_Interface is
       --------------------
 
       procedure Delete_Old_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor)
       is
       begin
-         Key_Operation (Key_Base, Key, "Delete");
+         Key_Operation (Table_Base, Key_Base, Key, "Delete");
       end Delete_Old_Key;
 
       --------------------
@@ -423,11 +432,12 @@ package body Kit.Generate.Public_Interface is
       --------------------
 
       procedure Insert_New_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor)
       is
       begin
-         Key_Operation (Key_Base, Key, "Insert");
+         Key_Operation (Table_Base, Key_Base, Key, "Insert");
       end Insert_New_Key;
 
       -------------------
@@ -435,7 +445,8 @@ package body Kit.Generate.Public_Interface is
       -------------------
 
       procedure Key_Operation
-        (Key_Base  : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key       : Kit.Tables.Key_Cursor;
          Operation : String)
       is
@@ -448,7 +459,7 @@ package body Kit.Generate.Public_Interface is
            ("Marlowe_Keys.Handle");
          S.Add_Actual_Argument
            ("Marlowe_Keys."
-            & Key_Base.Ada_Name
+            & Table_Base.Ada_Name
             & "_"
             & Kit.Tables.Ada_Name (Key)
             & "_Ref");
@@ -472,11 +483,12 @@ package body Kit.Generate.Public_Interface is
       --------------
 
       procedure Lock_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor)
       is
       begin
-         Perform_Lock (Key_Base, Key, True);
+         Perform_Lock (Table_Base, Key_Base, Key, True);
       end Lock_Key;
 
       ------------------
@@ -484,15 +496,17 @@ package body Kit.Generate.Public_Interface is
       ------------------
 
       procedure Perform_Lock
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor;
          Lock     : Boolean)
       is
+         pragma Unreferenced (Key_Base);
          Lock_Name : constant String :=
                        (if Lock then "Lock" else "Unlock");
          S : constant Aquarius.Drys.Statement'Class :=
                Aquarius.Drys.Statements.New_Procedure_Call_Statement
-                 (Key_Base.Ada_Name
+                 (Table_Base.Ada_Name
                   & "_Impl." & Kit.Tables.Ada_Name (Key)
                   & "_Key_Mutex." & Lock_Name);
       begin
@@ -509,7 +523,8 @@ package body Kit.Generate.Public_Interface is
 
       procedure Process_Keys
         (Process : not null access
-           procedure (Key_Base : Kit.Tables.Table_Type'Class;
+           procedure (Table_Base : Kit.Tables.Table_Type'Class;
+                      Key_Base : Kit.Tables.Table_Type'Class;
                       Key : Kit.Tables.Key_Cursor))
       is
 
@@ -538,9 +553,11 @@ package body Kit.Generate.Public_Interface is
       -----------------
 
       procedure Release_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor)
       is
+         pragma Unreferenced (Table_Base);
          pragma Unreferenced (Key_Base);
          use Aquarius.Drys;
          use Aquarius.Drys.Expressions;
@@ -580,11 +597,12 @@ package body Kit.Generate.Public_Interface is
       ----------------
 
       procedure Unlock_Key
-        (Key_Base : Kit.Tables.Table_Type'Class;
+        (Table_Base : Kit.Tables.Table_Type'Class;
+         Key_Base   : Kit.Tables.Table_Type'Class;
          Key      : Kit.Tables.Key_Cursor)
       is
       begin
-         Perform_Lock (Key_Base, Key, False);
+         Perform_Lock (Table_Base, Key_Base, Key, False);
       end Unlock_Key;
 
    begin

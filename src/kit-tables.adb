@@ -659,8 +659,9 @@ package body Kit.Tables is
                             procedure (Table : Table_Type'Class;
                                        Field : Field_Cursor))
    is
-      Visited : Table_Vectors.Vector;
-      Queue   : Table_Vectors.Vector;
+      Visited        : Table_Vectors.Vector;
+      Visited_Fields : Field_Vectors.Vector;
+      Queue          : Table_Vectors.Vector;
 
       procedure Iterate_Fields (T : Table_Type'Class);
 
@@ -676,8 +677,11 @@ package body Kit.Tables is
                F : constant Table_Field_Access :=
                      Field_Vectors.Element (It);
             begin
-               if not F.Is_Compound then
-                  Process (T, Field_Cursor (It));
+               if not Visited_Fields.Contains (F) then
+                  Visited_Fields.Append (F);
+                  if not F.Is_Compound then
+                     Process (T, Field_Cursor (It));
+                  end if;
                end if;
             end;
             Field_Vectors.Next (It);
@@ -850,6 +854,22 @@ package body Kit.Tables is
    end Reference_Type;
 
    ----------------
+   -- Same_Field --
+   ----------------
+
+   function Same_Field (Left, Right : Table_Field_Access) return Boolean is
+   begin
+      if Left.Is_Compound then
+         return Right.Is_Compound
+           and then Left.Compound_Field.Ada_Name
+             = Right.Compound_Field.Ada_Name;
+      else
+         return not Right.Is_Compound
+           and then Left.Field.Ada_Name = Right.Field.Ada_Name;
+      end if;
+   end Same_Field;
+
+   ----------------
    -- Same_Table --
    ----------------
 
@@ -968,7 +988,8 @@ package body Kit.Tables is
      (Table    : Table_Type;
       Containing_Field : Kit.Fields.Field_Type'Class;
       Process          : not null access procedure
-        (Base   : Table_Type'Class;
+        (Table  : Table_Type'Class;
+         Base   : Table_Type'Class;
          Key    : Key_Cursor))
    is
 
@@ -987,10 +1008,10 @@ package body Kit.Tables is
       begin
          if F.Is_Compound then
             if F.Compound_Field.Contains (Containing_Field) then
-               Process (Base, Key);
+               Process (Table, Base, Key);
             end if;
          elsif F.Field.Ada_Name = Containing_Field.Ada_Name then
-            Process (Base, Key);
+            Process (Table, Base, Key);
          end if;
       end Call_Process;
 
