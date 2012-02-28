@@ -3,7 +3,6 @@ syntax: glob
 *.ali
 *~
 b~*.ad[bs]
-tests/*.ad[bs]
 build
 GNAT*.TMP
 tests/test_database.marlowe
