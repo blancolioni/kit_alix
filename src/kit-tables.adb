@@ -849,6 +849,15 @@ package body Kit.Tables is
       return Item.Ada_Name & "_Reference";
    end Reference_Type;
 
+   ----------------
+   -- Same_Table --
+   ----------------
+
+   function Same_Table (Left, Right : Table_Access) return Boolean is
+   begin
+      return Left.Ada_Name = Right.Ada_Name;
+   end Same_Table;
+
    -----------------
    -- Scan_Fields --
    -----------------
