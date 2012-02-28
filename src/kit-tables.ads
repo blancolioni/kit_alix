@@ -239,8 +239,10 @@ private
 
    type Table_Access is access all Table_Type'Class;
 
+   function Same_Table (Left, Right : Table_Access) return Boolean;
+
    package Table_Vectors is
-      new Ada.Containers.Vectors (Positive, Table_Access);
+      new Ada.Containers.Vectors (Positive, Table_Access, Same_Table);
 
    type Base_Cursor is new Table_Vectors.Cursor;
 
