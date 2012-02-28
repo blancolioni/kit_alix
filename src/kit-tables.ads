@@ -81,7 +81,8 @@ package Kit.Tables is
      (Table    : Table_Type;
       Containing_Field : Kit.Fields.Field_Type'Class;
       Process          : not null access procedure
-        (Base   : Table_Type'Class;
+        (Table  : Table_Type'Class;
+         Base   : Table_Type'Class;
          Key    : Key_Cursor));
 
    procedure Iterate (Table : Table_Type;
@@ -228,8 +229,11 @@ private
 
    type Table_Field_Access is access Table_Field;
 
+   function Same_Field (Left, Right : Table_Field_Access) return Boolean;
+
    package Field_Vectors is
-      new Ada.Containers.Vectors (Positive, Table_Field_Access);
+     new Ada.Containers.Vectors (Positive, Table_Field_Access,
+                                 Same_Field);
 
    type Field_Cursor is new Field_Vectors.Cursor;
    type Key_Cursor is new Field_Vectors.Cursor;
