@@ -3,7 +3,7 @@ with "marlowe";
 project Default is
 
    for Source_Dirs use (".", "../src");
-   for Main use ("test_diamond_1-driver.adb");
+   for Main use ("test_diamond_1-driver.adb", "test_reference_1-driver.adb");
 
    package Compiler is
       for Default_Switches ("ada") use ("-gnatwa", "-g", "-gnatyaAbCefhicBklnM78oOprsStuxd", "-gnato", "-gnata");

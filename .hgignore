@@ -7,3 +7,7 @@ build
 GNAT*.TMP
 tests/test_database.marlowe
 tests/test_driver
+tests/test_diamond_1-driver
+tests/test_reference_1-driver
+tests/*.marlowe
+tests/generated/*
