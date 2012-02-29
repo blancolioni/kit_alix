@@ -1,0 +1,14 @@
+package Test_Reference_1 is
+
+   record Table_1 is
+      unique key X : String (32);
+      Processed    : Boolean;
+      key Table_1;
+   end Table_1;
+
+   record Table_2 is
+      key Table_1_1 : Table_1;
+      key Table_1_2 : Table_1;
+   end Table_2;
+
+end Test_Reference_1;
