@@ -1,3 +1,5 @@
+with Ada.Text_IO;
+
 with Ada.Containers.Hashed_Maps;
 with Ada.Unchecked_Deallocation;
 
@@ -28,6 +30,8 @@ package body Kit.Cache is
    Max_Cache_Size : Natural := 100_000;
    --  Maximum number of objects in the cache
    --  Should, of course, be settable and tunable.
+
+   Debug_Locking : constant Boolean := False;
 
    procedure Free is
       new Ada.Unchecked_Deallocation (Cache_Entry_Record'Class,
@@ -254,6 +258,16 @@ package body Kit.Cache is
    overriding
    procedure S_Lock (Item : not null access Cache_Entry_Record) is
    begin
+      if Debug_Locking then
+         Ada.Text_IO.Put_Line ("S_Lock: table"
+                               & Marlowe.Table_Index'Image
+                                 (Item.Get_Table_Index)
+                               & " index"
+                               & Marlowe.Database_Index'Image
+                                 (Item.Index));
+         Ada.Text_IO.Flush;
+      end if;
+
       Locking.Root_Lockable_Type (Item.all).S_Lock;
       Item.Reference;
 
@@ -303,12 +317,17 @@ package body Kit.Cache is
    ------------
 
    overriding
-   ------------
-   -- Unlock --
-   ------------
-
    procedure Unlock (Item : not null access Cache_Entry_Record) is
    begin
+      if Debug_Locking then
+         Ada.Text_IO.Put_Line ("Unlock: table"
+                               & Marlowe.Table_Index'Image
+                                 (Item.Get_Table_Index)
+                               & " index"
+                               & Marlowe.Database_Index'Image
+                                 (Item.Index));
+         Ada.Text_IO.Flush;
+      end if;
       if Item.X_Locked then
          Item.Dirty := False;
          Cache_Entry_Record'Class (Item.all).Write (Item.Index);
@@ -359,6 +378,26 @@ package body Kit.Cache is
    overriding
    procedure X_Lock (Item : not null access Cache_Entry_Record) is
    begin
+      if Debug_Locking then
+         declare
+            use type Marlowe.Table_Index;
+            use type Marlowe.Database_Index;
+         begin
+            if Item.Get_Table_Index = 53
+              and then Item.Index = 4
+            then
+               Ada.Text_IO.Put_Line ("x lock tricky bit");
+            end if;
+         end;
+
+         Ada.Text_IO.Put_Line ("X_Lock: table"
+                               & Marlowe.Table_Index'Image
+                                 (Item.Get_Table_Index)
+                               & " index"
+                               & Marlowe.Database_Index'Image
+                                 (Item.Index));
+         Ada.Text_IO.Flush;
+      end if;
       Locking.Root_Lockable_Type (Item.all).X_Lock;
       Item.Dirty := True;
       Item.Reference;
