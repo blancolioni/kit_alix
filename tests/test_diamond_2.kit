@@ -1,0 +1,19 @@
+package Test_Diamond_2 is
+
+   record Base is
+      key F : String (32);
+   end Base;
+
+   record Intermediate : Base is
+      key G : String (32);
+   end Intermediate;
+
+   record Outermediate : Base is
+      key H : String (32);
+   end Outermediate;
+
+   record Concrete : Intermediate, Outermediate is
+      key K : String (32);
+   end Concrete;
+
+end Test_Diamond_2;
