@@ -459,6 +459,44 @@ package body Aquarius.Drys.Declarations is
       return Result;
    end New_Abstract_Procedure;
 
+   ---------------------------
+   -- New_Abstract_Procedure --
+   ---------------------------
+
+   function New_Abstract_Procedure
+     (Name        : String;
+      Argument_1  : Formal_Argument'Class;
+      Argument_2  : Formal_Argument'Class)
+     return Subprogram_Declaration
+   is
+      Result : Subprogram_Declaration :=
+        New_Abstract_Procedure (Name);
+   begin
+      Result.Add_Formal_Argument (Argument_1);
+      Result.Add_Formal_Argument (Argument_2);
+      return Result;
+   end New_Abstract_Procedure;
+
+   ---------------------------
+   -- New_Abstract_Procedure --
+   ---------------------------
+
+   function New_Abstract_Procedure
+     (Name        : String;
+      Argument_1  : Formal_Argument'Class;
+      Argument_2  : Formal_Argument'Class;
+      Argument_3  : Formal_Argument'Class)
+     return Subprogram_Declaration
+   is
+      Result : Subprogram_Declaration :=
+        New_Abstract_Procedure (Name);
+   begin
+      Result.Add_Formal_Argument (Argument_1);
+      Result.Add_Formal_Argument (Argument_2);
+      Result.Add_Formal_Argument (Argument_3);
+      return Result;
+   end New_Abstract_Procedure;
+
    -----------------------
    -- New_Child_Package --
    -----------------------

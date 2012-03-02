@@ -14,6 +14,9 @@ package Kit.Types is
    function Convert_To_String (Item   : Kit_Type;
                                Object_Name : String)
                                return Aquarius.Drys.Expression'Class;
+   function Convert_From_String (Item   : Kit_Type;
+                                 Object_Name : String)
+                                 return Aquarius.Drys.Expression'Class;
 
    function Is_String (Item : Kit_Type) return Boolean;
 
