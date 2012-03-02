@@ -126,4 +126,17 @@ package body Kit.Databases is
       Table_Vectors.Next (Table_Vectors.Cursor (Position));
    end Next;
 
+   -------------------
+   -- With_Database --
+   -------------------
+
+   procedure With_Database (Db     : in out Database_Type'Class;
+                            Withed : in     Database_Type'Class)
+   is
+   begin
+      for T of Withed.Tables loop
+         Db.Append (T.all);
+      end loop;
+   end With_Database;
+
 end Kit.Databases;
