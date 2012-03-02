@@ -1,3 +1,4 @@
+with Kit.Fields;
 with Kit.Tables;
 
 with Aquarius.Drys.Blocks;
@@ -9,6 +10,10 @@ package body Kit.Generate.Database_Package is
    type Database_Operation is (Create, Open);
 
    function Operation_Name (Op : Database_Operation) return String;
+
+   procedure Initialise_Database_Structure
+     (Db  : Kit.Databases.Database_Type;
+      Seq : in out Aquarius.Drys.Statement_Sequencer'Class);
 
    -------------------------------
    -- Generate_Database_Package --
@@ -232,6 +237,10 @@ package body Kit.Generate.Database_Package is
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
               ("Database_Mutex.Unlock"));
 
+         if Operation = Create then
+            Initialise_Database_Structure (Db, Block);
+         end if;
+
          return New_Procedure (Operation_Name (Operation),
                                Block);
 
@@ -243,6 +252,11 @@ package body Kit.Generate.Database_Package is
       Result.With_Package ("Kit.Cache",    Body_With => True);
 
       Result.With_Package (Db.Ada_Name & ".Marlowe_Keys",
+                           Body_With => True);
+
+      Result.With_Package (Db.Ada_Name & ".Kit_Record",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Field",
                            Body_With => True);
 
       if True then
@@ -263,6 +277,78 @@ package body Kit.Generate.Database_Package is
 
       return Result;
    end Generate_Database_Package;
+
+   -----------------------------------
+   -- Initialise_Database_Structure --
+   -----------------------------------
+
+   procedure Initialise_Database_Structure
+     (Db  : Kit.Databases.Database_Type;
+      Seq : in out Aquarius.Drys.Statement_Sequencer'Class)
+   is
+
+      procedure Create_Table
+        (Table : Kit.Tables.Table_Type'Class);
+
+      ------------------
+      -- Create_Table --
+      ------------------
+
+      procedure Create_Table
+        (Table : Kit.Tables.Table_Type'Class)
+      is
+         use Aquarius.Drys;
+         use Aquarius.Drys.Expressions;
+         use Aquarius.Drys.Statements;
+         Create : constant Statement'Class :=
+                    New_Procedure_Call_Statement
+                      ("Kit_Record.Create",
+                       Literal (Table.Ada_Name),
+                       New_Function_Call_Expression
+                         ("Natural",
+                          Object (Table.Ada_Name
+                            & "_Impl.Disk_Storage_Units")));
+
+         procedure Create_Field (Base   : Kit.Tables.Table_Type'Class;
+                                 Field  : Kit.Fields.Field_Type'Class);
+
+         ------------------
+         -- Create_Field --
+         ------------------
+
+         procedure Create_Field (Base   : Kit.Tables.Table_Type'Class;
+                                 Field  : Kit.Fields.Field_Type'Class)
+         is
+            New_Field : Procedure_Call_Statement'Class :=
+                          New_Procedure_Call_Statement
+                            ("Kit_Field.Create");
+         begin
+            New_Field.Add_Actual_Argument (Literal (Field.Ada_Name));
+            New_Field.Add_Actual_Argument
+              (Object
+                 ("Kit_Record.First_By_Name ("""
+                  & Table.Ada_Name
+                  & """).Reference"));
+            New_Field.Add_Actual_Argument
+              (Object
+                 ("Kit_Record.First_By_Name ("""
+                  & Base.Ada_Name
+                  & """).Reference"));
+            New_Field.Add_Actual_Argument
+              (Object ("Null_Kit_Type_Reference"));
+            New_Field.Add_Actual_Argument (Literal (0));
+            New_Field.Add_Actual_Argument (Literal (0));
+            Seq.Append (New_Field);
+         end Create_Field;
+
+      begin
+         Seq.Append (Create);
+         Table.Iterate_All (Create_Field'Access);
+      end Create_Table;
+
+   begin
+      Db.Iterate (Create_Table'Access);
+   end Initialise_Database_Structure;
 
    --------------------
    -- Operation_Name --
