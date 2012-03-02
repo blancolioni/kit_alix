@@ -55,6 +55,16 @@ package body Kit.Types is
       Object_Name : String)
       return Aquarius.Drys.Expression'Class;
 
+   overriding
+   function Convert_To_String (Item   : Table_Reference_Type_Record;
+                               Object_Name : String)
+                               return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Convert_From_String (Item   : Table_Reference_Type_Record;
+                               Object_Name : String)
+                                 return Aquarius.Drys.Expression'Class;
+
    type String_Type is new Kit_Type with
       record
          Length : Positive;
@@ -131,6 +141,22 @@ package body Kit.Types is
    -- Convert_From_String --
    -------------------------
 
+   function Convert_From_String (Item   : Table_Reference_Type_Record;
+                                 Object_Name : String)
+                                 return Aquarius.Drys.Expression'Class
+   is
+      use Aquarius.Drys.Expressions;
+   begin
+      return New_Function_Call_Expression
+        (Kit.Names.Ada_Name (Item.Table_Name.all)
+         & "_Reference" & "'Value",
+         Object_Name);
+   end Convert_From_String;
+
+   -------------------------
+   -- Convert_From_String --
+   -------------------------
+
    function Convert_From_String (Item   : String_Type;
                                  Object_Name : String)
                                  return Aquarius.Drys.Expression'Class
@@ -152,6 +178,22 @@ package body Kit.Types is
    begin
       return New_Function_Call_Expression
         (Item.Ada_Name & "'Image",
+         Object_Name);
+   end Convert_To_String;
+
+   -----------------------
+   -- Convert_To_String --
+   -----------------------
+
+   function Convert_To_String (Item   : Table_Reference_Type_Record;
+                               Object_Name : String)
+                               return Aquarius.Drys.Expression'Class
+   is
+      use Aquarius.Drys.Expressions;
+   begin
+      return New_Function_Call_Expression
+        (Kit.Names.Ada_Name (Item.Table_Name.all)
+         & "_Reference" & "'Image",
          Object_Name);
    end Convert_To_String;
 

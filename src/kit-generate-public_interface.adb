@@ -695,6 +695,8 @@ package body Kit.Generate.Public_Interface is
       use Aquarius.Drys.Declarations;
       use Aquarius.Drys.Statements;
 
+      Got_Field : Boolean := False;
+
       Fetch  : Subprogram_Declaration;
       Block  : Aquarius.Drys.Blocks.Block_Type;
       Choose : Case_Statement_Record'Class :=
@@ -723,9 +725,18 @@ package body Kit.Generate.Public_Interface is
          Choose.Add_Case_Option
            (Value => "F_" & Field.Ada_Name,
             Stats => Seq);
+         Got_Field := True;
       end Select_Field;
 
    begin
+
+      declare
+         None_Seq : Sequence_Of_Statements;
+      begin
+         None_Seq.Append
+           (New_Return_Statement (Literal ("")));
+         Choose.Add_Case_Option ("No_Field", None_Seq);
+      end;
 
       Table.Iterate_All (Select_Field'Access);
 
@@ -738,6 +749,10 @@ package body Kit.Generate.Public_Interface is
                "no such field"));
          Choose.Add_Others_Option (Others_Seq);
       end;
+
+      if not Got_Field then
+         Block.Add_Declaration (New_Pragma ("Unreferenced", "Item"));
+      end if;
 
       Block.Append (Choose);
 
@@ -757,6 +772,10 @@ package body Kit.Generate.Public_Interface is
       Top.Append_To_Body (Fetch);
    end Create_Generic_Get;
 
+   ------------------------
+   -- Create_Generic_Set --
+   ------------------------
+
    procedure Create_Generic_Set
      (Table : in     Kit.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
@@ -764,6 +783,8 @@ package body Kit.Generate.Public_Interface is
       use Aquarius.Drys;
       use Aquarius.Drys.Declarations;
       use Aquarius.Drys.Statements;
+
+      Got_Field : Boolean := False;
 
       Store  : Subprogram_Declaration;
       Block  : Aquarius.Drys.Blocks.Block_Type;
@@ -794,9 +815,18 @@ package body Kit.Generate.Public_Interface is
          Choose.Add_Case_Option
            (Value => "F_" & Field.Ada_Name,
             Stats => Seq);
+         Got_Field := True;
       end Set_Field;
 
    begin
+
+      declare
+         None_Seq : Sequence_Of_Statements;
+         Null_Stat : Null_Statement;
+      begin
+         None_Seq.Append (Null_Stat);
+         Choose.Add_Case_Option ("No_Field", None_Seq);
+      end;
 
       Table.Iterate_All (Set_Field'Access);
 
@@ -811,6 +841,11 @@ package body Kit.Generate.Public_Interface is
       end;
 
       Block.Append (Choose);
+
+      if not Got_Field then
+         Block.Add_Declaration (New_Pragma ("Unreferenced", "Item"));
+         Block.Add_Declaration (New_Pragma ("Unreferenced", "Value"));
+      end if;
 
       Store := New_Procedure
         ("Set",
