@@ -482,6 +482,19 @@ package body Kit.Tables is
       return True;
    end Inherited_Field;
 
+   --------------------
+   -- Interface_Name --
+   --------------------
+
+   function Interface_Name
+     (Item : Table_Type)
+      return String
+   is
+      pragma Unreferenced (Item);
+   begin
+      return "Interface_Type";
+   end Interface_Name;
+
    ---------------------
    -- Is_Compound_Key --
    ---------------------
@@ -832,6 +845,18 @@ package body Kit.Tables is
       Field_Vectors.Next (Field_Vectors.Cursor (Position));
    end Next;
 
+   ------------------
+   -- Package_Name --
+   ------------------
+
+   function Package_Name
+     (Item : Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name;
+   end Package_Name;
+
    ---------------------
    -- Reference_Index --
    ---------------------
@@ -1103,5 +1128,18 @@ package body Kit.Tables is
          end;
       end if;
    end To_Storage;
+
+   ---------------
+   -- Type_Name --
+   ---------------
+
+   function Type_Name
+     (Item : Table_Type)
+      return String
+   is
+      pragma Unreferenced (Item);
+   begin
+      return "Record_Type";
+   end Type_Name;
 
 end Kit.Tables;

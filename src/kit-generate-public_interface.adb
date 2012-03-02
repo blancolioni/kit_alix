@@ -403,7 +403,7 @@ package body Kit.Generate.Public_Interface is
                      ("Set_" & Field.Ada_Name,
                       New_Inout_Argument ("Item",
                         Aquarius.Drys.Named_Subtype
-                          (Table.Ada_Name & "_Interface")));
+                          (Table.Interface_Name)));
       begin
          Store.Add_Formal_Argument
            (New_Formal_Argument ("Value",
@@ -1126,10 +1126,6 @@ package body Kit.Generate.Public_Interface is
       return Aquarius.Drys.Declarations.Package_Type'Class
    is
       use Aquarius.Drys, Aquarius.Drys.Declarations;
-      Table_Interface_Name   : constant String :=
-                                 Table.Ada_Name & "_Interface";
-      Table_Class_Wide_Name  : constant String :=
-                                 Table.Ada_Name & "_Type";
       Database_Package       : constant String :=
                                  Table.Ada_Name & "_Impl";
 --        Database_Type          : constant String :=
@@ -1344,7 +1340,7 @@ package body Kit.Generate.Public_Interface is
               (New_Return_Statement
                  ("Result", Implementation_Type, Sequence));
             Table_Package.Append
-              (New_Function ("Create", Table_Class_Wide_Name,
+              (New_Function ("Create", Table.Type_Name,
                Block));
          end;
 
@@ -1635,16 +1631,16 @@ package body Kit.Generate.Public_Interface is
 
       Table_Package.Append
         (New_Full_Type_Declaration
-           (Table.Ada_Name & "_Interface",
+           (Table.Interface_Name,
             Table_Interface));
       Table_Package.Append
         (New_Separator);
 
       Table_Package.Append
         (New_Subtype_Declaration
-           (Table_Class_Wide_Name,
+           (Table.Type_Name,
             Aquarius.Drys.Class_Wide_Subtype
-              (Table_Interface_Name)));
+              (Table.Interface_Name)));
 
       Create_Key_Marks (Db, Table, Table_Package);
       Create_Key_Context_Type (Db, Table, Table_Package);

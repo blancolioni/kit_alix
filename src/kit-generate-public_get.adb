@@ -307,20 +307,16 @@ package body Kit.Generate.Public_Get is
 
       declare
          use Aquarius.Drys.Declarations;
-         Table_Class_Wide_Name  : constant String :=
-                                    Table.Ada_Name & "_Type";
-         Implementation_Type    : constant String :=
-                                    Table.Ada_Name & "_Implementation";
          Block                  : Aquarius.Drys.Blocks.Block_Type;
          Fn                     : Subprogram_Declaration;
       begin
          Declare_Index (Block);
          Block.Append
            (Aquarius.Drys.Statements.New_Return_Statement
-              ("Result", Implementation_Type, Return_Sequence));
+              ("Result", Table.Interface_Name, Return_Sequence));
 
          Fn := New_Function
-           (Function_Name, Table_Class_Wide_Name,
+           (Function_Name, Table.Type_Name,
             Block);
 
          if not Scan and then not Using_Key then

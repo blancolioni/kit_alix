@@ -1,6 +1,8 @@
 with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Types;
 
+with Kit.String_Maps;
+
 with Kit.Tables;
 with Kit.Types;
 
@@ -19,6 +21,10 @@ package body Kit.Generate is
    pragma Unreferenced (Create_Handle_Function);
 
    procedure Create_Table_Type
+     (Db  : Kit.Databases.Database_Type;
+      Top : in out Aquarius.Drys.Declarations.Package_Type);
+
+   procedure Create_Field_Type
      (Db  : Kit.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
@@ -45,6 +51,58 @@ package body Kit.Generate is
    procedure Create_Locking_Interface
      (Db  : Kit.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
+
+   procedure Create_Field_Type
+     (Db  : Kit.Databases.Database_Type;
+      Top : in out Aquarius.Drys.Declarations.Package_Type)
+   is
+
+      Found : Kit.String_Maps.String_Map;
+      Field_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
+
+      procedure Add_Table_Fields
+        (Table : Kit.Tables.Table_Type'Class);
+
+      procedure Add_Table_Fields
+        (Table : Kit.Tables.Table_Type'Class)
+      is
+
+         procedure Add_Field_Type_Literal
+           (Base : Kit.Tables.Table_Type'Class;
+            Item : Kit.Tables.Field_Cursor);
+
+         --------------------------
+         -- Add_Key_Type_Literal --
+         --------------------------
+
+         procedure Add_Field_Type_Literal
+           (Base : Kit.Tables.Table_Type'Class;
+            Item : Kit.Tables.Field_Cursor)
+         is
+            pragma Unreferenced (Base);
+            Name : constant String :=
+                     Kit.Tables.Element (Item).Ada_Name;
+         begin
+            if not Found.Contains (Name) then
+               Field_Type_Definition.New_Literal ("F_" & Name);
+               Found.Insert (Name);
+            end if;
+         end Add_Field_Type_Literal;
+
+      begin
+         Table.Iterate_All (Add_Field_Type_Literal'Access);
+      end Add_Table_Fields;
+
+   begin
+
+      Field_Type_Definition.New_Literal ("No_Field");
+      Db.Iterate (Add_Table_Fields'Access);
+
+      Top.Append
+        (Aquarius.Drys.Declarations.New_Full_Type_Declaration
+              ("Database_Field", Field_Type_Definition));
+      Top.Append (Aquarius.Drys.Declarations.New_Separator);
+   end Create_Field_Type;
 
    ----------------------------
    -- Create_Handle_Function --
@@ -453,6 +511,7 @@ package body Kit.Generate is
       --  Create_Handle_Function (Db, Top_Package);
       Create_Table_Type (Db, Top_Package);
       Create_Key_Type (Db, Top_Package);
+      Create_Field_Type (Db, Top_Package);
       Create_Reference_Types (Db, Top_Package);
       Create_Record_Interface (Db, Top_Package);
       Create_Search_Interface (Db, Top_Package);

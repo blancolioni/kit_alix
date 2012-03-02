@@ -25,6 +25,18 @@ package Kit.Tables is
      (Item : Table_Type)
       return Marlowe.Table_Index;
 
+   function Package_Name
+     (Item : Table_Type)
+      return String;
+
+   function Interface_Name
+     (Item : Table_Type)
+      return String;
+
+   function Type_Name
+     (Item : Table_Type)
+      return String;
+
    function Reference_Type (Item : Table_Type) return String;
    function Implementation_Record_Type (Item : Table_Type) return String;
 
