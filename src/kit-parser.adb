@@ -2,6 +2,7 @@ with GCS.Positions;
 
 with Kit.Parser.Tokens;                use Kit.Parser.Tokens;
 with Kit.Parser.Lexical;               use Kit.Parser.Lexical;
+with Kit.Paths;
 
 with Kit.Tables;
 with Kit.Fields;
@@ -10,7 +11,11 @@ with Kit.Types.Enumerated;
 
 package body Kit.Parser is
 
-   procedure Read_Package (Db : in out Kit.Databases.Database_Type);
+   System_Db : Kit.Databases.Database_Type;
+   Got_System_Db : Boolean := False;
+
+   procedure Read_Package (Db          : in out Kit.Databases.Database_Type;
+                           With_System : Boolean := True);
 
    function At_Declaration return Boolean;
 
@@ -420,6 +425,7 @@ package body Kit.Parser is
       Db   : out Kit.Databases.Database_Type)
    is
    begin
+
       Open (Path);
 
       Read_Package (Db);
@@ -431,7 +437,9 @@ package body Kit.Parser is
    -- Read_Package --
    ------------------
 
-   procedure Read_Package (Db : in out Kit.Databases.Database_Type) is
+   procedure Read_Package (Db          : in out Kit.Databases.Database_Type;
+                           With_System : Boolean := True)
+   is
    begin
       if Tok /= Tok_Package then
          Error ("missing package");
@@ -445,6 +453,16 @@ package body Kit.Parser is
          Expect (Tok_Is, (Tok_Record, Tok_End));
 
          Db.Create_Database (Package_Name);
+
+         if With_System then
+            if not Got_System_Db then
+               Open (Kit.Paths.Config_Path & "/kit.kit");
+               Read_Package (System_Db, With_System => False);
+               Close;
+               Got_System_Db := True;
+            end if;
+            Db.With_Database (System_Db);
+         end if;
 
          while At_Declaration loop
             if Tok = Tok_Record then
