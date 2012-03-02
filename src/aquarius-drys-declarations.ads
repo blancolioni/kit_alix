@@ -7,6 +7,10 @@ package Aquarius.Drys.Declarations is
    function Use_Type (Type_Name : String)
                       return  Declaration'Class;
 
+   function New_Pragma (Pragma_Name : String;
+                        Argument    : String)
+                        return Declaration'Class;
+
    type Specification_Separator is
      new Declaration with private;
 

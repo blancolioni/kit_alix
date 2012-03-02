@@ -14,6 +14,17 @@ package body Aquarius.Drys.Declarations is
    procedure Write (Item        : Use_Type_Declaration;
                     Writer      : in out Writer_Interface'Class);
 
+   type Pragma_Declaration is
+     new Declaration with
+      record
+         Pragma_Name : access String;
+         Pragma_Arg  : access String;
+      end record;
+
+   overriding
+   procedure Write (Item        : Pragma_Declaration;
+                    Writer      : in out Writer_Interface'Class);
+
    type Renaming_Declaration_Record is
      new Declaration with
       record
@@ -845,6 +856,21 @@ package body Aquarius.Drys.Declarations is
       end return;
    end New_Package_Type;
 
+   ----------------
+   -- New_Pragma --
+   ----------------
+
+   function New_Pragma (Pragma_Name : String;
+                        Argument    : String)
+                        return Declaration'Class
+   is
+   begin
+      return Result : Pragma_Declaration do
+         Result.Pragma_Name := new String'(Pragma_Name);
+         Result.Pragma_Arg := new String'(Argument);
+      end return;
+   end New_Pragma;
+
    ----------------------------------
    -- New_Private_Type_Declaration --
    ----------------------------------
@@ -1024,6 +1050,10 @@ package body Aquarius.Drys.Declarations is
    begin
       Sorting.Sort (Decs);
    end Sort_Subprograms;
+
+   --------------
+   -- Use_Type --
+   --------------
 
    function Use_Type (Type_Name : String)
                       return  Declaration'Class
@@ -1506,6 +1536,22 @@ package body Aquarius.Drys.Declarations is
       Writer.Put ("renames ");
       Item.Renamed_Expression.Write (Writer);
       Writer.Indent (Writer.Indent - 2);
+   end Write;
+
+   -----------
+   -- Write --
+   -----------
+
+   overriding
+   procedure Write (Item        : Pragma_Declaration;
+                    Writer      : in out Writer_Interface'Class)
+   is
+   begin
+      Writer.Put ("pragma ");
+      Writer.Put (Item.Pragma_Name.all);
+      Writer.Put (" (");
+      Writer.Put (Item.Pragma_Arg.all);
+      Writer.Put (")");
    end Write;
 
 end Aquarius.Drys.Declarations;
