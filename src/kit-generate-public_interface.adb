@@ -1394,6 +1394,37 @@ package body Kit.Generate.Public_Interface is
          procedure Set_Field (Field_Name : String;
                               Value      : String);
 
+         Create_Ref_Block : Aquarius.Drys.Blocks.Block_Type;
+         Create_Ref_Fn    : Subprogram_Declaration;
+         Create_Ref_Proc  : Subprogram_Declaration;
+         Got_Field        : Boolean := False;
+
+         procedure Initialise_Field
+           (Base     : Kit.Tables.Table_Type'Class;
+            Field    : Kit.Fields.Field_Type'Class);
+
+         procedure Add_Formal_Argument
+           (Base     : Kit.Tables.Table_Type'Class;
+            Field    : Kit.Fields.Field_Type'Class);
+
+         -------------------------
+         -- Add_Formal_Argument --
+         -------------------------
+
+         procedure Add_Formal_Argument
+           (Base     : Kit.Tables.Table_Type'Class;
+            Field    : Kit.Fields.Field_Type'Class)
+         is
+            pragma Unreferenced (Base);
+         begin
+            Create_Ref_Fn.Add_Formal_Argument
+              (Field.Ada_Name,
+               Field.Get_Field_Type.Argument_Subtype);
+            Create_Ref_Proc.Add_Formal_Argument
+              (Field.Ada_Name,
+               Field.Get_Field_Type.Argument_Subtype);
+         end Add_Formal_Argument;
+
          ----------------------
          -- Allocate_Context --
          ----------------------
@@ -1484,6 +1515,23 @@ package body Kit.Generate.Public_Interface is
             Sequence.Append (Base.Ada_Name & "_Impl.File_Mutex.Unlock");
          end Database_Insert;
 
+         ----------------------
+         -- Initialise_Field --
+         ----------------------
+
+         procedure Initialise_Field
+           (Base     : Kit.Tables.Table_Type'Class;
+            Field    : Kit.Fields.Field_Type'Class)
+         is
+            pragma Unreferenced (Base);
+         begin
+            Create_Ref_Block.Append
+              (New_Procedure_Call_Statement
+                 ("Result.Set_" & Field.Ada_Name,
+                  Object (Field.Ada_Name)));
+            Got_Field := True;
+         end Initialise_Field;
+
          ---------------
          -- Set_Field --
          ---------------
@@ -1535,6 +1583,36 @@ package body Kit.Generate.Public_Interface is
               (New_Function ("Create", Table.Type_Name,
                Block));
          end;
+
+         Create_Ref_Block.Add_Declaration
+           (New_Object_Declaration
+              ("Result",
+               Table.Type_Name,
+               Object ("Create")));
+
+         Table.Iterate_All (Initialise_Field'Access);
+
+         if Got_Field then
+            Create_Ref_Proc := New_Procedure
+              (Name        => "Create",
+               Block       => Create_Ref_Block);
+         end if;
+
+         Create_Ref_Block.Append
+           (New_Return_Statement
+              (Object ("Result.Reference")));
+
+         Create_Ref_Fn := New_Function
+           (Name        => "Create",
+            Result_Type => Table.Reference_Type,
+            Block       => Create_Ref_Block);
+
+         Table.Iterate_All (Add_Formal_Argument'Access);
+         Table_Package.Append (Create_Ref_Fn);
+
+         if Got_Field then
+            Table_Package.Append (Create_Ref_Proc);
+         end if;
 
          Table_Package.Append (New_Separator);
       end Add_Create_Function;
