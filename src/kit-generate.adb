@@ -282,6 +282,16 @@ package body Kit.Generate is
                Named_Subtype
                  ("Record_Interface")),
             Named_Subtype ("Record_Type")));
+
+      Top.Append
+        (New_Abstract_Function
+           ("Get",
+            New_Formal_Argument
+              ("Item", Named_Subtype ("Record_Interface")),
+            New_Formal_Argument
+              ("Field", Named_Subtype ("Database_Field")),
+            Named_Subtype ("String")));
+
       Top.Add_Separator;
 
    end Create_Record_Interface;

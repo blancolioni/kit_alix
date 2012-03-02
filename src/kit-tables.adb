@@ -440,6 +440,18 @@ package body Kit.Tables is
       return Item.Has_String_Type;
    end Has_String_Type;
 
+   -------------------------
+   -- Implementation_Name --
+   -------------------------
+
+   function Implementation_Name
+     (Item : Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Implementation";
+   end Implementation_Name;
+
    --------------------------------
    -- Implementation_Record_Type --
    --------------------------------
@@ -490,9 +502,8 @@ package body Kit.Tables is
      (Item : Table_Type)
       return String
    is
-      pragma Unreferenced (Item);
    begin
-      return "Interface_Type";
+      return Item.Ada_Name & "_Interface";
    end Interface_Name;
 
    ---------------------
@@ -1137,9 +1148,8 @@ package body Kit.Tables is
      (Item : Table_Type)
       return String
    is
-      pragma Unreferenced (Item);
    begin
-      return "Record_Type";
+      return Item.Ada_Name & "_Type";
    end Type_Name;
 
 end Kit.Tables;

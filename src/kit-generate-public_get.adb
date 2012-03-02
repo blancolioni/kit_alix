@@ -313,7 +313,7 @@ package body Kit.Generate.Public_Get is
          Declare_Index (Block);
          Block.Append
            (Aquarius.Drys.Statements.New_Return_Statement
-              ("Result", Table.Interface_Name, Return_Sequence));
+              ("Result", Table.Implementation_Name, Return_Sequence));
 
          Fn := New_Function
            (Function_Name, Table.Type_Name,

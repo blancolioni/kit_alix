@@ -133,6 +133,20 @@ package body Aquarius.Drys.Statements is
          Sequence_Of_Statements (Stats)));
    end Add_Case_Option;
 
+   -----------------------
+   -- Add_Others_Option --
+   -----------------------
+
+   procedure Add_Others_Option
+     (Statement : in out Case_Statement_Record'Class;
+      Stats     : in     Sequence_Of_Statements'Class)
+   is
+   begin
+      Statement.Case_Options.Append
+        ((null,
+         Sequence_Of_Statements (Stats)));
+   end Add_Others_Option;
+
    ------------
    -- Append --
    ------------
@@ -581,7 +595,11 @@ package body Aquarius.Drys.Statements is
       Writer.Indent (Writer.Indent + 3);
       for Option of Item.Case_Options loop
          Writer.Put ("when ");
-         Option.Value.Write (Writer);
+         if Option.Value = null then
+            Writer.Put ("others");
+         else
+            Option.Value.Write (Writer);
+         end if;
          Writer.Put_Line (" =>");
          Writer.Indent (Writer.Indent + 3);
          Option.Stats.Write (Writer);

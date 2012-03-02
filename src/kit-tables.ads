@@ -37,6 +37,10 @@ package Kit.Tables is
      (Item : Table_Type)
       return String;
 
+   function Implementation_Name
+     (Item : Table_Type)
+      return String;
+
    function Reference_Type (Item : Table_Type) return String;
    function Implementation_Record_Type (Item : Table_Type) return String;
 
