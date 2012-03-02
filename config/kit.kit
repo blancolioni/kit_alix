@@ -1,10 +1,12 @@
 package Kit is
 
    record Kit_Named_Item is
-      Name : String (64);
+      key Name : String (64);
    end Kit_Named_Item;
 
-   record Kit_Record : Kit_Named_Item;
+   record Kit_Record : Kit_Named_Item is
+      Record_Length : Natural;
+   end Kit_Record;
 
    record Kit_Base_Record is
       key Base : Kit_Record;
@@ -32,15 +34,12 @@ package Kit is
    end Kit_String;
 
    record Kit_Field : Kit_Named_Item is
-      Field_Type : Kit_Type;
-   end Kit_Field;
-
-   record Kit_Record_Field is
       key Kit_Record;
-      key Kit_Field;
       key Inherited_From : Kit_Record;
-      unique key Record_Field is Kit_Record, Kit_Field;
-   end Kit_Record_Field;
+      Field_Type   : Kit_Type;
+      Field_Offset : Natural;
+      Field_Length : Natural;
+   end Kit_Field;
 
    record Kit_Key is
       Is_Unique : Boolean;
