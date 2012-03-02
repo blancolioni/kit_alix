@@ -11,6 +11,9 @@ package Kit.Types is
    function Record_Subtype (Item : Kit_Type) return String;
    function Unconstrained_Record_Subtype (Item : Kit_Type) return String;
    function Argument_Subtype (Item : Kit_Type) return String;
+   function Convert_To_String (Item   : Kit_Type;
+                               Object_Name : String)
+                               return Aquarius.Drys.Expression'Class;
 
    function Is_String (Item : Kit_Type) return Boolean;
 

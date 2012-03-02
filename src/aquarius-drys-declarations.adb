@@ -410,6 +410,25 @@ package body Aquarius.Drys.Declarations is
    end New_Abstract_Function;
 
    ---------------------------
+   -- New_Abstract_Function --
+   ---------------------------
+
+   function New_Abstract_Function
+     (Name        : String;
+      Argument_1  : Formal_Argument'Class;
+      Argument_2  : Formal_Argument'Class;
+      Result_Type : Subtype_Indication'Class)
+     return Subprogram_Declaration
+   is
+      Result : Subprogram_Declaration :=
+        New_Abstract_Function (Name, Result_Type);
+   begin
+      Result.Add_Formal_Argument (Argument_1);
+      Result.Add_Formal_Argument (Argument_2);
+      return Result;
+   end New_Abstract_Function;
+
+   ---------------------------
    -- New_Abstract_Procedure --
    ---------------------------
 

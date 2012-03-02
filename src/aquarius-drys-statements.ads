@@ -59,6 +59,10 @@ package Aquarius.Drys.Statements is
       Value     : in     String;
       Stats     : in     Sequence_Of_Statements'Class);
 
+   procedure Add_Others_Option
+     (Statement : in out Case_Statement_Record'Class;
+      Stats     : in     Sequence_Of_Statements'Class);
+
    overriding
    procedure Write (Item : Case_Statement_Record;
                     Writer : in out Writer_Interface'Class);

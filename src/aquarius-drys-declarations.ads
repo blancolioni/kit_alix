@@ -226,6 +226,13 @@ package Aquarius.Drys.Declarations is
       Result_Type : Subtype_Indication'Class)
      return Subprogram_Declaration;
 
+   function New_Abstract_Function
+     (Name        : String;
+      Argument_1  : Formal_Argument'Class;
+      Argument_2  : Formal_Argument'Class;
+      Result_Type : Subtype_Indication'Class)
+     return Subprogram_Declaration;
+
    function New_Abstract_Procedure
      (Name        : String;
       Argument    : Formal_Argument'Class)
