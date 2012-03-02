@@ -36,6 +36,9 @@ package Kit.Databases is
    procedure Create_Database (Db   : in out Database_Type;
                               Name : in     String);
 
+   procedure With_Database (Db     : in out Database_Type'Class;
+                            Withed : in     Database_Type'Class);
+
 private
 
    type Database_Table is access all Kit.Tables.Table_Type'Class;
