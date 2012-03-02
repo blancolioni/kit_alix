@@ -721,9 +721,9 @@ package body Kit.Tables is
 
       while not Queue.Is_Empty loop
          declare
-            Item : constant Table_Access := Queue.Last_Element;
+            Item : constant Table_Access := Queue.First_Element;
          begin
-            Queue.Delete_Last;
+            Queue.Delete_First;
             Visited.Append (Item);
             for B of Item.Bases loop
                if not Visited.Contains (B) then
