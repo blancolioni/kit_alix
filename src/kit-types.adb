@@ -72,6 +72,11 @@ package body Kit.Types is
                                return Aquarius.Drys.Expression'Class;
 
    overriding
+   function Convert_From_String (Item   : String_Type;
+                               Object_Name : String)
+                                 return Aquarius.Drys.Expression'Class;
+
+   overriding
    function Return_Value
      (Value_Type  : String_Type;
       Target_Name : String)
@@ -106,6 +111,34 @@ package body Kit.Types is
    begin
       return Kit_Type'Class (Item).Return_Subtype;
    end Argument_Subtype;
+
+   -------------------------
+   -- Convert_From_String --
+   -------------------------
+
+   function Convert_From_String (Item   : Kit_Type;
+                                 Object_Name : String)
+                                 return Aquarius.Drys.Expression'Class
+   is
+      use Aquarius.Drys.Expressions;
+   begin
+      return New_Function_Call_Expression
+        (Item.Ada_Name & "'Value",
+         Object_Name);
+   end Convert_From_String;
+
+   -------------------------
+   -- Convert_From_String --
+   -------------------------
+
+   function Convert_From_String (Item   : String_Type;
+                                 Object_Name : String)
+                                 return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object (Object_Name);
+   end Convert_From_String;
 
    -----------------------
    -- Convert_To_String --

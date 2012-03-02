@@ -57,6 +57,10 @@ package body Kit.Generate.Public_Interface is
      (Table : in     Kit.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
+   procedure Create_Generic_Set
+     (Table : in     Kit.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+
    ----------------------------------------------
    -- Create_Compound_Key_To_Storage_Functions --
    ----------------------------------------------
@@ -752,6 +756,80 @@ package body Kit.Generate.Public_Interface is
       Fetch.Set_Overriding;
       Top.Append_To_Body (Fetch);
    end Create_Generic_Get;
+
+   procedure Create_Generic_Set
+     (Table : in     Kit.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+   is
+      use Aquarius.Drys;
+      use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Statements;
+
+      Store  : Subprogram_Declaration;
+      Block  : Aquarius.Drys.Blocks.Block_Type;
+      Choose : Case_Statement_Record'Class :=
+                 Case_Statement ("Field");
+
+      procedure Set_Field
+        (Base  : Kit.Tables.Table_Type'Class;
+         Field : Kit.Fields.Field_Type'Class);
+
+      ---------------
+      -- Set_Field --
+      ---------------
+
+      procedure Set_Field
+        (Base  : Kit.Tables.Table_Type'Class;
+         Field : Kit.Fields.Field_Type'Class)
+      is
+         pragma Unreferenced (Base);
+         Seq : Sequence_Of_Statements;
+      begin
+         Seq.Append
+           (New_Procedure_Call_Statement
+              ("Item.Set_" & Field.Ada_Name,
+               Kit.Types.Convert_From_String
+                 (Field.Get_Field_Type,
+                  "Value")));
+         Choose.Add_Case_Option
+           (Value => "F_" & Field.Ada_Name,
+            Stats => Seq);
+      end Set_Field;
+
+   begin
+
+      Table.Iterate_All (Set_Field'Access);
+
+      declare
+         Others_Seq : Sequence_Of_Statements;
+      begin
+         Others_Seq.Append
+           (Raise_Statement
+              ("Constraint_Error",
+               "no such field"));
+         Choose.Add_Others_Option (Others_Seq);
+      end;
+
+      Block.Append (Choose);
+
+      Store := New_Procedure
+        ("Set",
+         Block);
+
+      Store.Add_Formal_Argument
+        ("Item",
+         Inout_Argument,
+         Table.Ada_Name & "_Implementation");
+      Store.Add_Formal_Argument
+        ("Field",
+         "Database_Field");
+      Store.Add_Formal_Argument
+        ("Value",
+         "String");
+
+      Store.Set_Overriding;
+      Top.Append_To_Body (Store);
+   end Create_Generic_Set;
 
    -----------------------------
    -- Create_Key_Context_Type --
@@ -1746,6 +1824,7 @@ package body Kit.Generate.Public_Interface is
       Add_Create_Function;
 
       Create_Generic_Get (Table, Table_Package);
+      Create_Generic_Set (Table, Table_Package);
 
       Public_Get.Create_Get_Function
         (Db            => Db,
