@@ -717,8 +717,6 @@ package body Kit.Tables is
          Queue.Append (B);
       end loop;
 
-      Iterate_Fields (Table);
-
       while not Queue.Is_Empty loop
          declare
             Item : constant Table_Access := Queue.First_Element;
@@ -733,6 +731,9 @@ package body Kit.Tables is
             Iterate_Fields (Item.all);
          end;
       end loop;
+
+      Iterate_Fields (Table);
+
    end Iterate_All;
 
    --------------
