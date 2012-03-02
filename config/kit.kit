@@ -1,0 +1,55 @@
+package Kit is
+
+   record Kit_Named_Item is
+      Name : String (64);
+   end Kit_Named_Item;
+
+   record Kit_Record : Kit_Named_Item;
+
+   record Kit_Base_Record is
+      key Base : Kit_Record;
+      key Derived : Kit_Record;
+      key Base_Record is Base, Derived;
+   end Kit_Base_Record;
+
+   record Kit_Type : Kit_Named_Item;
+
+   record Kit_Integer : Kit_Type is
+      Low  : Integer;
+      High : Integer;
+   end Kit_Integer;
+
+   record Kit_Float : Kit_Type;
+
+   record Kit_Long_Float : Kit_Type;
+
+   record Kit_Reference : Kit_Type is
+      Reference : Kit_Record;
+   end Kit_Reference;
+
+   record Kit_String : Kit_Type is
+      Length : Natural;
+   end Kit_String;
+
+   record Kit_Field : Kit_Named_Item is
+      Field_Type : Kit_Type;
+   end Kit_Field;
+
+   record Kit_Record_Field is
+      key Kit_Record;
+      key Kit_Field;
+      key Inherited_From : Kit_Record;
+      unique key Record_Field is Kit_Record, Kit_Field;
+   end Kit_Record_Field;
+
+   record Kit_Key is
+      Is_Unique : Boolean;
+   end Kit_Key;
+
+   record Kit_Key_Field is
+      key Kit_Key;
+      key Kit_Field;
+      unique key Key_Field is Kit_Key, Kit_Field;
+   end Kit_Key_Field;
+
+end Kit;
