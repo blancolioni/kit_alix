@@ -6,6 +6,8 @@ with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
 
+with Kit.Types.Enumerated;
+
 package body Kit.Types is
 
    package Type_Maps is
@@ -222,6 +224,7 @@ package body Kit.Types is
       New_Type (Standard_Float);
       New_Type (Standard_Long_Float);
       New_Type (Standard_Boolean);
+      New_Type (Standard_Record_Type);
    end Create_Standard_Types;
 
    --------------
@@ -541,6 +544,19 @@ package body Kit.Types is
          Result.High := Integer'Last;
       end return;
    end Standard_Positive;
+
+   --------------------------
+   -- Standard_Record_Type --
+   --------------------------
+
+   function Standard_Record_Type return Kit_Type'Class is
+   begin
+      return Result : Kit.Types.Enumerated.Enumerated_Type do
+         Result.Create ("record_type");
+         Result.Add_Literal ("R_None");
+         Kit_Type (Result).User_Defined := False;
+      end return;
+   end Standard_Record_Type;
 
    ---------------------
    -- Standard_String --

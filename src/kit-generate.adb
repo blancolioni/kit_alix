@@ -274,14 +274,14 @@ package body Kit.Generate is
             New_Inout_Argument
               ("Item", Named_Subtype ("Record_Interface"))));
 
-      Top.Append
-        (New_Abstract_Function
-           ("Top_Record",
-            New_Formal_Argument
-              ("Item",
-               Named_Subtype
-                 ("Record_Interface")),
-            Named_Subtype ("Record_Type")));
+--        Top.Append
+--          (New_Abstract_Function
+--             ("Top_Record",
+--              New_Formal_Argument
+--                ("Item",
+--                 Named_Subtype
+--                   ("Record_Interface")),
+--              Named_Subtype ("Record_Type")));
 
       Top.Append
         (New_Abstract_Function

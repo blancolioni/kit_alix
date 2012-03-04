@@ -42,12 +42,13 @@ package Kit.Types is
      (From_Type : Kit_Type)
       return Aquarius.Drys.Declaration'Class;
 
-   function Standard_Integer    return Kit_Type'Class;
-   function Standard_Positive   return Kit_Type'Class;
-   function Standard_Natural    return Kit_Type'Class;
-   function Standard_Float      return Kit_Type'Class;
-   function Standard_Long_Float return Kit_Type'Class;
-   function Standard_Boolean    return Kit_Type'Class;
+   function Standard_Integer     return Kit_Type'Class;
+   function Standard_Positive    return Kit_Type'Class;
+   function Standard_Natural     return Kit_Type'Class;
+   function Standard_Float       return Kit_Type'Class;
+   function Standard_Long_Float  return Kit_Type'Class;
+   function Standard_Boolean     return Kit_Type'Class;
+   function Standard_Record_Type return Kit_Type'Class;
 
    function Standard_String (Length : Positive) return Kit_Type'Class;
 

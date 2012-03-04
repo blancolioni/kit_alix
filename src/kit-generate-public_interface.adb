@@ -42,11 +42,6 @@ package body Kit.Generate.Public_Interface is
       Table : in     Kit.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
-   procedure Create_Compound_Key_To_Storage_Functions
-     (Db    : in     Kit.Databases.Database_Type;
-      Table : in     Kit.Tables.Table_Type'Class;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
-
    procedure Create_Field_Store_Procedure
      (Table : in     Kit.Tables.Table_Type'Class;
       Base  : in     Kit.Tables.Table_Type'Class;
@@ -60,80 +55,6 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Generic_Set
      (Table : in     Kit.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
-
-   ----------------------------------------------
-   -- Create_Compound_Key_To_Storage_Functions --
-   ----------------------------------------------
-
-   procedure Create_Compound_Key_To_Storage_Functions
-     (Db    : in     Kit.Databases.Database_Type;
-      Table : in     Kit.Tables.Table_Type'Class;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
-   is
-      pragma Unreferenced (Db);
-
-      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor);
-      function To_Storage_Expression
-        (Key   : Kit.Tables.Key_Cursor;
-         Index : Positive)
-         return Aquarius.Drys.Expression'Class;
-
-      ---------------------------
-      -- Create_Key_To_Storage --
-      ---------------------------
-
-      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor) is
-         use Kit.Tables;
-      begin
-         if Is_Compound_Key (Key) then
-            declare
-               use Aquarius.Drys, Aquarius.Drys.Declarations;
-               Fn : Subprogram_Declaration'Class :=
-                      Aquarius.Drys.Declarations.New_Function
-                        (Ada_Name (Key) & "_To_Storage",
-                         "System.Storage_Elements.Storage_Array",
-                         To_Storage_Expression
-                           (Key, Compound_Field_Count (Key)));
-            begin
-               for I in 1 .. Compound_Field_Count (Key) loop
-                  Fn.Add_Formal_Argument
-                    (Compound_Field (Key, I).Ada_Name,
-                     Compound_Field (Key, I).Get_Field_Type.Argument_Subtype);
-               end loop;
-               Fn.Add_Local_Declaration
-                 (Use_Type ("System.Storage_Elements.Storage_Array"));
-               Top.Append_To_Body (Fn);
-            end;
-         end if;
-      end Create_Key_To_Storage;
-
-      ---------------------------
-      -- To_Storage_Expression --
-      ---------------------------
-
-      function To_Storage_Expression
-        (Key   : Kit.Tables.Key_Cursor;
-         Index : Positive)
-         return Aquarius.Drys.Expression'Class
-      is
-         use Aquarius.Drys.Expressions;
-         Field : constant Kit.Fields.Field_Type'Class :=
-                   Kit.Tables.Compound_Field (Key, Index);
-         This  : constant Aquarius.Drys.Expression'Class :=
-                   Field.Get_Field_Type.To_Storage_Array
-                     (Field.Ada_Name);
-      begin
-         if Index = 1 then
-            return This;
-         else
-            return Operator ("&", This,
-                             To_Storage_Expression (Key, Index - 1));
-         end if;
-      end To_Storage_Expression;
-
-   begin
-      Table.Scan_Keys (Create_Key_To_Storage'Access);
-   end Create_Compound_Key_To_Storage_Functions;
 
    -------------------------------
    -- Create_Control_Procedures --
@@ -187,7 +108,6 @@ package body Kit.Generate.Public_Interface is
             procedure Insert_Key (Key_Table : Kit.Tables.Table_Type'Class;
                                   Key       : Kit.Tables.Key_Cursor)
             is
-               pragma Unreferenced (Key_Table);
                Insert : Procedure_Call_Statement :=
                           New_Procedure_Call_Statement
                             ("Marlowe.Btree_Handles.Insert");
@@ -201,8 +121,10 @@ package body Kit.Generate.Public_Interface is
                Insert.Add_Actual_Argument
                  (Kit.Tables.To_Storage (Table       => Table,
                                          Base_Table  => Base,
+                                         Key_Table   => Key_Table,
                                          Object_Name => "Item",
-                                         Key         => Key));
+                                         Key         => Key,
+                                         With_Index  => True));
                Insert_Keys.Append (Insert);
             end Insert_Key;
 
@@ -462,6 +384,13 @@ package body Kit.Generate.Public_Interface is
          S : Aquarius.Drys.Statements.Procedure_Call_Statement :=
                Aquarius.Drys.Statements.New_Procedure_Call_Statement
                  ("Marlowe.Btree_Handles." & Operation);
+         Key_Storage : constant Aquarius.Drys.Expression'Class :=
+                         Table.To_Storage
+                           (Base_Table  => Table_Base,
+                            Key_Table   => Key_Base,
+                            Object_Name => "Item",
+                            Key         => Key,
+                            With_Index  => False);
       begin
 
          S.Add_Actual_Argument
@@ -475,7 +404,7 @@ package body Kit.Generate.Public_Interface is
          S.Add_Actual_Argument
            (Aquarius.Drys.Expressions.Operator
               ("&",
-               Key_Base.Key_To_Storage (Key, "Item"),
+               Key_Storage,
                Aquarius.Drys.Expressions.New_Function_Call_Expression
                  ("Marlowe.Key_Storage.To_Storage_Array",
                   Table.Database_Index_Component ("Item", Key_Base))));
@@ -1417,12 +1346,14 @@ package body Kit.Generate.Public_Interface is
          is
             pragma Unreferenced (Base);
          begin
-            Create_Ref_Fn.Add_Formal_Argument
-              (Field.Ada_Name,
-               Field.Get_Field_Type.Argument_Subtype);
-            Create_Ref_Proc.Add_Formal_Argument
-              (Field.Ada_Name,
-               Field.Get_Field_Type.Argument_Subtype);
+            if Field.Ada_Name /= "Top_Record" then
+               Create_Ref_Fn.Add_Formal_Argument
+                 (Field.Ada_Name,
+                  Field.Get_Field_Type.Argument_Subtype);
+               Create_Ref_Proc.Add_Formal_Argument
+                 (Field.Ada_Name,
+                  Field.Get_Field_Type.Argument_Subtype);
+            end if;
          end Add_Formal_Argument;
 
          ----------------------
@@ -1437,11 +1368,13 @@ package body Kit.Generate.Public_Interface is
                  ("Result" & Base.Base_Component_Name,
                   New_Allocation_Expression
                     (Base.Ada_Name & "_Cache.Cache_Record")));
-            Sequence.Append
-              (New_Assignment_Statement
-                 ("Result" & Base.Base_Component_Name
-                  & ".Db.Actual_Type",
-                  Object ("R_" & Table.Ada_Name)));
+            if Base.Ada_Name = "Base" then
+               Sequence.Append
+                 (New_Assignment_Statement
+                    ("Result" & Base.Base_Component_Name
+                     & ".Db.Top_Record",
+                     Object ("R_" & Table.Ada_Name)));
+            end if;
          end Allocate_Context;
 
          ---------------------
@@ -1525,11 +1458,13 @@ package body Kit.Generate.Public_Interface is
          is
             pragma Unreferenced (Base);
          begin
-            Create_Ref_Block.Append
-              (New_Procedure_Call_Statement
-                 ("Result.Set_" & Field.Ada_Name,
-                  Object (Field.Ada_Name)));
-            Got_Field := True;
+            if Field.Ada_Name /= "Top_Record" then
+               Create_Ref_Block.Append
+                 (New_Procedure_Call_Statement
+                    ("Result.Set_" & Field.Ada_Name,
+                     Object (Field.Ada_Name)));
+               Got_Field := True;
+            end if;
          end Initialise_Field;
 
          ---------------
@@ -1795,12 +1730,12 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Key_Get (Base  : Kit.Tables.Table_Type'Class;
                                 Key   : Kit.Tables.Key_Cursor)
       is
-         pragma Unreferenced (Base);
       begin
          for Use_Key_Value in Boolean loop
             Public_Get.Create_Get_Function
               (Db            => Db,
                Table         => Table,
+               Key_Table     => Base,
                Table_Package => Table_Package,
                Scan          => True,
                First         => True,
@@ -1926,13 +1861,12 @@ package body Kit.Generate.Public_Interface is
                      Inclusive   => True,
                      Table_First => False);
 
-      Create_Actual_Type_Fetch;
+      if False then
+         Create_Actual_Type_Fetch;
+      end if;
 
       Table.Iterate_All (Add_Fetch'Access);
       Table.Iterate_All (Add_Store'Access);
-
-      Create_Compound_Key_To_Storage_Functions
-        (Db, Table, Table_Package);
 
       Add_Create_Function;
 
@@ -1942,6 +1876,7 @@ package body Kit.Generate.Public_Interface is
       Public_Get.Create_Get_Function
         (Db            => Db,
          Table         => Table,
+         Key_Table     => Table,
          Table_Package => Table_Package,
          Scan          => False,
          First         => True,
@@ -1951,6 +1886,7 @@ package body Kit.Generate.Public_Interface is
       Public_Get.Create_Get_Function
         (Db            => Db,
          Table         => Table,
+         Key_Table     => Table,
          Table_Package => Table_Package,
          Scan          => True,
          First         => True,
@@ -1958,6 +1894,13 @@ package body Kit.Generate.Public_Interface is
          Key_Value     => False);
 
       Table.Scan_Keys (Create_Key_Get'Access);
+
+      if Table.Has_Key_Field then
+         Public_Get.Create_Generic_Get_Function
+           (Db, Table, Table_Package, First => True, Key_Value => False);
+         Public_Get.Create_Generic_Get_Function
+           (Db, Table, Table_Package, First => True, Key_Value => True);
+      end if;
 
       return Table_Package;
    end Generate_Public_Interface;

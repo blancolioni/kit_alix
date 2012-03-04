@@ -250,6 +250,11 @@ package body Kit.Parser is
             Table.Create (Record_Name);
             Scan;
 
+            if Record_Name /= "base" then
+               Table.Add_Base
+                 (Db.Element ("base"));
+            end if;
+
             if Tok = Tok_Colon then
                Scan;
                Parse_Bases (Db, Table);
