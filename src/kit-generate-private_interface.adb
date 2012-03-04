@@ -7,6 +7,11 @@ with Kit.Fields;
 
 package body Kit.Generate.Private_Interface is
 
+   procedure Create_Compound_Key_To_Storage_Functions
+     (Db    : in     Kit.Databases.Database_Type;
+      Table : in     Kit.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+
    procedure Create_Database_Record
      (Table : in     Kit.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
@@ -23,6 +28,80 @@ package body Kit.Generate.Private_Interface is
    procedure Create_Key_Mutexes
      (Table : in     Kit.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
+
+   ----------------------------------------------
+   -- Create_Compound_Key_To_Storage_Functions --
+   ----------------------------------------------
+
+   procedure Create_Compound_Key_To_Storage_Functions
+     (Db    : in     Kit.Databases.Database_Type;
+      Table : in     Kit.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+   is
+      pragma Unreferenced (Db);
+
+      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor);
+      function To_Storage_Expression
+        (Key   : Kit.Tables.Key_Cursor;
+         Index : Positive)
+         return Aquarius.Drys.Expression'Class;
+
+      ---------------------------
+      -- Create_Key_To_Storage --
+      ---------------------------
+
+      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor) is
+         use Kit.Tables;
+      begin
+         if Is_Compound_Key (Key) then
+            declare
+               use Aquarius.Drys, Aquarius.Drys.Declarations;
+               Fn : Subprogram_Declaration'Class :=
+                      Aquarius.Drys.Declarations.New_Function
+                        (Ada_Name (Key) & "_To_Storage",
+                         "System.Storage_Elements.Storage_Array",
+                         To_Storage_Expression
+                           (Key, Compound_Field_Count (Key)));
+            begin
+               for I in 1 .. Compound_Field_Count (Key) loop
+                  Fn.Add_Formal_Argument
+                    (Compound_Field (Key, I).Ada_Name,
+                     Compound_Field (Key, I).Get_Field_Type.Argument_Subtype);
+               end loop;
+               Fn.Add_Local_Declaration
+                 (Use_Type ("System.Storage_Elements.Storage_Array"));
+               Top.Append (Fn);
+            end;
+         end if;
+      end Create_Key_To_Storage;
+
+      ---------------------------
+      -- To_Storage_Expression --
+      ---------------------------
+
+      function To_Storage_Expression
+        (Key   : Kit.Tables.Key_Cursor;
+         Index : Positive)
+         return Aquarius.Drys.Expression'Class
+      is
+         use Aquarius.Drys.Expressions;
+         Field : constant Kit.Fields.Field_Type'Class :=
+                   Kit.Tables.Compound_Field (Key, Index);
+         This  : constant Aquarius.Drys.Expression'Class :=
+                   Field.Get_Field_Type.To_Storage_Array
+                     (Field.Ada_Name);
+      begin
+         if Index = 1 then
+            return This;
+         else
+            return Operator ("&", This,
+                             To_Storage_Expression (Key, Index - 1));
+         end if;
+      end To_Storage_Expression;
+
+   begin
+      Table.Scan_Keys (Create_Key_To_Storage'Access);
+   end Create_Compound_Key_To_Storage_Functions;
 
    ----------------------------
    -- Create_Database_Record --
@@ -253,6 +332,10 @@ package body Kit.Generate.Private_Interface is
       Impl_Package.With_Package ("Marlowe.Btree_Handles", Body_With => True);
       Impl_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                                 Body_With => True);
+      if Table.Has_Compound_Key_Field then
+         Impl_Package.With_Package ("Marlowe.Key_Storage",
+                                    Body_With => True);
+      end if;
 
       Impl_Package.Append
         (Aquarius.Drys.Declarations.New_Constant_Declaration
@@ -288,6 +371,9 @@ package body Kit.Generate.Private_Interface is
 
       Create_Read_Write_Procedures (Table, Impl_Package);
       Create_Key_Mutexes (Table, Impl_Package);
+
+      Create_Compound_Key_To_Storage_Functions
+        (Db, Table, Impl_Package);
 
       return Impl_Package;
    end Generate_Private_Interface;

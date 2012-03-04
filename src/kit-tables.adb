@@ -70,15 +70,39 @@ package body Kit.Tables is
       Compound_Key : in out Kit.Fields.Compound_Field_Type;
       Field_Name   : String)
    is
+
+      Found : Boolean := False;
+
+      procedure Add_Field (Base : Table_Type'Class);
+
+      ---------------
+      -- Add_Field --
+      ---------------
+
+      procedure Add_Field (Base : Table_Type'Class) is
+      begin
+         for F of Base.Fields loop
+            if not F.Is_Compound
+              and then F.Field.Name = Field_Name
+            then
+               Compound_Key.Add_Field (F.Field);
+               Found := True;
+               return;
+            end if;
+         end loop;
+      end Add_Field;
+
    begin
-      for F of Table.Fields loop
-         if not F.Is_Compound
-           and then F.Field.Name = Field_Name
-         then
-            Compound_Key.Add_Field (F.Field);
-            return;
-         end if;
-      end loop;
+      Table.Iterate (Add_Field'Access,
+                     Inclusive   => True,
+                     Table_First => True);
+
+      if not Found then
+         raise Constraint_Error with
+           "table " & Table.Ada_Name & " does not contain a field "
+             & Field_Name & " for compound key "
+           & Compound_Key.Ada_Name;
+      end if;
    end Add_Compound_Key_Field;
 
    ------------
@@ -125,6 +149,7 @@ package body Kit.Tables is
         new Kit.Fields.Compound_Field_Type'Class'(Item);
 
       Table.Has_Key_Field := True;
+      Table.Has_Compound_Key_Field := True;
 
       Table.Fields.Append (Field);
    end Append;
@@ -232,6 +257,12 @@ package body Kit.Tables is
             return True;
          end if;
       end loop;
+      for B of Table.Bases loop
+         if B.Contains_Field (Name) then
+            return True;
+         end if;
+      end loop;
+
       return False;
    end Contains_Field;
 
@@ -386,6 +417,15 @@ package body Kit.Tables is
       end loop;
       return Natural (Result);
    end Get_Magic_Number;
+
+   ----------------------------
+   -- Has_Compound_Key_Field --
+   ----------------------------
+
+   function Has_Compound_Key_Field (Item : Table_Type) return Boolean is
+   begin
+      return Item.Has_Compound_Key_Field;
+   end Has_Compound_Key_Field;
 
    -----------------
    -- Has_Element --
@@ -1062,8 +1102,10 @@ package body Kit.Tables is
 
    function To_Storage (Table       : Table_Type'Class;
                         Base_Table  : Table_Type'Class;
+                        Key_Table   : Table_Type'Class;
                         Object_Name : String;
-                        Key         : Key_Cursor)
+                        Key         : Key_Cursor;
+                        With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class
    is
       use Aquarius.Drys;
@@ -1078,26 +1120,42 @@ package body Kit.Tables is
                      New_Function_Call_Expression
                        ("Marlowe.Key_Storage.To_Storage_Array",
                         Object (Key_Index));
+      Object_Component : constant String :=
+                           (if Object_Name = ""
+                            then ""
+                            else Object_Name & ".");
    begin
       if F.Is_Compound then
          declare
             Result : Function_Call_Expression :=
                        New_Function_Call_Expression
-                         (Ada_Name (Key) & "_To_Storage");
+                         (Ada_Name (Key_Table)
+                          & "_Impl."
+                          & Ada_Name (Key) & "_To_Storage");
          begin
             for I in 1 .. F.Compound_Field.Field_Count loop
                Result.Add_Actual_Argument
-                 (Object ("Item." & F.Compound_Field.Field (I).Ada_Name));
+                 (Object
+                    (Object_Component
+                     & F.Compound_Field.Field (I).Ada_Name));
             end loop;
-            return Long_Operator ("&", Result, Index_Part);
+            if With_Index then
+               return Long_Operator ("&", Result, Index_Part);
+            else
+               return Result;
+            end if;
          end;
       else
          declare
             Key_Part : constant Expression'Class :=
                          F.Field.Get_Field_Type.To_Storage_Array
-                           (Object_Name & "." & Ada_Name (Key));
+                           (Object_Component & Ada_Name (Key));
          begin
-            return Long_Operator ("&", Key_Part, Index_Part);
+            if With_Index then
+               return Long_Operator ("&", Key_Part, Index_Part);
+            else
+               return Key_Part;
+            end if;
          end;
       end if;
    end To_Storage;

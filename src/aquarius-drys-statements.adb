@@ -133,6 +133,21 @@ package body Aquarius.Drys.Statements is
          Sequence_Of_Statements (Stats)));
    end Add_Case_Option;
 
+   ---------------------
+   -- Add_Case_Option --
+   ---------------------
+
+   procedure Add_Case_Option
+     (To_Case : in out Case_Statement_Record'Class;
+      Value   : in     String;
+      Stat    : in     Statement'Class)
+   is
+      Seq : Sequence_Of_Statements;
+   begin
+      Seq.Append (Stat);
+      To_Case.Add_Case_Option (Value, Seq);
+   end Add_Case_Option;
+
    -----------------------
    -- Add_Others_Option --
    -----------------------

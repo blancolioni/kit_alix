@@ -8,6 +8,91 @@ with Kit.Fields;
 
 package body Kit.Generate.Public_Get is
 
+   ---------------------------------
+   -- Create_Generic_Get_Function --
+   ---------------------------------
+
+   procedure Create_Generic_Get_Function
+     (Db            : in     Kit.Databases.Database_Type;
+      Table         : in     Kit.Tables.Table_Type'Class;
+      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      First         : in     Boolean;
+      Key_Value     : in     Boolean)
+   is
+      pragma Unreferenced (Db);
+
+      use Aquarius.Drys;
+      use Aquarius.Drys.Declarations;
+      Key_Case  : Aquarius.Drys.Statements.Case_Statement_Record'Class :=
+                    Aquarius.Drys.Statements.Case_Statement ("Key");
+      Block                  : Aquarius.Drys.Blocks.Block_Type;
+      Fn                     : Subprogram_Declaration;
+
+      Function_Name          : constant String :=
+                                 (if First
+                                  then "First_By"
+                                  else "Last_By");
+
+      procedure Process_Key (Base  : Kit.Tables.Table_Type'Class;
+                             Key   : Kit.Tables.Key_Cursor);
+
+      -----------------
+      -- Process_Key --
+      -----------------
+
+      procedure Process_Key (Base  : Kit.Tables.Table_Type'Class;
+                             Key   : Kit.Tables.Key_Cursor)
+      is
+         pragma Unreferenced (Base);
+         use Aquarius.Drys.Expressions;
+         Call : Function_Call_Expression :=
+                  New_Function_Call_Expression
+                    ("First_By_" &
+                     Kit.Tables.Ada_Name (Key));
+         Seq  : Aquarius.Drys.Statements.Sequence_Of_Statements;
+      begin
+
+         if not Kit.Tables.Is_Compound_Key (Key)
+           and then Key_Value
+         then
+            Call.Add_Actual_Argument
+              (Kit.Tables.Key_Type (Key).Convert_From_String ("Value"));
+         end if;
+
+         Seq.Append
+           (Aquarius.Drys.Statements.New_Return_Statement
+              (Call));
+         Key_Case.Add_Case_Option ("K_" & Table.Ada_Name & "_"
+                                   & Kit.Tables.Ada_Name (Key),
+                                   Seq);
+      end Process_Key;
+
+   begin
+
+      Key_Case.Add_Case_Option
+        ("K_None",
+         Aquarius.Drys.Statements.New_Return_Statement
+           (Object ((if First then "First" else "Last"))));
+
+      Table.Scan_Keys (Process_Key'Access);
+
+      Block.Append (Key_Case);
+
+      Fn := New_Function
+        (Function_Name, Table.Type_Name,
+         Block);
+
+      Fn.Add_Formal_Argument
+        ("Key", Table.Ada_Name & "_Key");
+
+      if Key_Value then
+         Fn.Add_Formal_Argument ("Value", "String");
+      end if;
+
+      Table_Package.Append (Fn);
+      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+   end Create_Generic_Get_Function;
+
    -------------------------
    -- Create_Get_Function --
    -------------------------
@@ -15,6 +100,7 @@ package body Kit.Generate.Public_Get is
    procedure Create_Get_Function
      (Db            : in     Kit.Databases.Database_Type;
       Table         : in     Kit.Tables.Table_Type'Class;
+      Key_Table     : in     Kit.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Scan          : in     Boolean;
       First         : in     Boolean;
@@ -25,9 +111,6 @@ package body Kit.Generate.Public_Get is
       use Aquarius.Drys;
       use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
 
-      Get              : Function_Call_Expression :=
-                           New_Function_Call_Expression
-                             ("Ship_Cache.Get");
       Return_Sequence  : Sequence_Of_Statements;
       Lock_Sequence    : Sequence_Of_Statements;
       Invalid_Sequence : Sequence_Of_Statements;
@@ -146,10 +229,6 @@ package body Kit.Generate.Public_Get is
       end Set_Field;
 
    begin
-      Get.Add_Actual_Argument (Object ("Handle"));
-      Get.Add_Actual_Argument
-        (Object ("Index"));
-
       Return_Sequence.Append
         (New_Procedure_Call_Statement
            (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
@@ -226,7 +305,11 @@ package body Kit.Generate.Public_Get is
             if Key_Value then
                declare
                   Key_To_Storage : constant Expression'Class :=
-                                     Table.Key_To_Storage (Key, "");
+                                     Table.To_Storage
+                                       (Table, Key_Table, "", Key,
+                                        With_Index => False);
+
+--                                     Table.Key_To_Storage (Key, "");
 --                                       Kit.Types.To_Storage_Array
 --                                         (Kit.Tables.Key_Type (Key),
 --                                          Kit.Tables.Ada_Name (Key));

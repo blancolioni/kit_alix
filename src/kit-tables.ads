@@ -46,6 +46,8 @@ package Kit.Tables is
 
    function Has_String_Type (Item : Table_Type) return Boolean;
    function Has_Key_Field (Item : Table_Type) return Boolean;
+   function Has_Compound_Key_Field (Item : Table_Type) return Boolean;
+
    function Is_Key_Field (Item : Table_Type;
                           Field : Kit.Fields.Field_Type'Class)
                           return Boolean;
@@ -137,8 +139,10 @@ package Kit.Tables is
 
    function To_Storage (Table       : Table_Type'Class;
                         Base_Table  : Table_Type'Class;
+                        Key_Table   : Table_Type'Class;
                         Object_Name : String;
-                        Key         : Key_Cursor)
+                        Key         : Key_Cursor;
+                        With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class;
 
    function To_Storage (Key_Value_Name   : String;
@@ -269,12 +273,13 @@ private
    type Table_Type is
      new Kit.Names.Root_Named_Object with
       record
-         Index           : Marlowe.Table_Index;
-         Bases           : Table_Vectors.Vector;
-         Fields          : Field_Vectors.Vector;
-         Magic           : Natural;
-         Has_String_Type : Boolean := False;
-         Has_Key_Field   : Boolean := False;
+         Index                  : Marlowe.Table_Index;
+         Bases                  : Table_Vectors.Vector;
+         Fields                 : Field_Vectors.Vector;
+         Magic                  : Natural;
+         Has_String_Type        : Boolean := False;
+         Has_Key_Field          : Boolean := False;
+         Has_Compound_Key_Field : Boolean := False;
       end record;
 
 end Kit.Tables;

@@ -59,6 +59,11 @@ package Aquarius.Drys.Statements is
       Value     : in     String;
       Stats     : in     Sequence_Of_Statements'Class);
 
+   procedure Add_Case_Option
+     (To_Case : in out Case_Statement_Record'Class;
+      Value   : in     String;
+      Stat    : in     Statement'Class);
+
    procedure Add_Others_Option
      (Statement : in out Case_Statement_Record'Class;
       Stats     : in     Sequence_Of_Statements'Class);
