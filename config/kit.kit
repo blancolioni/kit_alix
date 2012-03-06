@@ -1,8 +1,8 @@
 package Kit is
 
-   record Base is
-      key Top_Record : Record_Type;
-   end Base;
+   record Kit_Root_Record is
+      key Top_Record : Record_Type is Readable;
+   end Kit_Root_Record;
 
    record Kit_Named_Item is
       key Name : String (64);
@@ -12,11 +12,11 @@ package Kit is
       Record_Length : Natural;
    end Kit_Record;
 
-   record Kit_Base_Record is
+   record Kit_Record_Base is
       key Base : Kit_Record;
       key Derived : Kit_Record;
-      key Base_Record is Base, Derived;
-   end Kit_Base_Record;
+      key Base_Record with Base, Derived;
+   end Kit_Record_Base;
 
    record Kit_Type : Kit_Named_Item;
 
@@ -52,7 +52,7 @@ package Kit is
    record Kit_Key_Field is
       key Kit_Key;
       key Kit_Field;
-      unique key Key_Field is Kit_Key, Kit_Field;
+      unique key Key_Field with Kit_Key, Kit_Field;
    end Kit_Key_Field;
 
 end Kit;
