@@ -18,7 +18,9 @@ package Kit is
       key Base_Record with Base, Derived;
    end Kit_Record_Base;
 
-   record Kit_Type : Kit_Named_Item;
+   record Kit_Type : Kit_Named_Item is
+      Size : Natural;
+   end Kit_Type;
 
    record Kit_Integer : Kit_Type is
       Low  : Integer;
@@ -36,6 +38,14 @@ package Kit is
    record Kit_String : Kit_Type is
       Length : Natural;
    end Kit_String;
+
+   record Kit_Enumeration : Kit_Type;
+
+   record Kit_Literal : Kit_Named_Item is
+      key Kit_Enumeration;
+      key Value : Natural;
+      unique key Enum_Value with Kit_Enumeration, Value;
+   end Kit_Literal;
 
    record Kit_Field : Kit_Named_Item is
       key Kit_Record;
