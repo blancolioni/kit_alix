@@ -2,6 +2,7 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded.Hash;
 
+with Aquarius.Drys.Blocks;
 with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
@@ -27,6 +28,11 @@ package body Kit.Types is
    overriding
    function Return_Subtype (Item : Integer_Type) return String;
 
+   overriding
+   function Create_Database_Record
+     (For_Type : Integer_Type)
+      return Aquarius.Drys.Statement'Class;
+
    type Float_Type is new Kit_Type with
       record
          Long : Boolean;
@@ -35,10 +41,20 @@ package body Kit.Types is
    overriding
    function Return_Subtype (Item : Float_Type) return String;
 
+   overriding
+   function Create_Database_Record
+     (For_Type : Float_Type)
+      return Aquarius.Drys.Statement'Class;
+
    type Boolean_Type is new Kit_Type with null record;
 
    overriding
    function Return_Subtype (Item : Boolean_Type) return String;
+
+   overriding
+   function Create_Database_Record
+     (For_Type : Boolean_Type)
+      return Aquarius.Drys.Statement'Class;
 
    type Table_Reference_Type_Record is
      new Kit_Type with
@@ -66,6 +82,11 @@ package body Kit.Types is
    function Convert_From_String (Item   : Table_Reference_Type_Record;
                                Object_Name : String)
                                  return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Create_Database_Record
+     (For_Type : Table_Reference_Type_Record)
+      return Aquarius.Drys.Statement'Class;
 
    type String_Type is new Kit_Type with
       record
@@ -114,6 +135,15 @@ package body Kit.Types is
 
    overriding
    function Is_String (Item : String_Type) return Boolean;
+
+   overriding
+   function Create_Database_Record
+     (For_Type : String_Type)
+      return Aquarius.Drys.Statement'Class;
+
+   function Standard_String_Name (Length : Natural) return String;
+   --  String types of the given length have this name in the
+   --  internal database representation
 
    ----------------------
    -- Argument_Subtype --
@@ -212,6 +242,135 @@ package body Kit.Types is
       return Aquarius.Drys.Object (Object_Name);
    end Convert_To_String;
 
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   overriding
+   function Create_Database_Record
+     (For_Type : Integer_Type)
+      return Aquarius.Drys.Statement'Class
+   is
+      use Aquarius.Drys;
+      Result : Aquarius.Drys.Statements.Procedure_Call_Statement'Class :=
+                 Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                   ("Kit_Integer.Create");
+   begin
+      Result.Add_Actual_Argument (Literal (For_Type.Size));
+      Result.Add_Actual_Argument (Literal (For_Type.Name));
+      Result.Add_Actual_Argument (Literal (For_Type.Low));
+      Result.Add_Actual_Argument (Literal (For_Type.High));
+      return Result;
+   end Create_Database_Record;
+
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   overriding
+   function Create_Database_Record
+     (For_Type : Float_Type)
+      return Aquarius.Drys.Statement'Class
+   is
+      use Aquarius.Drys;
+      Record_Name : constant String :=
+                      (if For_Type.Long then "Long_Float" else "Float");
+      Result : Aquarius.Drys.Statements.Procedure_Call_Statement'Class :=
+                 Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                   ("Kit_" & Record_Name & ".Create");
+   begin
+      Result.Add_Actual_Argument (Literal (For_Type.Size));
+      Result.Add_Actual_Argument (Literal (Record_Name));
+      return Result;
+   end Create_Database_Record;
+
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   function Create_Database_Record
+     (For_Type : Boolean_Type)
+      return Aquarius.Drys.Statement'Class
+   is
+      use Aquarius.Drys;
+      use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Expressions;
+      use Aquarius.Drys.Statements;
+      Create : constant Expression'Class :=
+                 New_Function_Call_Expression
+                   ("Kit_Enumeration.Create",
+                    Literal (For_Type.Size),
+                    Literal (For_Type.Name));
+      Create_False : Procedure_Call_Statement'Class :=
+                       New_Procedure_Call_Statement
+                         ("Kit_Literal.Create");
+      Create_True  : Procedure_Call_Statement'Class :=
+                       New_Procedure_Call_Statement
+                         ("Kit_Literal.Create");
+      Block        : Aquarius.Drys.Blocks.Block_Type;
+   begin
+      Create_False.Add_Actual_Argument (Literal ("False"));
+      Create_False.Add_Actual_Argument (Object ("Enum"));
+      Create_False.Add_Actual_Argument (Literal (0));
+
+      Create_True.Add_Actual_Argument (Literal ("True"));
+      Create_True.Add_Actual_Argument (Object ("Enum"));
+      Create_True.Add_Actual_Argument (Literal (1));
+
+      Block.Add_Declaration
+        (New_Constant_Declaration
+           ("Enum", "Kit_Enumeration_Reference",
+            Create));
+      Block.Append (Create_False);
+      Block.Append (Create_True);
+
+
+      return Declare_Statement (Block);
+
+   end Create_Database_Record;
+
+   overriding
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   function Create_Database_Record
+     (For_Type : Table_Reference_Type_Record)
+      return Aquarius.Drys.Statement'Class
+   is
+      use Aquarius.Drys;
+      Result : Aquarius.Drys.Statements.Procedure_Call_Statement'Class :=
+                 Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                   ("Kit_Reference.Create");
+   begin
+      Result.Add_Actual_Argument (Literal (For_Type.Name));
+      Result.Add_Actual_Argument
+        (Object
+           ("Kit_Record.First_By_Name ("""
+            & For_Type.Table_Name.all
+            & """).Reference"));
+      return Result;
+   end Create_Database_Record;
+
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   function Create_Database_Record
+     (For_Type : String_Type)
+      return Aquarius.Drys.Statement'Class
+   is
+      use Aquarius.Drys;
+      Result : Aquarius.Drys.Statements.Procedure_Call_Statement'Class :=
+                 Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                   ("Kit_String.Create");
+   begin
+      Result.Add_Actual_Argument (Literal (For_Type.Size));
+      Result.Add_Actual_Argument (Literal (For_Type.Name));
+      Result.Add_Actual_Argument (Literal (For_Type.Length));
+      return Result;
+   end Create_Database_Record;
+
    ---------------------------
    -- Create_Standard_Types --
    ---------------------------
@@ -267,6 +426,22 @@ package body Kit.Types is
       return Type_Table.Contains
         (Ada.Strings.Unbounded.To_Unbounded_String (Name));
    end Is_Type_Name;
+
+   -----------------------
+   -- Iterate_All_Types --
+   -----------------------
+
+   procedure Iterate_All_Types
+     (Process : not null access procedure (User_Type : Kit_Type'Class))
+   is
+      use Type_Maps;
+      It : Cursor := Type_Table.First;
+   begin
+      while Has_Element (It) loop
+         Process (Element (It));
+         Next (It);
+      end loop;
+   end Iterate_All_Types;
 
    --------------------------------
    -- Iterate_User_Defined_Types --
@@ -563,14 +738,30 @@ package body Kit.Types is
    ---------------------
 
    function Standard_String (Length : Positive) return Kit_Type'Class is
+      use Ada.Strings.Unbounded;
+      Name : constant String :=
+               Standard_String_Name (Length);
+      U_Name : constant Unbounded_String := To_Unbounded_String (Name);
    begin
-      return Result : String_Type do
-         Result.Create ("string");
-         Result.User_Defined := False;
-         Result.Size := Length;
-         Result.Length := Length;
-      end return;
+      if Type_Table.Contains (U_Name) then
+         return Type_Table.Element (U_Name);
+      else
+         return Result : String_Type do
+            Result.Create (Name);
+            Result.User_Defined := False;
+            Result.Size := Length;
+            Result.Length := Length;
+            Type_Table.Insert (U_Name, Result);
+         end return;
+      end if;
    end Standard_String;
+
+   function Standard_String_Name (Length : Natural) return String is
+      Length_Image : String := Natural'Image (Length);
+   begin
+      Length_Image (1) := '_';
+      return "String" & Length_Image;
+   end Standard_String_Name;
 
    --------------------------
    -- Table_Reference_Type --
