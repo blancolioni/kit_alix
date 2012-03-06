@@ -41,6 +41,9 @@ package body Kit.Parser is
 
    function Parse_Qualified_Identifier return String;
 
+   procedure Parse_Field_Options
+     (Field : in out Kit.Fields.Field_Type'Class);
+
    --------------------
    -- At_Declaration --
    --------------------
@@ -132,7 +135,7 @@ package body Kit.Parser is
       begin
          Scan;
 
-         if Tok = Tok_Is then
+         if Tok = Tok_With then
             Scan;
 
             declare
@@ -173,6 +176,12 @@ package body Kit.Parser is
                   Field      : Kit.Fields.Field_Type;
                begin
                   Field.Create_Field (Field_Name, Field_Type);
+
+                  if Tok = Tok_Is then
+                     Scan;
+                     Parse_Field_Options (Field);
+                  end if;
+
                   Table.Append (Item      => Field,
                                 Is_Key    => Is_Key,
                                 Is_Unique => Is_Unique);
@@ -199,6 +208,12 @@ package body Kit.Parser is
                Field      : Kit.Fields.Field_Type;
             begin
                Field.Create_Field (Field_Name, Field_Type);
+
+               if Tok = Tok_Is then
+                  Scan;
+                  Parse_Field_Options (Field);
+               end if;
+
                Table.Append (Item      => Field,
                              Is_Key    => Is_Key,
                              Is_Unique => Is_Unique);
@@ -214,6 +229,44 @@ package body Kit.Parser is
       end if;
 
    end Parse_Field;
+
+   -------------------------
+   -- Parse_Field_Options --
+   -------------------------
+
+   procedure Parse_Field_Options
+     (Field : in out Kit.Fields.Field_Type'Class)
+   is
+      Readable  : Boolean := False;
+      Writeable : Boolean := False;
+      Created   : Boolean := False;
+   begin
+      loop
+         if Tok /= Tok_Identifier then
+            Error ("missing field option");
+            exit;
+         else
+            declare
+               Option_Name : constant String := Tok_Text;
+            begin
+               if Option_Name = "readable" then
+                  Readable := True;
+               elsif Option_Name = "writeable" then
+                  Writeable := True;
+               elsif Option_Name = "created" then
+                  Created := True;
+               else
+                  Error (Tok_Raw_Text & ": unknown field option");
+               end if;
+               Scan;
+            end;
+            exit when Tok /= Tok_Comma;
+            Scan;
+         end if;
+      end loop;
+
+      Field.Set_Field_Options (Created, Readable, Writeable);
+   end Parse_Field_Options;
 
    --------------------------------
    -- Parse_Qualified_Identifier --
@@ -250,9 +303,9 @@ package body Kit.Parser is
             Table.Create (Record_Name);
             Scan;
 
-            if Record_Name /= "base" then
+            if Record_Name /= "kit_root_record" then
                Table.Add_Base
-                 (Db.Element ("base"));
+                 (Db.Element ("kit_root_record"));
             end if;
 
             if Tok = Tok_Colon then

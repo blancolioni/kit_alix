@@ -646,15 +646,25 @@ package body Kit.Generate.Public_Interface is
          pragma Unreferenced (Base);
          Seq : Sequence_Of_Statements;
       begin
-         Seq.Append
-           (New_Return_Statement
-              (Kit.Types.Convert_To_String
-                 (Field.Get_Field_Type,
-                  "Item." & Field.Ada_Name)));
+         if Field.Readable then
+            Seq.Append
+              (New_Return_Statement
+                 (Kit.Types.Convert_To_String
+                    (Field.Get_Field_Type,
+                     "Item." & Field.Ada_Name)));
+         else
+            Seq.Append
+              (Raise_Statement
+                 ("Constraint_Error",
+                  "field " & Field.Ada_Name
+                  & " is not readable"));
+         end if;
+
          Choose.Add_Case_Option
            (Value => "F_" & Field.Ada_Name,
             Stats => Seq);
          Got_Field := True;
+
       end Select_Field;
 
    begin
@@ -735,12 +745,21 @@ package body Kit.Generate.Public_Interface is
          pragma Unreferenced (Base);
          Seq : Sequence_Of_Statements;
       begin
-         Seq.Append
-           (New_Procedure_Call_Statement
-              ("Item.Set_" & Field.Ada_Name,
-               Kit.Types.Convert_From_String
-                 (Field.Get_Field_Type,
-                  "Value")));
+         if Field.Writeable then
+            Seq.Append
+              (New_Procedure_Call_Statement
+                 ("Item.Set_" & Field.Ada_Name,
+                  Kit.Types.Convert_From_String
+                    (Field.Get_Field_Type,
+                     "Value")));
+         else
+            Seq.Append
+              (Raise_Statement
+                 ("Constraint_Error",
+                  "field " & Field.Ada_Name
+                  & " is not writable"));
+         end if;
+
          Choose.Add_Case_Option
            (Value => "F_" & Field.Ada_Name,
             Stats => Seq);
@@ -1272,7 +1291,6 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Key_Get (Base  : Kit.Tables.Table_Type'Class;
                                 Key   : Kit.Tables.Key_Cursor);
       procedure Create_Reference_Get (Base : Kit.Tables.Table_Type'Class);
-      procedure Create_Actual_Type_Fetch;
 
       procedure Add_Create_Function;
 
@@ -1346,7 +1364,7 @@ package body Kit.Generate.Public_Interface is
          is
             pragma Unreferenced (Base);
          begin
-            if Field.Ada_Name /= "Top_Record" then
+            if Field.Created then
                Create_Ref_Fn.Add_Formal_Argument
                  (Field.Ada_Name,
                   Field.Get_Field_Type.Argument_Subtype);
@@ -1368,7 +1386,7 @@ package body Kit.Generate.Public_Interface is
                  ("Result" & Base.Base_Component_Name,
                   New_Allocation_Expression
                     (Base.Ada_Name & "_Cache.Cache_Record")));
-            if Base.Ada_Name = "Base" then
+            if Base.Ada_Name = "kit_root_record" then
                Sequence.Append
                  (New_Assignment_Statement
                     ("Result" & Base.Base_Component_Name
@@ -1458,7 +1476,7 @@ package body Kit.Generate.Public_Interface is
          is
             pragma Unreferenced (Base);
          begin
-            if Field.Ada_Name /= "Top_Record" then
+            if Field.Created then
                Create_Ref_Block.Append
                  (New_Procedure_Call_Statement
                     ("Result.Set_" & Field.Ada_Name,
@@ -1560,6 +1578,10 @@ package body Kit.Generate.Public_Interface is
                            Field : Kit.Fields.Field_Type'Class)
       is
       begin
+         if not Field.Readable then
+            return;
+         end if;
+
          if Base.Name = Table.Name then
             declare
                Fetch : constant Subprogram_Declaration :=
@@ -1616,36 +1638,14 @@ package body Kit.Generate.Public_Interface is
                            Field : Kit.Fields.Field_Type'Class)
       is
       begin
-         Create_Field_Store_Procedure
-           (Table => Table,
-            Base  => Base,
-            Field => Field,
-            Top   => Table_Package);
+         if Field.Writeable then
+            Create_Field_Store_Procedure
+              (Table => Table,
+               Base  => Base,
+               Field => Field,
+               Top   => Table_Package);
+         end if;
       end Add_Store;
-
-      ------------------------------
-      -- Create_Actual_Type_Fetch --
-      ------------------------------
-
-      procedure Create_Actual_Type_Fetch is
-         Get              : Subprogram_Declaration :=
-                              New_Function
-                                ("Top_Record",
-                                 "Record_Type",
-                                 Object
-                                   ("Item"
-                                    & Table.Base_Component_Name
-                                    & ".Db.Actual_Type"));
-      begin
-
-         Get.Add_Formal_Argument
-           ("Item",
-            Table.Ada_Name & "_Implementation");
-
-         Get.Set_Overriding;
-         Table_Package.Append_To_Body (Get);
-
-      end Create_Actual_Type_Fetch;
 
       --------------------------------
       -- Create_Implementation_Type --
@@ -1860,10 +1860,6 @@ package body Kit.Generate.Public_Interface is
       Table.Iterate (Create_Reference_Get'Access,
                      Inclusive   => True,
                      Table_First => False);
-
-      if False then
-         Create_Actual_Type_Fetch;
-      end if;
 
       Table.Iterate_All (Add_Fetch'Access);
       Table.Iterate_All (Add_Store'Access);

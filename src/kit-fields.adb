@@ -67,7 +67,19 @@ package body Kit.Fields is
    begin
       Item.Create (Name);
       Item.Size := 0;
+      Item.Created := False;
+      Item.Readable := False;
+      Item.Writeable := False;
    end Create_Field;
+
+   -------------
+   -- Created --
+   -------------
+
+   function Created (Field : Field_Type) return Boolean is
+   begin
+      return Field.Created;
+   end Created;
 
    ------------------
    -- Equal_Fields --
@@ -110,6 +122,31 @@ package body Kit.Fields is
       return Item.Field_Type.all;
    end Get_Field_Type;
 
+   --------------
+   -- Readable --
+   --------------
+
+   function Readable (Field : Field_Type) return Boolean is
+   begin
+      return Field.Readable;
+   end Readable;
+
+   -----------------------
+   -- Set_Field_Options --
+   -----------------------
+
+   procedure Set_Field_Options
+     (Field    : in out Root_Field_Type'Class;
+      Created  : Boolean := False;
+      Readable : Boolean := False;
+      Writable : Boolean := False)
+   is
+   begin
+      Field.Created := Created;
+      Field.Readable := Readable;
+      Field.Writeable := Writable;
+   end Set_Field_Options;
+
    ----------
    -- Size --
    ----------
@@ -118,5 +155,14 @@ package body Kit.Fields is
    begin
       return Item.Size;
    end Size;
+
+   ---------------
+   -- Writeable --
+   ---------------
+
+   function Writeable (Field : Field_Type) return Boolean is
+   begin
+      return Field.Writeable;
+   end Writeable;
 
 end Kit.Fields;
