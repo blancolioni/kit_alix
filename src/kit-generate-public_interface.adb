@@ -652,6 +652,7 @@ package body Kit.Generate.Public_Interface is
                  (Kit.Types.Convert_To_String
                     (Field.Get_Field_Type,
                      "Item." & Field.Ada_Name)));
+            Got_Field := True;
          else
             Seq.Append
               (Raise_Statement
@@ -663,7 +664,6 @@ package body Kit.Generate.Public_Interface is
          Choose.Add_Case_Option
            (Value => "F_" & Field.Ada_Name,
             Stats => Seq);
-         Got_Field := True;
 
       end Select_Field;
 
@@ -752,6 +752,7 @@ package body Kit.Generate.Public_Interface is
                   Kit.Types.Convert_From_String
                     (Field.Get_Field_Type,
                      "Value")));
+            Got_Field := True;
          else
             Seq.Append
               (Raise_Statement
@@ -763,7 +764,6 @@ package body Kit.Generate.Public_Interface is
          Choose.Add_Case_Option
            (Value => "F_" & Field.Ada_Name,
             Stats => Seq);
-         Got_Field := True;
       end Set_Field;
 
    begin
