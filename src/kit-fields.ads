@@ -10,6 +10,12 @@ package Kit.Fields is
 
    function Size (Item : Root_Field_Type) return Natural;
 
+   procedure Set_Field_Options
+     (Field    : in out Root_Field_Type'Class;
+      Created  : Boolean := False;
+      Readable : Boolean := False;
+      Writable : Boolean := False);
+
    type Field_Type is new Root_Field_Type with private;
 
    procedure Create_Field (Item       : in out Field_Type;
@@ -18,6 +24,15 @@ package Kit.Fields is
 
    function Get_Field_Type (Item : Field_Type)
                            return Kit.Types.Kit_Type'Class;
+
+   function Created (Field : Field_Type) return Boolean;
+   --  return True if Field should be part of the Create subprograms
+
+   function Readable (Field : Field_Type) return Boolean;
+   --  return true if Field can be read
+
+   function Writeable (Field : Field_Type) return Boolean;
+   --  return true if Field can be written
 
    type Compound_Field_Type is new Root_Field_Type with private;
 
@@ -39,13 +54,15 @@ package Kit.Fields is
                       Index : Positive)
                       return String;
 
-
 private
 
    type Root_Field_Type is
      new Kit.Names.Root_Named_Object with
       record
-         Size    : Natural;
+         Size       : Natural;
+         Created    : Boolean  := True;
+         Readable   : Boolean  := True;
+         Writeable  : Boolean  := True;
       end record;
 
    type Field_Type is new Root_Field_Type with
