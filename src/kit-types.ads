@@ -42,6 +42,11 @@ package Kit.Types is
      (From_Type : Kit_Type)
       return Aquarius.Drys.Declaration'Class;
 
+   function Create_Database_Record
+     (For_Type : Kit_Type)
+      return Aquarius.Drys.Statement'Class
+      is abstract;
+
    function Standard_Integer     return Kit_Type'Class;
    function Standard_Positive    return Kit_Type'Class;
    function Standard_Natural     return Kit_Type'Class;
@@ -64,6 +69,9 @@ package Kit.Types is
    procedure Create_Standard_Types;
 
    procedure Iterate_User_Defined_Types
+     (Process : not null access procedure (User_Type : Kit_Type'Class));
+
+   procedure Iterate_All_Types
      (Process : not null access procedure (User_Type : Kit_Type'Class));
 
 private

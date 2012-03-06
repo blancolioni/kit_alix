@@ -1,5 +1,6 @@
 with Kit.Fields;
 with Kit.Tables;
+with Kit.Types;
 
 with Aquarius.Drys.Blocks;
 with Aquarius.Drys.Expressions;
@@ -256,7 +257,21 @@ package body Kit.Generate.Database_Package is
 
       Result.With_Package (Db.Ada_Name & ".Kit_Record",
                            Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Record_Base",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Enumeration",
+                           Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Field",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Float",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Integer",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Literal",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Long_Float",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_String",
                            Body_With => True);
 
       if True then
@@ -290,6 +305,8 @@ package body Kit.Generate.Database_Package is
       procedure Create_Table
         (Table : Kit.Tables.Table_Type'Class);
 
+      procedure Create_Type (T  : Kit.Types.Kit_Type'Class);
+
       ------------------
       -- Create_Table --
       ------------------
@@ -311,6 +328,30 @@ package body Kit.Generate.Database_Package is
 
          procedure Create_Field (Base   : Kit.Tables.Table_Type'Class;
                                  Field  : Kit.Fields.Field_Type'Class);
+
+         procedure Create_Base (Base  : Kit.Tables.Table_Type'Class);
+
+         -----------------
+         -- Create_Base --
+         -----------------
+
+         procedure Create_Base (Base  : Kit.Tables.Table_Type'Class) is
+            New_Base : Procedure_Call_Statement'Class :=
+                          New_Procedure_Call_Statement
+                            ("Kit_Record_Base.Create");
+         begin
+            New_Base.Add_Actual_Argument
+              (Object
+                 ("Kit_Record.First_By_Name ("""
+                  & Table.Ada_Name
+                  & """).Reference"));
+            New_Base.Add_Actual_Argument
+              (Object
+                 ("Kit_Record.First_By_Name ("""
+                  & Base.Ada_Name
+                  & """).Reference"));
+            Seq.Append (New_Base);
+         end Create_Base;
 
          ------------------
          -- Create_Field --
@@ -344,9 +385,20 @@ package body Kit.Generate.Database_Package is
       begin
          Seq.Append (Create);
          Table.Iterate_All (Create_Field'Access);
+         Table.Iterate (Create_Base'Access, Inclusive => False);
       end Create_Table;
 
+      -----------------
+      -- Create_Type --
+      -----------------
+
+      procedure Create_Type (T  : Kit.Types.Kit_Type'Class) is
+      begin
+         Seq.Append (T.Create_Database_Record);
+      end Create_Type;
+
    begin
+      Kit.Types.Iterate_All_Types (Create_Type'Access);
       Db.Iterate (Create_Table'Access);
    end Initialise_Database_Structure;
 

@@ -35,4 +35,8 @@ private
       Object_Name : String)
       return Aquarius.Drys.Expression'Class;
 
+   function Create_Database_Record
+     (For_Type : Enumerated_Type)
+      return Aquarius.Drys.Statement'Class;
+
 end Kit.Types.Enumerated;

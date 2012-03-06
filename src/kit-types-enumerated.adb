@@ -1,5 +1,7 @@
+with Aquarius.Drys.Blocks;
 with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Expressions;
+with Aquarius.Drys.Statements;
 
 package body Kit.Types.Enumerated is
 
@@ -19,6 +21,49 @@ package body Kit.Types.Enumerated is
          To.Size := To.Size + 1;
       end if;
    end Add_Literal;
+
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   function Create_Database_Record
+     (For_Type : Enumerated_Type)
+      return Aquarius.Drys.Statement'Class
+   is
+      use Aquarius.Drys;
+      use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Expressions;
+      use Aquarius.Drys.Statements;
+      Create : constant Expression'Class :=
+                 New_Function_Call_Expression
+                   ("Kit_Enumeration.Create",
+                    Literal (For_Type.Size),
+                    Literal (For_Type.Name));
+      Block        : Aquarius.Drys.Blocks.Block_Type;
+   begin
+      Block.Add_Declaration
+        (New_Constant_Declaration
+           ("Enum", "Kit_Enumeration_Reference",
+            Create));
+      for I in 1 .. For_Type.Literals.Last_Index loop
+         declare
+            Create_Literal : Procedure_Call_Statement'Class :=
+                               New_Procedure_Call_Statement
+                                 ("Kit_Literal.Create");
+         begin
+            Create_Literal.Add_Actual_Argument
+              (Literal (For_Type.Literals.Element (I)));
+            Create_Literal.Add_Actual_Argument
+              (Object ("Enum"));
+            Create_Literal.Add_Actual_Argument (Literal (I - 1));
+
+            Block.Append (Create_Literal);
+         end;
+      end loop;
+
+      return Declare_Statement (Block);
+
+   end Create_Database_Record;
 
    --------------------
    -- Return_Subtype --
