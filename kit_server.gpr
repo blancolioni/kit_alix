@@ -1,0 +1,24 @@
+with "marlowe";
+with "leander";
+
+project Kit_Server is
+
+   for Source_Dirs use ("src", "src/server", "src/server/generated");
+   for Object_Dir use "build/obj";
+   for Exec_Dir use "build/bin";
+   for Main use ("kit-server-driver");
+
+   package Builder is
+      for Default_Switches ("ada") use ("-g", "-k", "-gnat2012", "-s");
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012");
+   end Compiler;
+
+   package Linker is
+      for Default_Switches ("ada") use ("-g");
+   end Linker;
+
+end Kit_Server;
+
