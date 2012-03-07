@@ -33,10 +33,10 @@ package body Kit.Generate.Database_Package is
 
       function Create_Database_Procedure
         (Operation : Database_Operation)
-         return Aquarius.Drys.Declarations.Subprogram_Declaration;
+         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class;
 
       function Create_Close_Procedure
-        return Aquarius.Drys.Declarations.Subprogram_Declaration;
+        return Aquarius.Drys.Declarations.Subprogram_Declaration'Class;
 
       procedure Add_Implementation_With
         (Table : Kit.Tables.Table_Type'Class)
@@ -53,7 +53,7 @@ package body Kit.Generate.Database_Package is
       ----------------------------
 
       function Create_Close_Procedure
-        return Aquarius.Drys.Declarations.Subprogram_Declaration
+        return Aquarius.Drys.Declarations.Subprogram_Declaration'Class
       is
          use Aquarius.Drys;
          Block : Aquarius.Drys.Blocks.Block_Type;
@@ -80,7 +80,7 @@ package body Kit.Generate.Database_Package is
 
       function Create_Database_Procedure
         (Operation : Database_Operation)
-         return Aquarius.Drys.Declarations.Subprogram_Declaration
+         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class
       is
          use Aquarius.Drys.Declarations;
          Block : Aquarius.Drys.Blocks.Block_Type;
@@ -222,7 +222,7 @@ package body Kit.Generate.Database_Package is
          Access_Db.Add_Actual_Argument
            (Aquarius.Drys.Object ("Marlowe_Keys.Handle"));
          Access_Db.Add_Actual_Argument
-           (Aquarius.Drys.Literal (Db.Name & ".marlowe"));
+           (Aquarius.Drys.Object ("Path"));
          Access_Db.Add_Actual_Argument
            (Aquarius.Drys.Object ("Database_Magic_Number"));
          Block.Add_Statement (Access_Db);
@@ -242,8 +242,19 @@ package body Kit.Generate.Database_Package is
             Initialise_Database_Structure (Db, Block);
          end if;
 
-         return New_Procedure (Operation_Name (Operation),
-                               Block);
+         declare
+            Result : Subprogram_Declaration'Class :=
+                       New_Procedure (Operation_Name (Operation),
+                                      Block);
+         begin
+            Result.Add_Formal_Argument
+              (Arg_Name    => "Path",
+               Arg_Type    => "String",
+               Arg_Default =>
+                 Aquarius.Drys.Literal (Db.Name & ".marlowe"));
+
+            return Result;
+         end;
 
       end Create_Database_Procedure;
 
@@ -283,7 +294,7 @@ package body Kit.Generate.Database_Package is
       for I in Database_Operation loop
          declare
             use Aquarius.Drys.Declarations;
-            Proc : constant Subprogram_Declaration :=
+            Proc : constant Subprogram_Declaration'Class :=
                      Create_Database_Procedure (I);
          begin
             Result.Append (Proc);
