@@ -1386,7 +1386,7 @@ package body Kit.Generate.Public_Interface is
                  ("Result" & Base.Base_Component_Name,
                   New_Allocation_Expression
                     (Base.Ada_Name & "_Cache.Cache_Record")));
-            if Base.Ada_Name = "kit_root_record" then
+            if Base.Name = "kit_root_record" then
                Sequence.Append
                  (New_Assignment_Statement
                     ("Result" & Base.Base_Component_Name
