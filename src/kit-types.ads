@@ -42,6 +42,10 @@ package Kit.Types is
      (From_Type : Kit_Type)
       return Aquarius.Drys.Declaration'Class;
 
+   function Reference_Database_Type
+     (Of_Kit_Type : Kit_Type)
+      return Aquarius.Drys.Expression'Class;
+
    function Create_Database_Record
      (For_Type : Kit_Type)
       return Aquarius.Drys.Statement'Class

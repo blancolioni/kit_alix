@@ -57,6 +57,12 @@ package Kit.Tables is
       Process : not null access procedure
         (Field : Kit.Fields.Field_Type'Class));
 
+   procedure Scan_Fields
+     (Table    : Table_Type;
+      Process : not null access procedure
+        (Field       : Kit.Fields.Field_Type'Class;
+         Field_Start : Natural));
+
    type Field_Cursor is private;
    type Base_Cursor is private;
    type Key_Cursor is private;
@@ -241,6 +247,8 @@ private
          Is_Unique_Key : Boolean;
          case Is_Compound is
             when False =>
+               Start    : Natural;
+               Length   : Natural;
                Field    : Field_Access;
             when True =>
                Compound_Field : Compound_Field_Access;
@@ -273,6 +281,7 @@ private
    type Table_Type is
      new Kit.Names.Root_Named_Object with
       record
+         Current_Length         : Natural := 0;
          Index                  : Marlowe.Table_Index;
          Bases                  : Table_Vectors.Vector;
          Fields                 : Field_Vectors.Vector;

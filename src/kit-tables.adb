@@ -120,7 +120,9 @@ package body Kit.Tables is
       Field.Is_Key := Is_Key;
       Field.Is_Unique_Key := Is_Unique;
       Field.Field := new Kit.Fields.Field_Type'Class'(Item);
-
+      Field.Start := Table.Current_Length;
+      Field.Length := Item.Get_Field_Type.Size;
+      Table.Current_Length := Table.Current_Length + Field.Length;
       if Item.Get_Field_Type.Is_String then
          Table.Has_String_Type := True;
       end if;
@@ -974,6 +976,34 @@ package body Kit.Tables is
       begin
          if not Field_Vectors.Element (Position).Is_Compound then
             Process (Field_Vectors.Element (Position).Field.all);
+         end if;
+      end Call_Process;
+
+   begin
+      Table.Fields.Iterate (Call_Process'Access);
+   end Scan_Fields;
+
+   -----------------
+   -- Scan_Fields --
+   -----------------
+
+   procedure Scan_Fields
+     (Table    : Table_Type;
+      Process : not null access procedure
+        (Field       : Kit.Fields.Field_Type'Class;
+         Field_Start : Natural))
+   is
+      procedure Call_Process (Position : Field_Vectors.Cursor);
+
+      ------------------
+      -- Call_Process --
+      ------------------
+
+      procedure Call_Process (Position : Field_Vectors.Cursor) is
+      begin
+         if not Field_Vectors.Element (Position).Is_Compound then
+            Process (Field_Vectors.Element (Position).Field.all,
+                     Field_Vectors.Element (Position).Start);
          end if;
       end Call_Process;
 
