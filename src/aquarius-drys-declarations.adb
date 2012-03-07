@@ -98,6 +98,25 @@ package body Aquarius.Drys.Declarations is
             Arg_Mode));
    end Add_Formal_Argument;
 
+   -------------------------
+   -- Add_Formal_Argument --
+   -------------------------
+
+   procedure Add_Formal_Argument
+     (Subprogram  : in out Subprogram_Declaration'Class;
+      Arg_Name    : in     String;
+      Arg_Type    : in     String;
+      Arg_Default : in     Expression'Class)
+   is
+   begin
+      Subprogram.Add_Formal_Argument
+        (New_Formal_Argument
+           (New_Constant_Declaration
+              (Arg_Name, Arg_Type,
+               Arg_Default),
+            In_Argument));
+   end Add_Formal_Argument;
+
    ---------------------------------
    -- Add_Generic_Actual_Argument --
    ---------------------------------
