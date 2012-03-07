@@ -8,7 +8,7 @@ begin
 
    for I in 1 .. 100 loop
       declare
-         Item : Table_1_Type := Create;
+         Item : Table_1.Record_Type := Create;
       begin
          Item.Set_X (I'Img);
          Item.Set_Processed (False);
@@ -20,7 +20,7 @@ begin
    Open;
 
    declare
-      Item_1 : Table_1_Type := First_By_X;
+      Item_1 : Table_1.Record_Type := First_By_X;
    begin
       while Item_1.Has_Element loop
          Item_1.Set_Processed (True);
