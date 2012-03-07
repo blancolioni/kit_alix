@@ -11,3 +11,4 @@ tests/test_diamond_1-driver
 tests/test_reference_1-driver
 tests/*.marlowe
 tests/generated/*
+src/server/generated
