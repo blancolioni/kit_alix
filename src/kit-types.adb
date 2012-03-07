@@ -57,10 +57,7 @@ package body Kit.Types is
       return Aquarius.Drys.Statement'Class;
 
    type Table_Reference_Type_Record is
-     new Kit_Type with
-      record
-         Table_Name : access String;
-      end record;
+     new Kit_Type with null record;
 
    overriding
    function Return_Subtype
@@ -180,8 +177,7 @@ package body Kit.Types is
       use Aquarius.Drys.Expressions;
    begin
       return New_Function_Call_Expression
-        (Kit.Names.Ada_Name (Item.Table_Name.all)
-         & "_Reference" & "'Value",
+        (Item.Ada_Name & "_Reference" & "'Value",
          Object_Name);
    end Convert_From_String;
 
@@ -224,8 +220,7 @@ package body Kit.Types is
       use Aquarius.Drys.Expressions;
    begin
       return New_Function_Call_Expression
-        (Kit.Names.Ada_Name (Item.Table_Name.all)
-         & "_Reference" & "'Image",
+        (Item.Ada_Name & "_Reference" & "'Image",
          Object_Name);
    end Convert_To_String;
 
@@ -257,7 +252,7 @@ package body Kit.Types is
                    ("Kit_Integer.Create");
    begin
       Result.Add_Actual_Argument (Literal (For_Type.Size));
-      Result.Add_Actual_Argument (Literal (For_Type.Name));
+      Result.Add_Actual_Argument (Literal (For_Type.Ada_Name));
       Result.Add_Actual_Argument (Literal (For_Type.Low));
       Result.Add_Actual_Argument (Literal (For_Type.High));
       return Result;
@@ -300,7 +295,7 @@ package body Kit.Types is
                  New_Function_Call_Expression
                    ("Kit_Enumeration.Create",
                     Literal (For_Type.Size),
-                    Literal (For_Type.Name));
+                    Literal (For_Type.Ada_Name));
       Create_False : Procedure_Call_Statement'Class :=
                        New_Procedure_Call_Statement
                          ("Kit_Literal.Create");
@@ -347,7 +342,7 @@ package body Kit.Types is
       Result.Add_Actual_Argument
         (Object
            ("Kit_Record.First_By_Name ("""
-            & For_Type.Table_Name.all
+            & For_Type.Ada_Name
             & """).Reference"));
       return Result;
    end Create_Database_Record;
@@ -366,7 +361,7 @@ package body Kit.Types is
                    ("Kit_String.Create");
    begin
       Result.Add_Actual_Argument (Literal (For_Type.Size));
-      Result.Add_Actual_Argument (Literal (For_Type.Name));
+      Result.Add_Actual_Argument (Literal (For_Type.Ada_Name));
       Result.Add_Actual_Argument (Literal (For_Type.Length));
       return Result;
    end Create_Database_Record;
@@ -494,6 +489,20 @@ package body Kit.Types is
       return "Kit.Strings.String_Type (" & L & ")";
    end Record_Subtype;
 
+   -----------------------------
+   -- Reference_Database_Type --
+   -----------------------------
+
+   function Reference_Database_Type
+     (Of_Kit_Type : Kit_Type)
+      return Aquarius.Drys.Expression'Class
+   is
+   begin
+      return Aquarius.Drys.Object
+        ("Kit_Type.First_By_Name (""" & Of_Kit_Type.Ada_Name
+         & """).Reference");
+   end Reference_Database_Type;
+
    --------------------
    -- Return_Subtype --
    --------------------
@@ -551,7 +560,7 @@ package body Kit.Types is
       return String
    is
    begin
-      return Kit.Names.Ada_Name (Item.Table_Name.all) & "_Reference";
+      return Item.Ada_Name & "_Reference";
    end Return_Subtype;
 
    ------------------
@@ -773,8 +782,8 @@ package body Kit.Types is
    is
    begin
       return Result : Table_Reference_Type_Record do
+         Result.Create (Table_Name);
          Result.Size := 8;
-         Result.Table_Name := new String'(Table_Name);
       end return;
    end Table_Reference_Type;
 

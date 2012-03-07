@@ -263,6 +263,8 @@ package body Kit.Generate.Database_Package is
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Field",
                            Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Type",
+                           Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Float",
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Integer",
@@ -326,8 +328,8 @@ package body Kit.Generate.Database_Package is
                           Object (Table.Ada_Name
                             & "_Impl.Disk_Storage_Units")));
 
-         procedure Create_Field (Base   : Kit.Tables.Table_Type'Class;
-                                 Field  : Kit.Fields.Field_Type'Class);
+         procedure Create_Field (Field       : Kit.Fields.Field_Type'Class;
+                                 Field_Start : Natural);
 
          procedure Create_Base (Base  : Kit.Tables.Table_Type'Class);
 
@@ -357,8 +359,8 @@ package body Kit.Generate.Database_Package is
          -- Create_Field --
          ------------------
 
-         procedure Create_Field (Base   : Kit.Tables.Table_Type'Class;
-                                 Field  : Kit.Fields.Field_Type'Class)
+         procedure Create_Field (Field       : Kit.Fields.Field_Type'Class;
+                                 Field_Start : Natural)
          is
             New_Field : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
@@ -371,20 +373,18 @@ package body Kit.Generate.Database_Package is
                   & Table.Ada_Name
                   & """).Reference"));
             New_Field.Add_Actual_Argument
-              (Object
-                 ("Kit_Record.First_By_Name ("""
-                  & Base.Ada_Name
-                  & """).Reference"));
+              (Field.Get_Field_Type.Reference_Database_Type);
+
             New_Field.Add_Actual_Argument
-              (Object ("Null_Kit_Type_Reference"));
-            New_Field.Add_Actual_Argument (Literal (0));
-            New_Field.Add_Actual_Argument (Literal (0));
+              (Literal (Field_Start));
+            New_Field.Add_Actual_Argument
+              (Literal (Field.Get_Field_Type.Size));
             Seq.Append (New_Field);
          end Create_Field;
 
       begin
          Seq.Append (Create);
-         Table.Iterate_All (Create_Field'Access);
+         Table.Scan_Fields (Create_Field'Access);
          Table.Iterate (Create_Base'Access, Inclusive => False);
       end Create_Table;
 
