@@ -512,7 +512,7 @@ package body Kit.Parser is
 
          Db.Create_Database (Package_Name);
 
-         if With_System then
+         if With_System and then Package_Name /= "kit.db" then
             if not Got_System_Db then
                Open (Kit.Paths.Config_Path & "/kit.kit");
                Read_Package (System_Db, With_System => False);
