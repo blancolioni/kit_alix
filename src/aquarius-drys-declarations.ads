@@ -308,6 +308,12 @@ package Aquarius.Drys.Declarations is
       Arg_Mode   : in     Argument_Mode;
       Arg_Type   : in     String);
 
+   procedure Add_Formal_Argument
+     (Subprogram  : in out Subprogram_Declaration'Class;
+      Arg_Name    : in     String;
+      Arg_Type    : in     String;
+      Arg_Default : in     Expression'Class);
+
    procedure Set_Overriding
      (Item : in out Subprogram_Declaration);
 
