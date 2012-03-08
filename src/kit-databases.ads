@@ -10,12 +10,17 @@ package Kit.Databases is
 
    type Table_Cursor is private;
 
+   function Table_Count (Db : Database_Type) return Natural;
+
    function First_Table (Database : Database_Type) return Table_Cursor;
    function Contains (Database : Database_Type;
                       Name     : String)
                      return Boolean;
    function Element (Database : Database_Type;
                      Name     : String)
+                     return Kit.Tables.Table_Type'Class;
+   function Element (Database : Database_Type;
+                     Index    : Positive)
                      return Kit.Tables.Table_Type'Class;
 
    procedure Next (Position : in out Table_Cursor);

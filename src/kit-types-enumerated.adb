@@ -34,18 +34,20 @@ package body Kit.Types.Enumerated is
       use Aquarius.Drys.Declarations;
       use Aquarius.Drys.Expressions;
       use Aquarius.Drys.Statements;
+      T : Enumerated_Type'Class renames
+            Enumerated_Type'Class (For_Type);
       Create : constant Expression'Class :=
                  New_Function_Call_Expression
                    ("Kit_Enumeration.Create",
-                    Literal (For_Type.Size),
-                    Literal (For_Type.Ada_Name));
+                    Literal (Size (T)),
+                    Literal (T.Ada_Name));
       Block        : Aquarius.Drys.Blocks.Block_Type;
    begin
       Block.Add_Declaration
         (New_Constant_Declaration
            ("Enum", "Kit_Enumeration_Reference",
             Create));
-      for I in 1 .. For_Type.Literals.Last_Index loop
+      for I in 1 .. T.Literals.Last_Index loop
          declare
             Create_Literal : Procedure_Call_Statement'Class :=
                                New_Procedure_Call_Statement
@@ -77,6 +79,59 @@ package body Kit.Types.Enumerated is
       return Item.Ada_Name;
    end Return_Subtype;
 
+   ----------
+   -- Size --
+   ----------
+
+   function Size (Item : Record_Type_Enumeration) return Natural is
+      pragma Unreferenced (Item);
+   begin
+      return 4;
+   end Size;
+
+   ----------------------------
+   -- Storage_Array_Transfer --
+   ----------------------------
+
+   overriding
+   function Storage_Array_Transfer
+     (Item          : Enumerated_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class
+   is
+      Block : Aquarius.Drys.Blocks.Block_Type;
+   begin
+      if To_Storage then
+         Block.Add_Declaration
+           (Aquarius.Drys.Declarations.New_Constant_Declaration
+              ("T", "Natural",
+               Aquarius.Drys.Object
+                 (Item.Ada_Name & "'Pos (" & Object_Name & ")")));
+      else
+         Block.Add_Declaration
+           (Aquarius.Drys.Declarations.New_Object_Declaration
+              ("T", "Natural"));
+      end if;
+
+      Block.Add_Statement
+        (Storage_Array_Transfer
+           (Kit_Type (Item), To_Storage, "T",
+            Storage_Name, Start, Finish));
+
+      if not To_Storage then
+         Block.Add_Statement
+           (Aquarius.Drys.Statements.New_Assignment_Statement
+              (Object_Name,
+               Aquarius.Drys.Object (Item.Ada_Name & "'Val (T)")));
+      end if;
+
+      return Aquarius.Drys.Statements.Declare_Statement (Block);
+
+   end Storage_Array_Transfer;
+
    --------------------
    -- To_Declaration --
    --------------------
@@ -95,6 +150,10 @@ package body Kit.Types.Enumerated is
         (Item.Ada_Name, Definition);
    end To_Declaration;
 
+   ----------------------
+   -- To_Storage_Array --
+   ----------------------
+
    function To_Storage_Array
      (Item        : Enumerated_Type;
       Object_Name : String)
@@ -107,7 +166,7 @@ package body Kit.Types.Enumerated is
          New_Function_Call_Expression
            (Item.Ada_Name & "'Pos",
             Object_Name),
-         Literal (Item.Size));
+         Literal (Size (Kit_Type'Class (Item))));
    end To_Storage_Array;
 
 end Kit.Types.Enumerated;

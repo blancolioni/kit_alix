@@ -5,6 +5,8 @@ generic
    Table       : Marlowe.Table_Index;
    Table_Magic : Natural;
    type Database_Record is private;
+   with procedure Read (Ref  : Marlowe.Database_Index;
+                        Item : out Database_Record);
    with procedure Write (Ref  : Marlowe.Database_Index;
                          Item : Database_Record);
 package Kit.Generic_Cache is

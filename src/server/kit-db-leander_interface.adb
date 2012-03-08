@@ -1,5 +1,17 @@
 package body Kit.Db.Leander_Interface is
 
+   -----------------------------
+   -- To_Named_Item_Reference --
+   -----------------------------
+
+   function To_Named_Item_Reference
+     (Value : SK.Object)
+      return Kit_Named_Item_Reference
+   is
+   begin
+      return Kit_Named_Item_Reference (SK.Get_Integer (Value));
+   end To_Named_Item_Reference;
+
    ------------------------------
    -- To_Root_Record_Reference --
    ------------------------------

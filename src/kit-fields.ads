@@ -8,7 +8,9 @@ package Kit.Fields is
    type Root_Field_Type is
      new Kit.Names.Root_Named_Object with private;
 
-   function Size (Item : Root_Field_Type) return Natural;
+   function Size
+     (Item : Root_Field_Type)
+      return Natural;
 
    procedure Set_Field_Options
      (Field    : in out Root_Field_Type'Class;

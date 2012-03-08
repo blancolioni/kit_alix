@@ -1,5 +1,7 @@
 private with Ada.Containers.Vectors;
 
+with System.Storage_Elements;
+
 with Aquarius.Drys;
 
 with Marlowe;
@@ -41,6 +43,10 @@ package Kit.Tables is
      (Item : Table_Type)
       return String;
 
+   function Length
+     (Item : Table_Type)
+      return System.Storage_Elements.Storage_Count;
+
    function Reference_Type (Item : Table_Type) return String;
    function Implementation_Record_Type (Item : Table_Type) return String;
 
@@ -57,11 +63,11 @@ package Kit.Tables is
       Process : not null access procedure
         (Field : Kit.Fields.Field_Type'Class));
 
-   procedure Scan_Fields
-     (Table    : Table_Type;
-      Process : not null access procedure
-        (Field       : Kit.Fields.Field_Type'Class;
-         Field_Start : Natural));
+--     procedure Scan_Fields
+--       (Table    : Table_Type;
+--        Process : not null access procedure
+--          (Field       : Kit.Fields.Field_Type'Class;
+--           Field_Start : System.Storage_Elements.Storage_Offset));
 
    type Field_Cursor is private;
    type Base_Cursor is private;
@@ -90,6 +96,14 @@ package Kit.Tables is
                     return Kit.Fields.Field_Type'Class;
    function Has_Element (Position : Field_Cursor)
                         return Boolean;
+
+   function Field_Start (Table : Table_Type;
+                         Field : Kit.Fields.Field_Type'Class)
+                         return System.Storage_Elements.Storage_Offset;
+
+   function Base_Start (Table : Table_Type;
+                        Base  : Table_Type'Class)
+                        return System.Storage_Elements.Storage_Offset;
 
    procedure Scan_Keys (Table : Table_Type;
                         Process  : not null access
@@ -247,8 +261,8 @@ private
          Is_Unique_Key : Boolean;
          case Is_Compound is
             when False =>
-               Start    : Natural;
-               Length   : Natural;
+               Start    : System.Storage_Elements.Storage_Offset;
+               Length   : System.Storage_Elements.Storage_Count;
                Field    : Field_Access;
             when True =>
                Compound_Field : Compound_Field_Access;
@@ -278,12 +292,19 @@ private
 
    type Base_Cursor is new Table_Vectors.Cursor;
 
+   package Base_Layout_Vectors is
+     new Ada.Containers.Vectors (Positive, Marlowe.Table_Index,
+                                 Marlowe."=");
+
    type Table_Type is
      new Kit.Names.Root_Named_Object with
       record
-         Current_Length         : Natural := 0;
+         Fields_Length          : System.Storage_Elements.Storage_Count := 0;
+         Bases_Length           : System.Storage_Elements.Storage_Count := 0;
+         Header_Length          : System.Storage_Elements.Storage_Count := 4;
          Index                  : Marlowe.Table_Index;
          Bases                  : Table_Vectors.Vector;
+         Base_Layout            : Base_Layout_Vectors.Vector;
          Fields                 : Field_Vectors.Vector;
          Magic                  : Natural;
          Has_String_Type        : Boolean := False;

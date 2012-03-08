@@ -8,6 +8,9 @@ package Kit.Types.Enumerated is
    procedure Add_Literal (To      : in out Enumerated_Type;
                           Literal : String);
 
+   type Record_Type_Enumeration is
+     new Enumerated_Type with private;
+
 private
 
    package String_Vectors is
@@ -38,5 +41,19 @@ private
    function Create_Database_Record
      (For_Type : Enumerated_Type)
       return Aquarius.Drys.Statement'Class;
+
+   overriding
+   function Storage_Array_Transfer
+     (Item          : Enumerated_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class;
+
+   type Record_Type_Enumeration is
+     new Enumerated_Type with null record;
+
+   function Size (Item : Record_Type_Enumeration) return Natural;
 
 end Kit.Types.Enumerated;
