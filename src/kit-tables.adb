@@ -37,6 +37,23 @@ package body Kit.Tables is
      (Table     : in out Table_Type;
       Item      : in     Table_Type'Class)
    is
+
+      procedure Increment_Base_Length (Base : Table_Type'Class);
+
+      ---------------------------
+      -- Increment_Base_Length --
+      ---------------------------
+
+      procedure Increment_Base_Length (Base : Table_Type'Class) is
+         use type System.Storage_Elements.Storage_Offset;
+      begin
+         if not Table.Contains_Base (Base.Name) then
+            Table.Bases_Length := Table.Bases_Length
+              + Marlowe.Database_Index'Size / System.Storage_Unit;
+            Table.Base_Layout.Append (Base.Index);
+         end if;
+      end Increment_Base_Length;
+
    begin
       if Item.Has_String_Type then
          Table.Has_String_Type := True;
@@ -46,7 +63,11 @@ package body Kit.Tables is
          Table.Has_Key_Field := True;
       end if;
 
+      Item.Iterate (Increment_Base_Length'Access,
+                    Inclusive => True);
+
       Table.Bases.Append (new Table_Type'Class'(Item));
+
       if Recursively_Add_Bases then
          declare
             It : Base_Cursor := Item.First_Base;
@@ -115,14 +136,16 @@ package body Kit.Tables is
       Is_Key    : in     Boolean;
       Is_Unique : in     Boolean   := False)
    is
+      use type System.Storage_Elements.Storage_Offset;
       Field : constant Table_Field_Access := new Table_Field (False);
    begin
       Field.Is_Key := Is_Key;
       Field.Is_Unique_Key := Is_Unique;
       Field.Field := new Kit.Fields.Field_Type'Class'(Item);
-      Field.Start := Table.Current_Length;
-      Field.Length := Item.Get_Field_Type.Size;
-      Table.Current_Length := Table.Current_Length + Field.Length;
+      Field.Start := Table.Fields_Length;
+      Field.Length :=
+        System.Storage_Elements.Storage_Count (Item.Get_Field_Type.Size);
+      Table.Fields_Length := Table.Fields_Length + Field.Length;
       if Item.Get_Field_Type.Is_String then
          Table.Has_String_Type := True;
       end if;
@@ -196,6 +219,33 @@ package body Kit.Tables is
    begin
       return ".T" & Table.Index_Image & "_Idx";
    end Base_Index_Name;
+
+   ----------------
+   -- Base_Start --
+   ----------------
+
+   function Base_Start (Table : Table_Type;
+                        Base  : Table_Type'Class)
+                        return System.Storage_Elements.Storage_Offset
+   is
+      use type Marlowe.Table_Index;
+      use System.Storage_Elements;
+      Result : Storage_Offset := Table.Header_Length + Table.Fields_Length;
+   begin
+      for T of Table.Base_Layout loop
+         if Base.Index = T then
+            return Result;
+         end if;
+         Result := Result + Marlowe.Database_Index'Size / System.Storage_Unit;
+      end loop;
+      raise Constraint_Error with
+        "table " & Table.Ada_Name & " is not derived from "
+          & Base.Ada_Name;
+   end Base_Start;
+
+   --------------------
+   -- Compound_Field --
+   --------------------
 
    function Compound_Field
      (Key : Key_Cursor;
@@ -383,6 +433,31 @@ package body Kit.Tables is
          return 1;
       end if;
    end Field_Count;
+
+   -----------------
+   -- Field_Start --
+   -----------------
+
+   function Field_Start (Table : Table_Type;
+                         Field : Kit.Fields.Field_Type'Class)
+                         return System.Storage_Elements.Storage_Offset
+   is
+   begin
+      for I in 1 .. Table.Fields.Last_Index loop
+         declare
+            use type System.Storage_Elements.Storage_Offset;
+            F : constant Table_Field_Access := Table.Fields.Element (I);
+         begin
+            if not F.Is_Compound
+              and then F.Field.Name = Field.Name
+            then
+               return Table.Header_Length + F.Start;
+            end if;
+         end;
+      end loop;
+      raise Constraint_Error with
+        "table " & Table.Ada_Name & ": no such field " & Field.Ada_Name;
+   end Field_Start;
 
    ----------------
    -- First_Base --
@@ -850,6 +925,20 @@ package body Kit.Tables is
       return Item.Field.Get_Field_Type;
    end Key_Type;
 
+   ------------
+   -- Length --
+   ------------
+
+   function Length
+     (Item : Table_Type)
+      return System.Storage_Elements.Storage_Count
+   is
+      use type System.Storage_Elements.Storage_Offset;
+
+   begin
+      return Item.Header_Length + Item.Bases_Length + Item.Fields_Length;
+   end Length;
+
    ------------------
    -- Magic_Number --
    ------------------
@@ -983,33 +1072,33 @@ package body Kit.Tables is
       Table.Fields.Iterate (Call_Process'Access);
    end Scan_Fields;
 
-   -----------------
-   -- Scan_Fields --
-   -----------------
-
-   procedure Scan_Fields
-     (Table    : Table_Type;
-      Process : not null access procedure
-        (Field       : Kit.Fields.Field_Type'Class;
-         Field_Start : Natural))
-   is
-      procedure Call_Process (Position : Field_Vectors.Cursor);
-
-      ------------------
-      -- Call_Process --
-      ------------------
-
-      procedure Call_Process (Position : Field_Vectors.Cursor) is
-      begin
-         if not Field_Vectors.Element (Position).Is_Compound then
-            Process (Field_Vectors.Element (Position).Field.all,
-                     Field_Vectors.Element (Position).Start);
-         end if;
-      end Call_Process;
-
-   begin
-      Table.Fields.Iterate (Call_Process'Access);
-   end Scan_Fields;
+--     -----------------
+--     -- Scan_Fields --
+--     -----------------
+--
+--     procedure Scan_Fields
+--       (Table    : Table_Type;
+--        Process : not null access procedure
+--          (Field       : Kit.Fields.Field_Type'Class;
+--           Field_Start : System.Storage_Elements.Storage_Offset))
+--     is
+--        procedure Call_Process (Position : Field_Vectors.Cursor);
+--
+--        ------------------
+--        -- Call_Process --
+--        ------------------
+--
+--        procedure Call_Process (Position : Field_Vectors.Cursor) is
+--        begin
+--           if not Field_Vectors.Element (Position).Is_Compound then
+--              Process (Field_Vectors.Element (Position).Field.all,
+--                       Field_Vectors.Element (Position).Start);
+--           end if;
+--        end Call_Process;
+--
+--     begin
+--        Table.Fields.Iterate (Call_Process'Access);
+--     end Scan_Fields;
 
    ---------------
    -- Scan_Keys --

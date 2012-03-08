@@ -1,7 +1,13 @@
+with Ada.Strings.Fixed;
+
+with System.Storage_Elements;
+
 with Aquarius.Drys.Blocks;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
 with Aquarius.Drys.Types;
+
+with Marlowe;
 
 with Kit.Fields;
 
@@ -162,10 +168,6 @@ package body Kit.Generate.Private_Interface is
          Aquarius.Drys.Named_Subtype ("Boolean"),
          Aquarius.Drys.Object ("False"));
 
-      Record_Defn.Add_Component
-        ("Actual_Type",
-         Aquarius.Drys.Named_Subtype ("Record_Type"));
-
       Table.Iterate (Process     => Add_Base_Index'Access,
                      Inclusive   => False);
 
@@ -262,6 +264,8 @@ package body Kit.Generate.Private_Interface is
       function Call_Marlowe (Write : Boolean)
                              return Aquarius.Drys.Statement'Class;
 
+      procedure Create_Transfer (Write : Boolean);
+
       ------------------
       -- Call_Marlowe --
       ------------------
@@ -280,36 +284,122 @@ package body Kit.Generate.Private_Interface is
          Stat.Add_Actual_Argument ("Marlowe_Keys.Handle");
          Stat.Add_Actual_Argument (Table.Ada_Name & "_Table_Index");
          Stat.Add_Actual_Argument ("Ref");
-         Stat.Add_Actual_Argument ("Item'Address");
+         Stat.Add_Actual_Argument ("Storage'Address");
          return Stat;
       end Call_Marlowe;
+
+      ---------------------
+      -- Create_Transfer --
+      ---------------------
+
+      procedure Create_Transfer (Write : Boolean) is
+
+         use System.Storage_Elements;
+
+         Block : Aquarius.Drys.Blocks.Block_Type;
+
+         procedure Handle_Storage (Field : Kit.Fields.Field_Type'Class);
+         procedure Handle_Base (Base : Kit.Tables.Table_Type'Class);
+
+         -----------------
+         -- Handle_Base --
+         -----------------
+
+         procedure Handle_Base
+           (Base : Kit.Tables.Table_Type'Class)
+         is
+            use Ada.Strings, Ada.Strings.Fixed;
+            use Aquarius.Drys, Aquarius.Drys.Statements;
+            Start  : constant Storage_Offset := Table.Base_Start (Base);
+            Finish : constant Storage_Offset :=
+                       Start +
+                       Marlowe.Database_Index'Size / System.Storage_Unit - 1;
+            Rec    : constant String :=
+                       "T" & Base.Index_Image & "_Idx";
+            S         : constant String :=
+                          Trim (Storage_Offset'Image (Start), Left);
+            F         : constant String :=
+                          Trim (Storage_Offset'Image (Finish), Left);
+            Store     : constant String :=
+                          "Storage" & " (" & S & " .. " & F & ")";
+            Proc_Name : constant String :=
+                          (if Write then "To_Storage" else "From_Storage");
+         begin
+            Block.Append
+              (New_Procedure_Call_Statement
+                 ("Marlowe.Key_Storage." & Proc_Name,
+                  Object ("Item." & Rec),
+                  Object (Store)));
+         end Handle_Base;
+
+         --------------------
+         -- Handle_Storage --
+         --------------------
+
+         procedure Handle_Storage
+           (Field : Kit.Fields.Field_Type'Class)
+         is
+            Start  : constant Storage_Offset := Table.Field_Start (Field);
+            Finish : constant Storage_Offset :=
+                       Table.Field_Start (Field) +
+                       Storage_Offset (Field.Size) - 1;
+            Rec    : constant String :=
+                       "Item." & Field.Ada_Name;
+         begin
+            Block.Append
+              (Field.Get_Field_Type.Storage_Array_Transfer
+                 (Object_Name       => Rec,
+                  To_Storage        => Write,
+                  Storage_Name      => "Storage",
+                  Start             => Start,
+                  Finish            => Finish));
+         end Handle_Storage;
+
+      begin
+         Block.Add_Declaration
+           (Aquarius.Drys.Declarations.New_Object_Declaration
+              ("Storage",
+               "System.Storage_Elements.Storage_Array "
+               & "(0 .."
+               & System.Storage_Elements.Storage_Offset'Image
+                 (Table.Length - 1)
+               & ")"));
+
+         if Write then
+            Table.Scan_Fields (Handle_Storage'Access);
+            Table.Iterate (Handle_Base'Access, Inclusive => False);
+         end if;
+
+         Block.Add_Statement (Call_Marlowe (Write));
+
+         if not Write then
+            Table.Scan_Fields (Handle_Storage'Access);
+            Table.Iterate (Handle_Base'Access, Inclusive => False);
+         end if;
+
+         declare
+            P     : Aquarius.Drys.Declarations.Subprogram_Declaration :=
+                      Aquarius.Drys.Declarations.New_Procedure
+                        (Name  => (if Write then "Write" else "Read"),
+                         Block => Block);
+            Mode  : constant Aquarius.Drys.Declarations.Argument_Mode :=
+                      (if Write then Aquarius.Drys.Declarations.In_Argument
+                       else Aquarius.Drys.Declarations.Out_Argument);
+         begin
+            P.Add_Formal_Argument ("Ref", "Marlowe.Database_Index");
+            P.Add_Formal_Argument ("Item", Mode,
+                                   Table.Implementation_Record_Type);
+
+            Impl.Append (P);
+         end;
+      end Create_Transfer;
 
    begin
 
       for Write in Boolean loop
-         declare
-            Block : Aquarius.Drys.Blocks.Block_Type;
-         begin
-
-            Block.Add_Statement (Call_Marlowe (Write));
-
-            declare
-               P     : Aquarius.Drys.Declarations.Subprogram_Declaration :=
-                         Aquarius.Drys.Declarations.New_Procedure
-                           (Name  => (if Write then "Write" else "Read"),
-                            Block => Block);
-               Mode  : constant Aquarius.Drys.Declarations.Argument_Mode :=
-                         (if Write then Aquarius.Drys.Declarations.In_Argument
-                          else Aquarius.Drys.Declarations.Out_Argument);
-            begin
-               P.Add_Formal_Argument ("Ref", "Marlowe.Database_Index");
-               P.Add_Formal_Argument ("Item", Mode,
-                                      Table.Implementation_Record_Type);
-
-               Impl.Append (P);
-            end;
-         end;
+         Create_Transfer (Write);
       end loop;
+
    end Create_Read_Write_Procedures;
 
    --------------------------------
@@ -330,13 +420,10 @@ package body Kit.Generate.Private_Interface is
       Impl_Package.With_Package ("Kit.Mutex");
       Impl_Package.With_Package ("System.Storage_Elements");
       Impl_Package.With_Package ("Marlowe.Btree_Handles", Body_With => True);
+      Impl_Package.With_Package ("Marlowe.Key_Storage",
+                                 Body_With => True);
       Impl_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                                 Body_With => True);
-      if Table.Has_Compound_Key_Field then
-         Impl_Package.With_Package ("Marlowe.Key_Storage",
-                                    Body_With => True);
-      end if;
-
       Impl_Package.Append
         (Aquarius.Drys.Declarations.New_Constant_Declaration
            (Table.Ada_Name & "_Magic",

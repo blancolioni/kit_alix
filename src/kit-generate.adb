@@ -52,6 +52,10 @@ package body Kit.Generate is
      (Db  : Kit.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
+   -----------------------
+   -- Create_Field_Type --
+   -----------------------
+
    procedure Create_Field_Type
      (Db  : Kit.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
@@ -468,6 +472,8 @@ package body Kit.Generate is
 
       Project : Aquarius.Drys.Projects.Project;
 
+      function Get_Record_Literal_Name (Index : Positive) return String;
+
       procedure Get_From_Cache
         (Table : Kit.Tables.Table_Type'Class);
 
@@ -489,6 +495,15 @@ package body Kit.Generate is
            (Kit.Generate.Get_From_Cache.Generate_Get_From_Cache
               (Db, Table, Top_Package));
       end Get_From_Cache;
+
+      -----------------------------
+      -- Get_Record_Literal_Name --
+      -----------------------------
+
+      function Get_Record_Literal_Name (Index : Positive) return String is
+      begin
+         return "R_" & Db.Element (Index).Ada_Name;
+      end Get_Record_Literal_Name;
 
       -----------------------
       -- Private_Interface --
@@ -516,13 +531,11 @@ package body Kit.Generate is
               (Db, Table, Top_Package));
       end Public_Interface;
 
-      Db_Package  : constant Aquarius.Drys.Declarations.Package_Type :=
-                      Database_Package.Generate_Database_Package (Db);
-
-      Keys_Package : constant Aquarius.Drys.Declarations.Package_Type :=
-                       Marlowe_Keys_Package.Generate_Package (Db);
-
    begin
+
+      Kit.Types.Update_Record_Type (Db.Table_Count,
+                                    Get_Record_Literal_Name'Access);
+
       Top_Package.With_Package ("Marlowe", Private_With => True);
       Top_Package.With_Package ("Kit.Mutex", Private_With => True);
 
@@ -541,8 +554,10 @@ package body Kit.Generate is
            ("Database_Magic_Number",
             Aquarius.Drys.Literal (1)));
       Project.Add_Package (Top_Package);
-      Project.Add_Package (Db_Package);
-      Project.Add_Package (Keys_Package);
+      Project.Add_Package
+        (Database_Package.Generate_Database_Package (Db));
+      Project.Add_Package
+        (Marlowe_Keys_Package.Generate_Package (Db));
       Db.Iterate (Get_From_Cache'Access);
       Db.Iterate (Public_Interface'Access);
       Db.Iterate (Private_Interface'Access);

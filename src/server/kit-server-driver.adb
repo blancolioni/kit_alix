@@ -2,6 +2,7 @@ with Ada.Command_Line;                  use Ada.Command_Line;
 with Ada.Text_IO;                       use Ada.Text_IO;
 
 with Kit.Db.Database;
+with Kit.Db.Kit_Record;
 
 with Kit.Bindings;
 with Kit.Paths;
@@ -37,6 +38,17 @@ begin
    Kit_Module.Compile (Target);
 
    Kit.Db.Database.Open (Argument (1));
+
+   declare
+      Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
+              Kit.Db.Kit_Record.First_By_Name;
+   begin
+      while Rec.Has_Element loop
+         Ada.Text_IO.Put_Line (Rec.Name & " "
+                               & Kit.Db.Record_Type'Image (Rec.Top_Record));
+         Rec.Next;
+      end loop;
+   end;
 
    Leander.Shell.Start_Shell
      (Target,

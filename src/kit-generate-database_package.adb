@@ -148,8 +148,7 @@ package body Kit.Generate.Database_Package is
             Proc.Add_Actual_Argument
               (Aquarius.Drys.Literal (Table.Ada_Name));
             Proc.Add_Actual_Argument
-              (Aquarius.Drys.Object (Table.Ada_Name & "_Impl." &
-              "Disk_Storage_Units"));
+              (Aquarius.Drys.Literal (Natural (Table.Length)));
             Block.Add_Statement (Proc);
 
             Table.Scan_Keys (Create_Key'Access);
@@ -339,8 +338,8 @@ package body Kit.Generate.Database_Package is
                           Object (Table.Ada_Name
                             & "_Impl.Disk_Storage_Units")));
 
-         procedure Create_Field (Field       : Kit.Fields.Field_Type'Class;
-                                 Field_Start : Natural);
+         procedure Create_Field
+           (Field       : Kit.Fields.Field_Type'Class);
 
          procedure Create_Base (Base  : Kit.Tables.Table_Type'Class);
 
@@ -370,8 +369,8 @@ package body Kit.Generate.Database_Package is
          -- Create_Field --
          ------------------
 
-         procedure Create_Field (Field       : Kit.Fields.Field_Type'Class;
-                                 Field_Start : Natural)
+         procedure Create_Field
+           (Field       : Kit.Fields.Field_Type'Class)
          is
             New_Field : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
@@ -387,7 +386,7 @@ package body Kit.Generate.Database_Package is
               (Field.Get_Field_Type.Reference_Database_Type);
 
             New_Field.Add_Actual_Argument
-              (Literal (Field_Start));
+              (Literal (Natural (Table.Field_Start (Field))));
             New_Field.Add_Actual_Argument
               (Literal (Field.Get_Field_Type.Size));
             Seq.Append (New_Field);

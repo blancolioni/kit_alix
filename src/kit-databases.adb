@@ -71,6 +71,18 @@ package body Kit.Databases is
         "table " & Name & " not found in database " & Database.Name;
    end Element;
 
+   -------------
+   -- Element --
+   -------------
+
+   function Element (Database : Database_Type;
+                     Index    : Positive)
+                     return Kit.Tables.Table_Type'Class
+   is
+   begin
+      return Database.Tables.Element (Index).all;
+   end Element;
+
    -----------------
    -- First_Table --
    -----------------
@@ -125,6 +137,15 @@ package body Kit.Databases is
    begin
       Table_Vectors.Next (Table_Vectors.Cursor (Position));
    end Next;
+
+   -----------------
+   -- Table_Count --
+   -----------------
+
+   function Table_Count (Db : Database_Type) return Natural is
+   begin
+      return Db.Tables.Last_Index;
+   end Table_Count;
 
    -------------------
    -- With_Database --

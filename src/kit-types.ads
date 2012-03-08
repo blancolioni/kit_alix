@@ -1,3 +1,5 @@
+with System.Storage_Elements;
+
 with Aquarius.Drys;
 
 with Kit.Names;
@@ -26,6 +28,14 @@ package Kit.Types is
      (Item        : Kit_Type;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class;
+
+   function Storage_Array_Transfer
+     (Item          : Kit_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class;
 
    procedure Set_Value
      (Value_Type  : Kit_Type;
@@ -77,6 +87,11 @@ package Kit.Types is
 
    procedure Iterate_All_Types
      (Process : not null access procedure (User_Type : Kit_Type'Class));
+
+   procedure Update_Record_Type
+     (Record_Count : Natural;
+      Record_Name  : access
+        function (Index : Positive) return String);
 
 private
 

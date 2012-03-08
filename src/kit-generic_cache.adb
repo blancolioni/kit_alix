@@ -19,6 +19,7 @@ package body Kit.Generic_Cache is
       Lock_Result : Boolean := True)
       return Cache_Access
    is
+      pragma Unreferenced (Handle);
       use type Kit.Cache.Cache_Entry;
       Result : Kit.Cache.Cache_Entry;
    begin
@@ -40,24 +41,23 @@ package body Kit.Generic_Cache is
             Cache_Mutex.Shared_Lock;
             New_Cached_Record.X_Lock;
 
-            Marlowe.Btree_Handles.Get_Record
-              (Handle, Table,
-               Index,
-               New_Cached_Record.Db'Address);
+            Read (Index, New_Cached_Record.Db);
 
-            declare
-               Magic : Integer;
-               for Magic'Address use New_Cached_Record.Db'Address;
-            begin
-               if Magic /= Table_Magic then
-                  Cache.Unlock_Cache;
-                  New_Cached_Record.Unlock;
-                  raise Kit.Exceptions.Database_Corruption with
-                    "table" & Marlowe.Table_Index'Image (Table)
-                    & "; index" & Index'Img
-                    & ": bad magic number";
-               end if;
-            end;
+            if False then
+               declare
+                  Magic : Integer;
+                  for Magic'Address use New_Cached_Record.Db'Address;
+               begin
+                  if Magic /= Table_Magic then
+                     Cache.Unlock_Cache;
+                     New_Cached_Record.Unlock;
+                     raise Kit.Exceptions.Database_Corruption with
+                       "table" & Marlowe.Table_Index'Image (Table)
+                       & "; index" & Index'Img
+                       & ": bad magic number";
+                  end if;
+               end;
+            end if;
 
             Result := Kit.Cache.Cache_Entry (New_Cached_Record);
             Kit.Cache.Insert (Result);

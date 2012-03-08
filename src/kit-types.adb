@@ -71,6 +71,15 @@ package body Kit.Types is
       return Aquarius.Drys.Expression'Class;
 
    overriding
+   function Storage_Array_Transfer
+     (Item          : Table_Reference_Type_Record;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class;
+
+   overriding
    function Convert_To_String (Item   : Table_Reference_Type_Record;
                                Object_Name : String)
                                return Aquarius.Drys.Expression'Class;
@@ -141,6 +150,15 @@ package body Kit.Types is
    function Standard_String_Name (Length : Natural) return String;
    --  String types of the given length have this name in the
    --  internal database representation
+
+   overriding
+   function Storage_Array_Transfer
+     (Item          : String_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class;
 
    ----------------------
    -- Argument_Subtype --
@@ -735,7 +753,7 @@ package body Kit.Types is
 
    function Standard_Record_Type return Kit_Type'Class is
    begin
-      return Result : Kit.Types.Enumerated.Enumerated_Type do
+      return Result : Kit.Types.Enumerated.Record_Type_Enumeration do
          Result.Create ("record_type");
          Result.Add_Literal ("R_None");
          Kit_Type (Result).User_Defined := False;
@@ -771,6 +789,116 @@ package body Kit.Types is
       Length_Image (1) := '_';
       return "String" & Length_Image;
    end Standard_String_Name;
+
+   ----------------------------
+   -- Storage_Array_Transfer --
+   ----------------------------
+
+   function Storage_Array_Transfer
+     (Item          : Kit_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class
+   is
+      pragma Unreferenced (Item);
+      use System.Storage_Elements;
+      use Ada.Strings, Ada.Strings.Fixed;
+      use Aquarius.Drys, Aquarius.Drys.Statements;
+      S : constant String :=
+            Trim (Storage_Offset'Image (Start), Left);
+      F : constant String :=
+            Trim (Storage_Offset'Image (Finish), Left);
+      Store  : constant String :=
+                 Storage_Name & " (" & S & " .. " & F & ")";
+      Proc_Name : constant String :=
+                    (if To_Storage then "To_Storage" else "From_Storage");
+   begin
+      return New_Procedure_Call_Statement
+        ("Marlowe.Key_Storage." & Proc_Name,
+         Object (Object_Name), Object (Store));
+   end Storage_Array_Transfer;
+
+   ----------------------------
+   -- Storage_Array_Transfer --
+   ----------------------------
+
+   overriding
+   function Storage_Array_Transfer
+     (Item          : Table_Reference_Type_Record;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class
+   is
+   begin
+      if To_Storage then
+         return Storage_Array_Transfer
+           (Kit_Type (Item), True,
+            "Marlowe.Database_Index (" & Object_Name & ")",
+            Storage_Name, Start, Finish);
+      else
+         declare
+            Block : Aquarius.Drys.Blocks.Block_Type;
+         begin
+            Block.Add_Declaration
+              (Aquarius.Drys.Declarations.New_Object_Declaration
+                 ("T", "Marlowe.Database_Index"));
+            Block.Add_Statement
+              (Storage_Array_Transfer
+                 (Kit_Type (Item), False, "T",
+                  Storage_Name, Start, Finish));
+            Block.Add_Statement
+              (Aquarius.Drys.Statements.New_Assignment_Statement
+                 (Object_Name,
+                  Aquarius.Drys.Object (Item.Ada_Name & "_Reference (T)")));
+            return Aquarius.Drys.Statements.Declare_Statement (Block);
+         end;
+      end if;
+   end Storage_Array_Transfer;
+
+   ----------------------------
+   -- Storage_Array_Transfer --
+   ----------------------------
+
+   function Storage_Array_Transfer
+     (Item          : String_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class
+   is
+   begin
+      if To_Storage then
+         return Kit_Type (Item).Storage_Array_Transfer
+           (To_Storage,
+            Object_Name & ".Text (1 .. " & Object_Name & ".Length)",
+            Storage_Name,
+            Start, Finish);
+      else
+         declare
+            use System.Storage_Elements;
+            use Ada.Strings, Ada.Strings.Fixed;
+            use Aquarius.Drys, Aquarius.Drys.Statements;
+            S         : constant String :=
+                          Trim (Storage_Offset'Image (Start), Left);
+            F         : constant String :=
+                          Trim (Storage_Offset'Image (Finish), Left);
+            Store     : constant String :=
+                          Storage_Name & " (" & S & " .. " & F & ")";
+         begin
+            return New_Procedure_Call_Statement
+              ("Marlowe.Key_Storage.From_Storage",
+               Object (Object_Name & ".Text"),
+               Object (Object_Name & ".Length"),
+               Object (Store));
+         end;
+      end if;
+
+   end Storage_Array_Transfer;
 
    --------------------------
    -- Table_Reference_Type --
@@ -880,5 +1008,27 @@ package body Kit.Types is
    begin
       return "Kit.Strings.String_Type";
    end Unconstrained_Record_Subtype;
+
+   ------------------------
+   -- Update_Record_Type --
+   ------------------------
+
+   procedure Update_Record_Type
+     (Record_Count : Natural;
+      Record_Name  : access
+        function (Index : Positive) return String)
+   is
+      Name    : constant Ada.Strings.Unbounded.Unbounded_String :=
+                  Ada.Strings.Unbounded.To_Unbounded_String
+                    ("record_type");
+      Current : Kit.Types.Enumerated.Enumerated_Type'Class :=
+                  Kit.Types.Enumerated.Enumerated_Type'Class
+                    (Type_Table.Element (Name));
+   begin
+      for I in 1 .. Record_Count loop
+         Current.Add_Literal (Record_Name (I));
+      end loop;
+      Type_Table.Replace (Name, Current);
+   end Update_Record_Type;
 
 end Kit.Types;

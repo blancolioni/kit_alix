@@ -32,6 +32,8 @@ package body Kit.Generate.Get_From_Cache is
         (Database_Package & "." & Table.Ada_Name
          & "_Database_Record");
       Table_Package.Add_Generic_Actual_Argument
+        (Database_Package & ".Read");
+      Table_Package.Add_Generic_Actual_Argument
         (Database_Package & ".Write");
 
       return Table_Package;
