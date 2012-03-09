@@ -3,9 +3,12 @@ with Ada.Text_IO;                       use Ada.Text_IO;
 
 with Kit.Db.Database;
 with Kit.Db.Kit_Record;
+with Kit.Db.Marlowe_Keys;
 
 with Kit.Bindings;
 with Kit.Paths;
+
+with Kit.Server.Database;
 
 with Hero.Modules;
 
@@ -38,16 +41,27 @@ begin
    Kit_Module.Compile (Target);
 
    Kit.Db.Database.Open (Argument (1));
+   Handle := Kit.Db.Marlowe_Keys.Handle;
+
+   if False then
+      declare
+         Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
+           Kit.Db.Kit_Record.First_By_Name;
+      begin
+         while Rec.Has_Element loop
+            Ada.Text_IO.Put_Line
+              (Rec.Name & " "
+                 & Kit.Db.Record_Type'Image (Rec.Top_Record));
+            Rec.Next;
+         end loop;
+      end;
+   end if;
 
    declare
-      Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-              Kit.Db.Kit_Record.First_By_Name;
+      Rec : Kit.Server.Database.Database_Record;
    begin
-      while Rec.Has_Element loop
-         Ada.Text_IO.Put_Line (Rec.Name & " "
-                               & Kit.Db.Record_Type'Image (Rec.Top_Record));
-         Rec.Next;
-      end loop;
+      Rec.Get (20, 1);
+      Rec.Report;
    end;
 
    Leander.Shell.Start_Shell
