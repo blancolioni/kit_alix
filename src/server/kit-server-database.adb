@@ -55,7 +55,6 @@ package body Kit.Server.Database is
                Base_Offset  : constant Storage_Offset :=
                                 Storage_Offset (Base.Offset);
             begin
-               Ada.Text_IO.Put_Line ("Get: " & Base_Record.Name);
                Marlowe.Key_Storage.From_Storage
                  (Index, Storage (Base_Offset .. Base_Offset + 7));
                Marlowe.Btree_Handles.Get_Record
@@ -75,11 +74,32 @@ package body Kit.Server.Database is
    -- Report --
    ------------
 
-   procedure Report (Item : Database_Record'Class) is
+   procedure Report (Item     : Database_Record'Class;
+                     Width    : Positive := 12;
+                     Across   : Boolean := False;
+                     Headings : Boolean := False)
+   is
+
+      procedure Put_With_Width (Text : String);
 
       procedure Report_Record
         (Store_Index : Positive;
          Rec         : Kit.Db.Kit_Record.Kit_Record_Type);
+
+      --------------------
+      -- Put_With_Width --
+      --------------------
+
+      procedure Put_With_Width (Text : String) is
+         Image : String (1 .. Width - 1) := (others => ' ');
+      begin
+         if Text'Length < Width then
+            Image (1 .. Text'Length) := Text;
+         else
+            Image := Text (Text'First .. Text'First + Width - 2);
+         end if;
+         Ada.Text_IO.Put (Image & ' ');
+      end Put_With_Width;
 
       -------------------
       -- Report_Record --
@@ -97,6 +117,7 @@ package body Kit.Server.Database is
       begin
          while Field.Has_Element loop
             declare
+               Field_Name   : constant String := Field.Name;
                Field_Type   : constant Kit.Db.Kit_Type.Kit_Type_Type :=
                                 Kit.Db.Kit_Type.Get (Field.Field_Type);
                Offset       : constant Storage_Offset :=
@@ -108,15 +129,24 @@ package body Kit.Server.Database is
                                 Storage_Image
                                   (Value (Offset .. Last), Field_Type);
             begin
-               Ada.Text_IO.Put (Field.Name);
-               Ada.Text_IO.Set_Col (20);
-               Ada.Text_IO.Put (Field_Type.Name);
-               Ada.Text_IO.Set_Col (40);
-               Ada.Text_IO.Put_Line (Image);
+               if Across then
+                  if Headings then
+                     Put_With_Width (Field_Name);
+                  else
+                     Put_With_Width (Image);
+                  end if;
+               else
+                  Ada.Text_IO.Put (Field.Name);
+                  Ada.Text_IO.Set_Col (20);
+                  Ada.Text_IO.Put (Field_Type.Name);
+                  Ada.Text_IO.Set_Col (40);
+                  Ada.Text_IO.Put_Line (Image);
+               end if;
             end;
 
             Field.Next;
          end loop;
+
       end Report_Record;
 
       Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
@@ -144,6 +174,30 @@ package body Kit.Server.Database is
 
       Report_Record (1, Rec);
 
+   end Report;
+
+   ------------
+   -- Report --
+   ------------
+
+   procedure Report (Table : Marlowe.Table_Index) is
+      use type Marlowe.Database_Index;
+      Index : Marlowe.Database_Index := 1;
+      Item  : Database_Record;
+      First : Boolean := True;
+   begin
+      while Marlowe.Btree_Handles.Valid_Index (Handle, Table, Index) loop
+         Item.Get (Table, Index);
+         if First then
+            Item.Report (Across   => True,
+                         Headings => True);
+            First := False;
+            Ada.Text_IO.New_Line;
+         end if;
+         Item.Report (Across => True);
+         Ada.Text_IO.New_Line;
+         Index := Index + 1;
+      end loop;
    end Report;
 
    -------------------
