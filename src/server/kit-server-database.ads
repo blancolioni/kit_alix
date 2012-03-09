@@ -13,7 +13,12 @@ package Kit.Server.Database is
       Table    : in     Marlowe.Table_Index;
       Index    : in     Marlowe.Database_Index);
 
-   procedure Report (Item : Database_Record'Class);
+   procedure Report (Item     : Database_Record'Class;
+                     Width    : Positive := 12;
+                     Across   : Boolean := False;
+                     Headings : Boolean := False);
+
+   procedure Report (Table : Marlowe.Table_Index);
 
 private
 
