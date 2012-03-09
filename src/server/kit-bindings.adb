@@ -1,7 +1,11 @@
+with Marlowe;
+
 with Kit.Db.Kit_Root_Record;
 with Kit.Db.Kit_Named_Item;
 
 with Kit.Db.Leander_Interface;
+
+with Kit.Server.Database;
 
 package body Kit.Bindings is
 
@@ -16,6 +20,11 @@ package body Kit.Bindings is
       return SK.Object;
 
    function Evaluate_Named_Item_Get_Name
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
+   function Evaluate_Report_Record
      (Context   : SK.Machine.Function_Call_Context;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
@@ -37,6 +46,9 @@ package body Kit.Bindings is
       SK.Machine.Import_Function
         (Machine, "#namedItemGetName",
          1, Evaluate_Named_Item_Get_Name'Access);
+      SK.Machine.Import_Function
+        (Machine, "#reportRecord",
+         2, Evaluate_Report_Record'Access);
    end Create_Kit_Bindings;
 
    --------------------------------
@@ -88,6 +100,29 @@ package body Kit.Bindings is
          return Result;
       end;
    end Evaluate_Named_Item_Get_Name;
+
+   ----------------------------
+   -- Evaluate_Report_Record --
+   ----------------------------
+
+   function Evaluate_Report_Record
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+      pragma Unreferenced (Context);
+      Table : constant Marlowe.Table_Index :=
+                Marlowe.Table_Index
+                  (SK.Get_Integer (Arguments (Arguments'First)));
+      Index : constant Marlowe.Database_Index :=
+                Marlowe.Database_Index
+                  (SK.Get_Integer (Arguments (Arguments'First + 1)));
+      Item  : Kit.Server.Database.Database_Record;
+   begin
+      Item.Get (Table, Index);
+      Item.Report;
+      return SK.To_Object (Integer (Table));
+   end Evaluate_Report_Record;
 
    -----------------------------------------
    -- Evaluate_Root_Record_Get_Top_Record --
