@@ -286,7 +286,7 @@ package body Kit.Generate.Database_Package is
       Result.With_Package (Db.Ada_Name & ".Kit_String",
                            Body_With => True);
 
-      if True then
+      if False then
          Db.Iterate (Add_Implementation_With'Access);
       end if;
 
@@ -333,11 +333,8 @@ package body Kit.Generate.Database_Package is
                     New_Procedure_Call_Statement
                       ("Kit_Record.Create",
                        Literal (Table.Ada_Name),
-                       New_Function_Call_Expression
-                         ("Natural",
-                          Object (Table.Ada_Name
-                            & "_Impl.Disk_Storage_Units")));
-
+                       Object (Table.Index_Image),
+                       Literal (Natural (Table.Length)));
          procedure Create_Field
            (Field       : Kit.Fields.Field_Type'Class);
 
@@ -353,14 +350,16 @@ package body Kit.Generate.Database_Package is
                             ("Kit_Record_Base.Create");
          begin
             New_Base.Add_Actual_Argument
-              (Object
-                 ("Kit_Record.First_By_Name ("""
-                  & Table.Ada_Name
-                  & """).Reference"));
+              (Literal (Natural (Table.Base_Start (Base))));
             New_Base.Add_Actual_Argument
               (Object
                  ("Kit_Record.First_By_Name ("""
                   & Base.Ada_Name
+                  & """).Reference"));
+            New_Base.Add_Actual_Argument
+              (Object
+                 ("Kit_Record.First_By_Name ("""
+                  & Table.Ada_Name
                   & """).Reference"));
             Seq.Append (New_Base);
          end Create_Base;
