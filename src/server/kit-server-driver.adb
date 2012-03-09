@@ -64,6 +64,8 @@ begin
       Rec.Report;
    end;
 
+   Kit.Server.Database.Report (21);
+
    Leander.Shell.Start_Shell
      (Target,
       Kit.Paths.Config_Path & "/Kit.hs");
