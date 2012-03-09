@@ -1,4 +1,5 @@
 with Ada.Command_Line;                  use Ada.Command_Line;
+with Ada.Directories;
 with Ada.Text_IO;                       use Ada.Text_IO;
 
 with Kit.Db.Database;
@@ -9,6 +10,8 @@ with Kit.Bindings;
 with Kit.Paths;
 
 with Kit.Server.Database;
+with Kit.Server.Shell;
+with Kit.Server.System;
 
 with Hero.Modules;
 
@@ -18,6 +21,8 @@ with Leander.Shell;
 with Leander.Target;
 
 procedure Kit.Server.Driver is
+
+   Use_Leander : constant Boolean := False;
 
    Target : Leander.Target.Leander_Target;
    Kit_Module : Leander.Modules.Leander_Module;
@@ -43,6 +48,8 @@ begin
    Kit.Db.Database.Open (Argument (1));
    Handle := Kit.Db.Marlowe_Keys.Handle;
 
+   Kit.Server.System.Add_System_Commands;
+
    if False then
       declare
          Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
@@ -57,18 +64,31 @@ begin
       end;
    end if;
 
-   declare
-      Rec : Kit.Server.Database.Database_Record;
-   begin
-      Rec.Get (20, 1);
-      Rec.Report;
-   end;
+   if False then
+      declare
+         Rec : Kit.Server.Database.Database_Record;
+      begin
+         Rec.Get (20, 1);
+         Rec.Report;
+      end;
+   end if;
 
-   Kit.Server.Database.Report (21);
+   if False then
+      Kit.Server.Database.Report (21);
+   end if;
 
-   Leander.Shell.Start_Shell
-     (Target,
-      Kit.Paths.Config_Path & "/Kit.hs");
+   if Use_Leander then
+
+      Leander.Shell.Start_Shell
+        (Target,
+         Kit.Paths.Config_Path & "/Kit.hs");
+
+   else
+
+      Kit.Server.Shell.Start_Shell
+        (Ada.Directories.Simple_Name (Argument (1)));
+
+   end if;
 
    Kit.Db.Database.Close;
 
