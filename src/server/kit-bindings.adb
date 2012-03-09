@@ -1,3 +1,5 @@
+with Ada.Text_IO;
+
 with Marlowe;
 
 with Kit.Db.Kit_Root_Record;
@@ -29,6 +31,11 @@ package body Kit.Bindings is
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
+   function Evaluate_Name_To_Table
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
    -------------------------
    -- Create_Kit_Bindings --
    -------------------------
@@ -49,6 +56,9 @@ package body Kit.Bindings is
       SK.Machine.Import_Function
         (Machine, "#reportRecord",
          2, Evaluate_Report_Record'Access);
+      SK.Machine.Import_Function
+        (Machine, "#nameToTable",
+         1, Evaluate_Name_To_Table'Access);
    end Create_Kit_Bindings;
 
    --------------------------------
@@ -69,6 +79,23 @@ package body Kit.Bindings is
         (Result.Reference);
    end Evaluate_First_Root_Record;
 
+   ----------------------------
+   -- Evaluate_Name_To_Table --
+   ----------------------------
+
+   function Evaluate_Name_To_Table
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+   begin
+      SK.Machine.Push (Context, Arguments (Arguments'First));
+      Ada.Text_IO.Put_Line ("begin nameToTable");
+      Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
+      Ada.Text_IO.Put_Line ("end nameToTable");
+      return SK.To_Object (1);
+   end Evaluate_Name_To_Table;
+
    ----------------------------------
    -- Evaluate_Named_Item_Get_Name --
    ----------------------------------
@@ -84,18 +111,19 @@ package body Kit.Bindings is
                     (Arguments (Arguments'First)));
       Name : constant String := Root.Name;
    begin
-      SK.Machine.Push (Context, SK.To_Object (0));
+      SK.Machine.Push (Context, SK.To_Object (1));
       for I in reverse Name'Range loop
          SK.Machine.Push (Context,
                           SK.To_Object (Character'Pos (Name (I))));
+         SK.Machine.Push (Context, SK.To_Object (2));
          SK.Machine.Cons (Context);
-         SK.Machine.Push (Context, SK.To_Object (1));
          SK.Machine.Cons (Context);
       end loop;
 
       declare
          Result : SK.Object;
       begin
+         Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
          SK.Machine.Pop (Context, Result);
          return Result;
       end;
