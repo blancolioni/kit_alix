@@ -9,11 +9,13 @@ package Kit.Db is
    end Kit_Named_Item;
 
    record Kit_Record : Kit_Named_Item is
+      unique key Table_Index   : Positive;
       Record_Length : Natural;
    end Kit_Record;
 
    record Kit_Record_Base is
-      key Base : Kit_Record;
+      Offset      : Natural;
+      key Base    : Kit_Record;
       key Derived : Kit_Record;
       key Base_Record with Base, Derived;
    end Kit_Record_Base;
