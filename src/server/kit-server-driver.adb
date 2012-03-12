@@ -86,7 +86,7 @@ begin
    else
 
       Kit.Server.Shell.Start_Shell
-        (Ada.Directories.Simple_Name (Argument (1)));
+        (Ada.Directories.Base_Name (Argument (1)));
 
    end if;
 

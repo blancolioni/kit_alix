@@ -102,4 +102,12 @@ private
          User_Defined : Boolean := True;
       end record;
 
+   function Storage_Array_Transfer
+     (Item          : Kit_Type'Class;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset;
+      Proc_Name     : String)
+      return Aquarius.Drys.Statement'Class;
+
 end Kit.Types;

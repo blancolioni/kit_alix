@@ -116,34 +116,33 @@ package body Kit.Server.Database is
                           Item.Value.Element (Store_Index);
       begin
          while Field.Has_Element loop
-            declare
-               Field_Name   : constant String := Field.Name;
-               Field_Type   : constant Kit.Db.Kit_Type.Kit_Type_Type :=
-                                Kit.Db.Kit_Type.Get (Field.Field_Type);
-               Offset       : constant Storage_Offset :=
-                                Storage_Offset (Field.Field_Offset);
-               Length       : constant Storage_Count :=
-                                Storage_Count (Field.Field_Length);
-               Last         : constant Storage_Offset := Offset + Length - 1;
-               Image        : constant String :=
-                                Storage_Image
-                                  (Value (Offset .. Last), Field_Type);
-            begin
-               if Across then
-                  if Headings then
-                     Put_With_Width (Field_Name);
-                  else
+            if Across and then Headings then
+               Put_With_Width (Field.Name);
+            else
+               declare
+                  Field_Type   : constant Kit.Db.Kit_Type.Kit_Type_Type :=
+                                   Kit.Db.Kit_Type.Get (Field.Field_Type);
+                  Offset       : constant Storage_Offset :=
+                                   Storage_Offset (Field.Field_Offset);
+                  Length       : constant Storage_Count :=
+                                   Storage_Count (Field.Field_Length);
+                  Last         : constant Storage_Offset :=
+                                   Offset + Length - 1;
+                  Image        : constant String :=
+                                   Storage_Image
+                                     (Value (Offset .. Last), Field_Type);
+               begin
+                  if Across then
                      Put_With_Width (Image);
+                  else
+                     Ada.Text_IO.Put (Field.Name);
+                     Ada.Text_IO.Set_Col (20);
+                     Ada.Text_IO.Put (Field_Type.Name);
+                     Ada.Text_IO.Set_Col (40);
+                     Ada.Text_IO.Put_Line (Image);
                   end if;
-               else
-                  Ada.Text_IO.Put (Field.Name);
-                  Ada.Text_IO.Set_Col (20);
-                  Ada.Text_IO.Put (Field_Type.Name);
-                  Ada.Text_IO.Set_Col (40);
-                  Ada.Text_IO.Put_Line (Image);
-               end if;
-            end;
-
+               end;
+            end if;
             Field.Next;
          end loop;
 
@@ -243,23 +242,17 @@ package body Kit.Server.Database is
          when Kit.Db.R_Kit_Enumeration =>
             declare
                use type System.Storage_Elements.Storage_Element;
-               X : Natural := 0;
+               X : Marlowe.Key_Storage.Unsigned_Integer := 0;
                Enum : Kit.Db.Kit_Enumeration.Kit_Enumeration_Type :=
                         Kit.Db.Kit_Enumeration.First_By_Name
                           (Value_Type.Name);
             begin
-               if Value'Length = 1
-                 and then Value (Value'First) < 128
-               then
-                  X := Natural (Value (Value'First));
-               else
-                  Marlowe.Key_Storage.From_Storage (X, Value);
-               end if;
+               Marlowe.Key_Storage.From_Storage (X, Value);
 
                declare
                   Lit : constant Kit.Db.Kit_Literal.Kit_Literal_Type :=
                           Kit.Db.Kit_Literal.First_By_Enum_Value
-                            (Enum.Reference, X);
+                            (Enum.Reference, Natural (X));
                begin
                   return Lit.Name;
                end;

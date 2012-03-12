@@ -356,6 +356,7 @@ package body Kit.Types is
                  Aquarius.Drys.Statements.New_Procedure_Call_Statement
                    ("Kit_Reference.Create");
    begin
+      Result.Add_Actual_Argument (Literal (8));
       Result.Add_Actual_Argument (Literal (For_Type.Name));
       Result.Add_Actual_Argument
         (Object
@@ -667,10 +668,11 @@ package body Kit.Types is
 
    function Standard_Boolean return Kit_Type'Class is
    begin
-      return Result : Boolean_Type do
+      return Result : Enumerated.Enumerated_Type do
          Result.Create ("boolean");
-         Result.User_Defined := False;
-         Result.Size := 1;
+         Kit_Type (Result).User_Defined := False;
+         Result.Add_Literal ("False");
+         Result.Add_Literal ("True");
       end return;
    end Standard_Boolean;
 
@@ -783,12 +785,44 @@ package body Kit.Types is
       end if;
    end Standard_String;
 
+   --------------------------
+   -- Standard_String_Name --
+   --------------------------
+
    function Standard_String_Name (Length : Natural) return String is
       Length_Image : String := Natural'Image (Length);
    begin
       Length_Image (1) := '_';
       return "String" & Length_Image;
    end Standard_String_Name;
+
+   ----------------------------
+   -- Storage_Array_Transfer --
+   ----------------------------
+
+   function Storage_Array_Transfer
+     (Item          : Kit_Type'Class;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset;
+      Proc_Name     : String)
+      return Aquarius.Drys.Statement'Class
+   is
+      pragma Unreferenced (Item);
+      use System.Storage_Elements;
+      use Ada.Strings, Ada.Strings.Fixed;
+      use Aquarius.Drys, Aquarius.Drys.Statements;
+      S : constant String :=
+            Trim (Storage_Offset'Image (Start), Left);
+      F : constant String :=
+            Trim (Storage_Offset'Image (Finish), Left);
+      Store  : constant String :=
+                 Storage_Name & " (" & S & " .. " & F & ")";
+   begin
+      return New_Procedure_Call_Statement
+        ("Marlowe.Key_Storage." & Proc_Name,
+         Object (Object_Name), Object (Store));
+   end Storage_Array_Transfer;
 
    ----------------------------
    -- Storage_Array_Transfer --
@@ -802,22 +836,14 @@ package body Kit.Types is
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Aquarius.Drys.Statement'Class
    is
-      pragma Unreferenced (Item);
-      use System.Storage_Elements;
-      use Ada.Strings, Ada.Strings.Fixed;
-      use Aquarius.Drys, Aquarius.Drys.Statements;
-      S : constant String :=
-            Trim (Storage_Offset'Image (Start), Left);
-      F : constant String :=
-            Trim (Storage_Offset'Image (Finish), Left);
-      Store  : constant String :=
-                 Storage_Name & " (" & S & " .. " & F & ")";
       Proc_Name : constant String :=
-                    (if To_Storage then "To_Storage" else "From_Storage");
+                    (if To_Storage
+                     then "To_Storage"
+                     else "From_Storage");
    begin
-      return New_Procedure_Call_Statement
-        ("Marlowe.Key_Storage." & Proc_Name,
-         Object (Object_Name), Object (Store));
+      return Storage_Array_Transfer
+        (Item, Object_Name, Storage_Name, Start, Finish,
+         Proc_Name);
    end Storage_Array_Transfer;
 
    ----------------------------
@@ -836,9 +862,10 @@ package body Kit.Types is
    begin
       if To_Storage then
          return Storage_Array_Transfer
-           (Kit_Type (Item), True,
+           (Item,
             "Marlowe.Database_Index (" & Object_Name & ")",
-            Storage_Name, Start, Finish);
+            Storage_Name, Start, Finish,
+            "To_Storage");
       else
          declare
             Block : Aquarius.Drys.Blocks.Block_Type;
@@ -848,8 +875,9 @@ package body Kit.Types is
                  ("T", "Marlowe.Database_Index"));
             Block.Add_Statement
               (Storage_Array_Transfer
-                 (Kit_Type (Item), False, "T",
-                  Storage_Name, Start, Finish));
+                 (Item, "T",
+                  Storage_Name, Start, Finish,
+                  "From_Storage"));
             Block.Add_Statement
               (Aquarius.Drys.Statements.New_Assignment_Statement
                  (Object_Name,
@@ -873,11 +901,11 @@ package body Kit.Types is
    is
    begin
       if To_Storage then
-         return Kit_Type (Item).Storage_Array_Transfer
-           (To_Storage,
-            Object_Name & ".Text (1 .. " & Object_Name & ".Length)",
+         return Item.Storage_Array_Transfer
+           (Object_Name & ".Text (1 .. " & Object_Name & ".Length)",
             Storage_Name,
-            Start, Finish);
+            Start, Finish,
+            "To_Storage");
       else
          declare
             use System.Storage_Elements;

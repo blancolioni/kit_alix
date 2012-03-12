@@ -107,19 +107,26 @@ package body Kit.Types.Enumerated is
       if To_Storage then
          Block.Add_Declaration
            (Aquarius.Drys.Declarations.New_Constant_Declaration
-              ("T", "Natural",
+              ("T", "Marlowe.Key_Storage.Unsigned_Integer",
                Aquarius.Drys.Object
                  (Item.Ada_Name & "'Pos (" & Object_Name & ")")));
       else
          Block.Add_Declaration
            (Aquarius.Drys.Declarations.New_Object_Declaration
-              ("T", "Natural"));
+              ("T", "Marlowe.Key_Storage.Unsigned_Integer"));
       end if;
 
-      Block.Add_Statement
-        (Storage_Array_Transfer
-           (Kit_Type (Item), To_Storage, "T",
-            Storage_Name, Start, Finish));
+      declare
+         Proc_Name : constant String :=
+                       (if To_Storage then "To" else "From")
+                       & "_Storage";
+      begin
+         Block.Add_Statement
+           (Storage_Array_Transfer
+              (Item, "T",
+               Storage_Name, Start, Finish,
+               Proc_Name));
+      end;
 
       if not To_Storage then
          Block.Add_Statement
