@@ -853,6 +853,21 @@ package body Kit.Tables is
 
    end Iterate_All;
 
+   ------------------------
+   -- Key_Reference_Name --
+   ------------------------
+
+   function Key_Reference_Name
+     (Table : Table_Type'Class;
+      Key   : Key_Cursor)
+      return String
+   is
+   begin
+      return "T" & Table.Index_Image & "_"
+        & Ada_Name (Key)
+        & "_Ref";
+   end Key_Reference_Name;
+
    --------------
    -- Key_Size --
    --------------
