@@ -283,6 +283,8 @@ package body Kit.Generate.Database_Package is
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_String",
                            Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Reference",
+                           Body_With => True);
 
       if False then
          Db.Iterate (Add_Implementation_With'Access);
@@ -333,6 +335,7 @@ package body Kit.Generate.Database_Package is
                        Literal (Table.Ada_Name),
                        Object (Table.Index_Image),
                        Literal (Natural (Table.Length)));
+
          procedure Create_Field
            (Field       : Kit.Fields.Field_Type'Class);
 
@@ -391,6 +394,8 @@ package body Kit.Generate.Database_Package is
 
       begin
          Seq.Append (Create);
+         Seq.Append (Kit.Types.Table_Reference_Type
+                     (Table.Ada_Name).Create_Database_Record);
          Table.Scan_Fields (Create_Field'Access);
          Table.Iterate (Create_Base'Access, Inclusive => False);
       end Create_Table;
