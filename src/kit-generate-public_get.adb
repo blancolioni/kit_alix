@@ -8,6 +8,60 @@ with Kit.Fields;
 
 package body Kit.Generate.Public_Get is
 
+   procedure Create_Default_Key_Functions
+     (Table         : in     Kit.Tables.Table_Type'Class;
+      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Key           : in     Kit.Tables.Key_Cursor)
+   is
+      use Aquarius.Drys.Declarations;
+      Ask   : Aquarius.Drys.Expressions.Function_Call_Expression :=
+                Aquarius.Drys.Expressions.New_Function_Call_Expression
+                  ("First_By_" & Kit.Tables.Ada_Name (Key));
+      Block : Aquarius.Drys.Blocks.Block_Type;
+      Fn    : Subprogram_Declaration;
+   begin
+
+      for I in 1 .. Kit.Tables.Field_Count (Key) loop
+         declare
+            Field : Kit.Fields.Field_Type'Class renames
+                      Kit.Tables.Compound_Field (Key, I);
+         begin
+            Ask.Add_Actual_Argument
+              (Aquarius.Drys.Object (Field.Ada_Name));
+         end;
+      end loop;
+
+      Block.Add_Declaration
+        (New_Constant_Declaration
+           ("Item", Table.Type_Name, Ask));
+      Block.Add_Statement
+        (Aquarius.Drys.Statements.New_Return_Statement
+           (Aquarius.Drys.Object ("Item.Has_Element")));
+
+      Fn := New_Function
+        ("Is_" & Kit.Tables.Ada_Name (Key),
+         "Boolean",
+         Block);
+
+      for I in 1 .. Kit.Tables.Field_Count (Key) loop
+         declare
+            Field : Kit.Fields.Field_Type'Class renames
+                      Kit.Tables.Compound_Field (Key, I);
+         begin
+            Fn.Add_Formal_Argument
+              (New_Formal_Argument
+                 (Field.Ada_Name,
+                  Aquarius.Drys.Named_Subtype
+                    (Field.Get_Field_Type.Argument_Subtype)));
+         end;
+      end loop;
+
+      Table_Package.Append (Fn);
+
+      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+
+   end Create_Default_Key_Functions;
+
    ---------------------------------
    -- Create_Generic_Get_Function --
    ---------------------------------
@@ -229,6 +283,7 @@ package body Kit.Generate.Public_Get is
       end Set_Field;
 
    begin
+
       Return_Sequence.Append
         (New_Procedure_Call_Statement
            (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
@@ -308,11 +363,6 @@ package body Kit.Generate.Public_Get is
                                      Table.To_Storage
                                        (Table, Key_Table, "", Key,
                                         With_Index => False);
-
---                                     Table.Key_To_Storage (Key, "");
---                                       Kit.Types.To_Storage_Array
---                                         (Kit.Tables.Key_Type (Key),
---                                          Kit.Tables.Ada_Name (Key));
                   Start_Storage  : constant Expression'Class :=
                                      New_Function_Call_Expression
                                        ("Marlowe.Key_Storage.To_Storage_Array",
@@ -329,8 +379,8 @@ package body Kit.Generate.Public_Get is
                     (Object ("Marlowe_Keys.Handle"));
                   Initialiser.Add_Actual_Argument
                     (Object
-                       ("Marlowe_Keys." & Table.Ada_Name
-                        & "_" & Tables.Ada_Name (Key) & "_Ref"));
+                       ("Marlowe_Keys."
+                        & Table.Key_Reference_Name (Key)));
                   Initialiser.Add_Actual_Argument
                     (Operator ("&", Key_To_Storage, Start_Storage));
                   Initialiser.Add_Actual_Argument
@@ -359,8 +409,8 @@ package body Kit.Generate.Public_Get is
                      New_Function_Call_Expression
                        ("Marlowe.Btree_Handles.Search",
                         "Marlowe_Keys.Handle",
-                        "Marlowe_Keys." & Table.Ada_Name
-                        & "_" & Tables.Ada_Name (Key) & "_Ref",
+                        "Marlowe_Keys."
+                        & Table.Key_Reference_Name (Key),
                         (if First
                          then "Marlowe.Forward"
                          else "Marlowe.Backward"))));

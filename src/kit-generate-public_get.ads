@@ -13,6 +13,11 @@ package Kit.Generate.Public_Get is
       Key           : in     Kit.Tables.Key_Cursor;
       Key_Value     : in     Boolean);
 
+   procedure Create_Default_Key_Functions
+     (Table         : in     Kit.Tables.Table_Type'Class;
+      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Key           : in     Kit.Tables.Key_Cursor);
+
    procedure Create_Generic_Get_Function
      (Db            : in     Kit.Databases.Database_Type;
       Table         : in     Kit.Tables.Table_Type'Class;

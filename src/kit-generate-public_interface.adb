@@ -114,10 +114,8 @@ package body Kit.Generate.Public_Interface is
             begin
                Insert.Add_Actual_Argument ("Marlowe_Keys.Handle");
                Insert.Add_Actual_Argument ("Marlowe_Keys."
-                                           & Base.Ada_Name
-                                           & "_"
-                                           & Kit.Tables.Ada_Name (Key)
-                                           & "_Ref");
+                                           & Base.Key_Reference_Name
+                                             (Key));
                Insert.Add_Actual_Argument
                  (Kit.Tables.To_Storage (Table       => Table,
                                          Base_Table  => Base,
@@ -397,10 +395,7 @@ package body Kit.Generate.Public_Interface is
            ("Marlowe_Keys.Handle");
          S.Add_Actual_Argument
            ("Marlowe_Keys."
-            & Table_Base.Ada_Name
-            & "_"
-            & Kit.Tables.Ada_Name (Key)
-            & "_Ref");
+            & Table_Base.Key_Reference_Name (Key));
          S.Add_Actual_Argument
            (Aquarius.Drys.Expressions.Operator
               ("&",
@@ -1742,6 +1737,18 @@ package body Kit.Generate.Public_Interface is
                Key           => Key,
                Key_Value     => Use_Key_Value);
          end loop;
+
+         if Base.Ada_Name = Table.Ada_Name
+           and then Kit.Tables.Ada_Name (Key) = Table.Ada_Name
+           and then Kit.Tables.Is_Unique (Key)
+         then
+            --  a unique key with the same name as its table is
+            --  understood to be a default key
+            Public_Get.Create_Default_Key_Functions
+              (Table, Table_Package, Key);
+
+         end if;
+
       end Create_Key_Get;
 
       --------------------------
