@@ -1,4 +1,4 @@
-with Ada.Text_IO;
+--  with Ada.Text_IO;
 
 with Marlowe;
 
@@ -90,9 +90,9 @@ package body Kit.Bindings is
    is
    begin
       SK.Machine.Push (Context, Arguments (Arguments'First));
-      Ada.Text_IO.Put_Line ("begin nameToTable");
-      Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
-      Ada.Text_IO.Put_Line ("end nameToTable");
+--        Ada.Text_IO.Put_Line ("begin nameToTable");
+--        Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
+--        Ada.Text_IO.Put_Line ("end nameToTable");
       return SK.To_Object (1);
    end Evaluate_Name_To_Table;
 
@@ -123,7 +123,7 @@ package body Kit.Bindings is
       declare
          Result : SK.Object;
       begin
-         Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
+         --  Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
          SK.Machine.Pop (Context, Result);
          return Result;
       end;
