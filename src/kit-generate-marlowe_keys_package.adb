@@ -38,7 +38,7 @@ package body Kit.Generate.Marlowe_Keys_Package is
             use Kit.Tables;
             Dec : constant Aquarius.Drys.Declaration'Class :=
                     Aquarius.Drys.Declarations.New_Object_Declaration
-                      (Table.Ada_Name & "_" & Ada_Name (Cursor) & "_Ref",
+                      (Table.Key_Reference_Name (Cursor),
                        Aquarius.Drys.Named_Subtype
                          ("Marlowe.Btree_Handles.Btree_Reference"));
          begin

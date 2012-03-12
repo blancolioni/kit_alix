@@ -133,9 +133,8 @@ package body Kit.Generate.Database_Package is
 
                Block.Add_Statement
                  (New_Assignment_Statement
-                    ("Marlowe_Keys." &
-                     Table.Ada_Name & "_" &
-                     Kit.Tables.Ada_Name (Position) & "_Ref",
+                    ("Marlowe_Keys."
+                     & Table.Key_Reference_Name (Position),
                      Call_Add_Key));
             end Create_Key;
 
@@ -192,9 +191,8 @@ package body Kit.Generate.Database_Package is
 
                Block.Add_Statement
                  (New_Assignment_Statement
-                    ("Marlowe_Keys." &
-                     Table.Ada_Name & "_" &
-                     Kit.Tables.Ada_Name (Position) & "_Ref",
+                    ("Marlowe_Keys."
+                     & Table.Key_Reference_Name (Position),
                      Call_Open_Key));
             end Open_Key;
 

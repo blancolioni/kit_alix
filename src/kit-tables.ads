@@ -243,6 +243,11 @@ package Kit.Tables is
      (Table : Table_Type'Class)
       return String;
 
+   function Key_Reference_Name
+     (Table : Table_Type'Class;
+      Key   : Key_Cursor)
+      return String;
+
    function Key_To_Storage
      (Table       : Table_Type'Class;
       Key         : Key_Cursor;
