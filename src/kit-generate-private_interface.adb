@@ -142,10 +142,18 @@ package body Kit.Generate.Private_Interface is
       procedure Add_Component (Field : Kit.Fields.Field_Type'Class) is
          use Kit.Tables;
       begin
-         Aquarius.Drys.Types.Add_Component
-           (Record_Defn, Field.Ada_Name,
-            Aquarius.Drys.Named_Subtype
-              (Field.Get_Field_Type.Record_Subtype));
+         if Field.Get_Field_Type.Has_Default_Value then
+            Aquarius.Drys.Types.Add_Component
+              (Record_Defn, Field.Ada_Name,
+               Aquarius.Drys.Named_Subtype
+                 (Field.Get_Field_Type.Record_Subtype),
+               Field.Get_Field_Type.Default_Value);
+         else
+            Aquarius.Drys.Types.Add_Component
+              (Record_Defn, Field.Ada_Name,
+               Aquarius.Drys.Named_Subtype
+                 (Field.Get_Field_Type.Record_Subtype));
+         end if;
 
          if not Have_String_With
            and then Field.Get_Field_Type.Is_String
