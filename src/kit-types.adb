@@ -33,6 +33,10 @@ package body Kit.Types is
      (For_Type : Integer_Type)
       return Aquarius.Drys.Statement'Class;
 
+   overriding
+   function Default_Value (Item : Integer_Type)
+                           return Aquarius.Drys.Expression'Class;
+
    type Float_Type is new Kit_Type with
       record
          Long : Boolean;
@@ -46,6 +50,10 @@ package body Kit.Types is
      (For_Type : Float_Type)
       return Aquarius.Drys.Statement'Class;
 
+   overriding
+   function Default_Value (Item : Float_Type)
+                           return Aquarius.Drys.Expression'Class;
+
    type Boolean_Type is new Kit_Type with null record;
 
    overriding
@@ -55,6 +63,10 @@ package body Kit.Types is
    function Create_Database_Record
      (For_Type : Boolean_Type)
       return Aquarius.Drys.Statement'Class;
+
+   overriding
+   function Default_Value (Item : Boolean_Type)
+                           return Aquarius.Drys.Expression'Class;
 
    type Table_Reference_Type_Record is
      new Kit_Type with null record;
@@ -93,6 +105,10 @@ package body Kit.Types is
    function Create_Database_Record
      (For_Type : Table_Reference_Type_Record)
       return Aquarius.Drys.Statement'Class;
+
+   overriding
+   function Default_Value (Item : Table_Reference_Type_Record)
+                           return Aquarius.Drys.Expression'Class;
 
    type String_Type is new Kit_Type with
       record
@@ -146,6 +162,14 @@ package body Kit.Types is
    function Create_Database_Record
      (For_Type : String_Type)
       return Aquarius.Drys.Statement'Class;
+
+   overriding
+   function Has_Default_Value (Item : String_Type)
+                               return Boolean;
+
+   overriding
+   function Default_Value (Item : String_Type)
+                           return Aquarius.Drys.Expression'Class;
 
    function Standard_String_Name (Length : Natural) return String;
    --  String types of the given length have this name in the
@@ -342,11 +366,11 @@ package body Kit.Types is
 
    end Create_Database_Record;
 
-   overriding
    ----------------------------
    -- Create_Database_Record --
    ----------------------------
 
+   overriding
    function Create_Database_Record
      (For_Type : Table_Reference_Type_Record)
       return Aquarius.Drys.Statement'Class
@@ -400,6 +424,66 @@ package body Kit.Types is
       New_Type (Standard_Record_Type);
    end Create_Standard_Types;
 
+   -------------------
+   -- Default_Value --
+   -------------------
+
+   overriding
+   function Default_Value (Item : Integer_Type)
+                           return Aquarius.Drys.Expression'Class
+   is
+   begin
+      return Aquarius.Drys.Literal (Integer'Max (0, Item.Low));
+   end Default_Value;
+
+   -------------------
+   -- Default_Value --
+   -------------------
+
+   function Default_Value (Item : Float_Type)
+                           return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object ("0.0");
+   end Default_Value;
+
+   -------------------
+   -- Default_Value --
+   -------------------
+
+   function Default_Value (Item : Boolean_Type)
+                           return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object ("False");
+   end Default_Value;
+
+   -------------------
+   -- Default_Value --
+   -------------------
+
+   function Default_Value (Item : Table_Reference_Type_Record)
+                           return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Literal (0);
+   end Default_Value;
+
+   -------------------
+   -- Default_Value --
+   -------------------
+
+   function Default_Value (Item : String_Type)
+                           return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object ("((others => Character'Val (0)), 0)");
+   end Default_Value;
+
    --------------
    -- Get_Type --
    --------------
@@ -409,6 +493,30 @@ package body Kit.Types is
       return Type_Table.Element
         (Ada.Strings.Unbounded.To_Unbounded_String (Name));
    end Get_Type;
+
+   -----------------------
+   -- Has_Default_Value --
+   -----------------------
+
+   function Has_Default_Value (Item : Kit_Type)
+                               return Boolean
+   is
+      pragma Unreferenced (Item);
+   begin
+      return True;
+   end Has_Default_Value;
+
+   -----------------------
+   -- Has_Default_Value --
+   -----------------------
+
+   function Has_Default_Value (Item : String_Type)
+                               return Boolean
+   is
+      pragma Unreferenced (Item);
+   begin
+      return False;
+   end Has_Default_Value;
 
    ---------------
    -- Is_String --

@@ -67,6 +67,18 @@ package body Kit.Types.Enumerated is
 
    end Create_Database_Record;
 
+   -------------------
+   -- Default_Value --
+   -------------------
+
+   function Default_Value (Item : Enumerated_Type)
+                           return Aquarius.Drys.Expression'Class
+   is
+   begin
+      return Aquarius.Drys.Object
+        (Kit.Names.Ada_Name (Item.Literals.Element (1)));
+   end Default_Value;
+
    --------------------
    -- Return_Subtype --
    --------------------
