@@ -31,3 +31,6 @@ primReportRecord = primitive #reportRecord
 
 reportRecord :: Int -> Int -> IO Int
 reportRecord table index = return $ primReportRecord table index
+
+nameToTable :: String -> Int
+nameToTable = primitive #nameToTable

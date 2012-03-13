@@ -1,0 +1,5 @@
+procedure Test is
+   X := 1;
+   Y := X * 3;
+   Result := Y;
+end Test;
