@@ -2,7 +2,10 @@ with Ada.Exceptions;
 with Ada.Text_IO;
 
 with Kit.Server.Commands;
+
 with Abydos.Environments;
+with Abydos.System;
+with Abydos.Values;
 
 package body Kit.Server.Shell is
 
@@ -16,6 +19,16 @@ package body Kit.Server.Shell is
       Env : Abydos.Environments.Environment :=
               Abydos.Environments.New_Environment (Database);
    begin
+      Abydos.System.Initialise (Env);
+
+      declare
+         Result : constant Abydos.Values.Value :=
+                    Env.Apply ("listnames", (1 => Abydos.Values.Null_Value));
+         pragma Unreferenced (Result);
+      begin
+         null;
+      end;
+
       loop
          Ada.Text_IO.Put (Env.Name & "> ");
 
