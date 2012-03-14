@@ -305,7 +305,9 @@ package body Kit.Tables is
    is
    begin
       for F of Table.Fields loop
-         if F.Field.Name = Name then
+         if not F.Is_Compound
+           and then F.Field.Name = Name
+         then
             return True;
          end if;
       end loop;

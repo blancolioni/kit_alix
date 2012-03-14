@@ -1,6 +1,8 @@
 private with Ada.Containers.Vectors;
 private with Ada.Strings.Unbounded;
 
+with Abydos.Environments;
+
 package Kit.Server.Commands is
 
    type Command_Response is tagged limited private;
@@ -16,8 +18,10 @@ package Kit.Server.Commands is
 
    procedure Write (Response : Command_Response);
 
-   procedure Execute_Command (Line     : String;
-                              Response : in out Command_Response);
+   procedure Execute_Command
+     (Env      : in out Abydos.Environments.Environment;
+      Line     : String;
+      Response : in out Command_Response);
 
    type Command_Arguments is tagged limited private;
 
@@ -27,8 +31,9 @@ package Kit.Server.Commands is
                       return String;
 
    type Command_Handler is access
-     procedure (Arguments   : in     Command_Arguments;
-                Response    : in out Command_Response);
+     procedure (Env       : in out Abydos.Environments.Environment;
+                Arguments : in     Command_Arguments;
+                Response  : in out Command_Response);
 
    type Argument_Type is (Any, Table_Name);
 

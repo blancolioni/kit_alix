@@ -4,7 +4,13 @@ with Abydos.Values;
 
 package Abydos.Programs is
 
-   type Program is private;
+   type Program is new Environments.Evaluable with private;
+
+   overriding
+   function Evaluate (Item : Program;
+                      Args : Values.Array_Of_Values;
+                      Env  : Environments.Environment'Class)
+                      return Values.Value;
 
    procedure Update_Program (Name       : String;
                              Arguments  : Abydos.Values.Array_Of_Values;

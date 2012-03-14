@@ -2,19 +2,14 @@ with Ada.Text_IO;
 
 with Marlowe.Key_Storage;
 
-with Kit.Db.Kit_Enumeration;
 with Kit.Db.Kit_Field;
-with Kit.Db.Kit_Literal;
 with Kit.Db.Kit_Record;
 with Kit.Db.Kit_Record_Base;
 with Kit.Db.Kit_Type;
 
-package body Kit.Server.Database is
+with Kit.Server.Storage;
 
-   function Storage_Image
-     (Value : System.Storage_Elements.Storage_Array;
-      Value_Type : Kit.Db.Kit_Type.Kit_Type_Type)
-     return String;
+package body Kit.Server.Database is
 
    ---------
    -- Get --
@@ -69,6 +64,18 @@ package body Kit.Server.Database is
       end;
 
    end Get;
+
+   ------------------
+   -- Record_Index --
+   ------------------
+
+   function Record_Index
+     (Item : Database_Record'Class)
+      return Marlowe.Database_Index
+   is
+   begin
+      return Item.Index;
+   end Record_Index;
 
    ------------
    -- Report --
@@ -129,7 +136,7 @@ package body Kit.Server.Database is
                   Last         : constant Storage_Offset :=
                                    Offset + Length - 1;
                   Image        : constant String :=
-                                   Storage_Image
+                                   Kit.Server.Storage.Storage_To_String
                                      (Value (Offset .. Last), Field_Type);
                begin
                   if Across then
@@ -199,68 +206,16 @@ package body Kit.Server.Database is
       end loop;
    end Report;
 
-   -------------------
-   -- Storage_Image --
-   -------------------
+   -----------------
+   -- Table_Index --
+   -----------------
 
-   function Storage_Image
-     (Value : System.Storage_Elements.Storage_Array;
-      Value_Type : Kit.Db.Kit_Type.Kit_Type_Type)
-      return String
+   function Table_Index
+     (Item : Database_Record'Class)
+      return Marlowe.Table_Index
    is
    begin
-      case Value_Type.Top_Record is
-         when Kit.Db.R_Kit_Integer =>
-            declare
-               X : Integer;
-            begin
-               Marlowe.Key_Storage.From_Storage (X, Value);
-               return Integer'Image (X);
-            end;
-         when Kit.Db.R_Kit_Float =>
-            declare
-               X : Float;
-            begin
-               Marlowe.Key_Storage.From_Storage (X, Value);
-               return Float'Image (X);
-            end;
-         when Kit.Db.R_Kit_Long_Float =>
-            declare
-               X : Long_Float;
-            begin
-               Marlowe.Key_Storage.From_Storage (X, Value);
-               return Long_Float'Image (X);
-            end;
-         when Kit.Db.R_Kit_String =>
-            declare
-               X : String (1 .. Value'Length);
-               Last : Natural;
-            begin
-               Marlowe.Key_Storage.From_Storage (X, Last, Value);
-               return X (1 .. Last);
-            end;
-         when Kit.Db.R_Kit_Enumeration =>
-            declare
-               use type System.Storage_Elements.Storage_Element;
-               X : Marlowe.Key_Storage.Unsigned_Integer := 0;
-               Enum : Kit.Db.Kit_Enumeration.Kit_Enumeration_Type :=
-                        Kit.Db.Kit_Enumeration.First_By_Name
-                          (Value_Type.Name);
-            begin
-               Marlowe.Key_Storage.From_Storage (X, Value);
-
-               declare
-                  Lit : constant Kit.Db.Kit_Literal.Kit_Literal_Type :=
-                          Kit.Db.Kit_Literal.First_By_Enum_Value
-                            (Enum.Reference, Natural (X));
-               begin
-                  return Lit.Name;
-               end;
-            end;
-
-         when others =>
-            return Marlowe.Key_Storage.Image (Value);
-      end case;
-   end Storage_Image;
+      return Item.Table;
+   end Table_Index;
 
 end Kit.Server.Database;
