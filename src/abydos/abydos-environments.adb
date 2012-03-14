@@ -1,4 +1,6 @@
 with Ada.Strings.Unbounded.Hash;       use Ada.Strings.Unbounded;
+with Ada.Unchecked_Deallocation;
+
 with Ada.Containers.Indefinite_Hashed_Maps;
 
 package body Abydos.Environments is
@@ -10,10 +12,14 @@ package body Abydos.Environments is
         Hash            => Hash,
         Equivalent_Keys => "=");
 
+   type Current_Record_Access is
+     access all Kit.Root_Database_Record'Class;
+
    type Environment_Record is
       record
-         Db : access Kit.Root_Database_Interface'Class;
-         Map : Entry_Map.Map;
+         Db      : access Kit.Root_Database_Interface'Class;
+         Current : Current_Record_Access;
+         Map     : Entry_Map.Map;
       end record;
 
    type Single_Value is new Evaluable with
@@ -25,6 +31,71 @@ package body Abydos.Environments is
                       Args : Values.Array_Of_Values;
                       Env  : Environment'Class)
                       return Values.Value;
+
+   -----------
+   -- Apply --
+   -----------
+
+   function Apply
+     (Env : Environment;
+      Name : String;
+      Args : Values.Array_Of_Values)
+      return Values.Value
+   is
+      Item : constant Evaluable'Class :=
+               Env.Env.Map.Element
+                 (To_Unbounded_String (Name));
+   begin
+      return Item.Evaluate (Args, Env);
+   end Apply;
+
+   -----------
+   -- Close --
+   -----------
+
+   procedure Close (Env : in out Environment) is
+      procedure Free is
+        new Ada.Unchecked_Deallocation (Kit.Root_Database_Record'Class,
+                                        Current_Record_Access);
+      procedure Free is
+        new Ada.Unchecked_Deallocation (Environment_Record,
+                                        Environment_Access);
+
+   begin
+      if Env.Env.Current /= null then
+         Free (Env.Env.Current);
+      end if;
+      Free (Env.Env);
+   end Close;
+
+   --------------
+   -- Contains --
+   --------------
+
+   function Contains
+     (Env   : Environment;
+      Name  : String)
+      return Boolean
+   is
+   begin
+      return Env.Env.Map.Contains
+        (To_Unbounded_String (Name));
+   end Contains;
+
+   --------------
+   -- Evaluate --
+   --------------
+
+   function Evaluate (Item : Single_Value;
+                      Args : Values.Array_Of_Values;
+                      Env  : Environment'Class)
+                      return Values.Value
+   is
+      pragma Unreferenced (Args);
+      pragma Unreferenced (Env);
+   begin
+      return Item.V;
+   end Evaluate;
 
    ------------------
    -- First_By_Key --
@@ -70,6 +141,50 @@ package body Abydos.Environments is
       return Database.Env.Db.Get (Table_Index, Record_Index);
    end Get;
 
+   ---------
+   -- Get --
+   ---------
+
+   function Get
+     (Env  : Environment;
+      Name : String)
+      return Abydos.Values.Value
+   is
+      No_Args : Values.Array_Of_Values (1 .. 0);
+   begin
+      return Env.Apply (Name, No_Args);
+   end Get;
+
+   ------------
+   -- Insert --
+   ------------
+
+   procedure Insert
+     (Env   : Environment;
+      Name  : String;
+      Value : Abydos.Values.Value)
+   is
+      Item : Single_Value;
+   begin
+      Item.V := Value;
+      Env.Insert (Name, Item);
+   end Insert;
+
+   ------------
+   -- Insert --
+   ------------
+
+   procedure Insert
+     (Env   : Environment;
+      Name  : String;
+      Item  : Evaluable'Class)
+   is
+   begin
+      Env.Env.Map.Insert
+        (To_Unbounded_String (Name),
+         Item);
+   end Insert;
+
    ----------
    -- Name --
    ----------
@@ -104,27 +219,13 @@ package body Abydos.Environments is
       Table_Index : in Marlowe.Database_Index)
       return Environment
    is
+      Result : constant Environment :=
+                 New_Environment (Database);
    begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "New_Environment unimplemented");
-      raise Program_Error;
-      return New_Environment (Database, Table_Name, Table_Index);
-   end New_Environment;
-
-   ---------------------
-   -- New_Environment --
-   ---------------------
-
-   function New_Environment
-     (Parent      : Environment'Class;
-      From_Record : Kit.Root_Database_Record'Class)
-      return Environment
-   is
-   begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "New_Environment unimplemented");
-      raise Program_Error;
-      return New_Environment (Parent, From_Record);
+      Result.Env.Current :=
+        new Kit.Root_Database_Record'Class'
+          (Database.Get (Table_Name, Table_Index));
+      return Result;
    end New_Environment;
 
    ------------------------
@@ -158,95 +259,5 @@ package body Abydos.Environments is
    begin
       return Db.Env.Db.To_Table_Index (Table_Name);
    end To_Table_Index;
-
-   -----------
-   -- Close --
-   -----------
-
-   procedure Close (Env : in out Environment) is
-   begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "Close unimplemented");
-      raise Program_Error;
-   end Close;
-
-   ------------
-   -- Insert --
-   ------------
-
-   procedure Insert
-     (Env   : Environment;
-      Name  : String;
-      Value : Abydos.Values.Value)
-   is
-   begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "Insert unimplemented");
-      raise Program_Error;
-   end Insert;
-
-   ------------
-   -- Insert --
-   ------------
-
-   procedure Insert
-     (Env   : Environment;
-      Name  : String;
-      Item  : Evaluable'Class)
-   is
-   begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "Insert unimplemented");
-      raise Program_Error;
-   end Insert;
-
-   --------------
-   -- Contains --
-   --------------
-
-   function Contains
-     (Env   : Environment;
-      Name  : String)
-      return Boolean
-   is
-   begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "Contains unimplemented");
-      raise Program_Error;
-      return Contains (Env, Name);
-   end Contains;
-
-   ---------
-   -- Get --
-   ---------
-
-   function Get
-     (Env  : Environment;
-      Name : String)
-      return Abydos.Values.Value
-   is
-   begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "Get unimplemented");
-      raise Program_Error;
-      return Get (Env, Name);
-   end Get;
-
-   -----------
-   -- Apply --
-   -----------
-
-   function Apply
-     (Env : Environment;
-      Name : String;
-      Args : Values.Array_Of_Values)
-      return Values.Value
-   is
-   begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "Apply unimplemented");
-      raise Program_Error;
-      return Apply (Env, Name, Args);
-   end Apply;
 
 end Abydos.Environments;
