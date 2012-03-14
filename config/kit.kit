@@ -47,6 +47,7 @@ package Kit.Db is
       key Kit_Enumeration;
       key Value : Natural;
       unique key Enum_Value with Kit_Enumeration, Value;
+      unique key Enum_Name with Kit_Enumeration, Name;
    end Kit_Literal;
 
    record Kit_Field : Kit_Named_Item is
@@ -54,6 +55,7 @@ package Kit.Db is
       Field_Type   : Kit_Type;
       Field_Offset : Natural;
       Field_Length : Natural;
+      unique key Record_Field with Kit_Record, Name;
    end Kit_Field;
 
    record Kit_Key is

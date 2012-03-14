@@ -46,8 +46,10 @@ package body Kit.Server.Commands is
    -- Execute_Command --
    ---------------------
 
-   procedure Execute_Command (Line     : String;
-                              Response : in out Command_Response)
+   procedure Execute_Command
+     (Env      : in out Abydos.Environments.Environment;
+      Line     : String;
+      Response : in out Command_Response)
    is
       Command_Line : constant String :=
                        Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both)
@@ -87,7 +89,7 @@ package body Kit.Server.Commands is
       if not Got_Command then
          Response.Set_Error (Command_Line & ": cannot understand");
       elsif Command_Table.Contains (Command) then
-         Command_Table.Element (Command).Handler (Arguments, Response);
+         Command_Table.Element (Command).Handler (Env, Arguments, Response);
       else
          Response.Set_Error (To_String (Command) & ": unknown command");
       end if;

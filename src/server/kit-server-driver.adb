@@ -12,6 +12,7 @@ with Kit.Paths;
 with Kit.Server.Database;
 with Kit.Server.Shell;
 with Kit.Server.System;
+with Kit.Server.Tables;
 
 with Hero.Modules;
 
@@ -85,9 +86,15 @@ begin
 
    else
 
-      Kit.Server.Shell.Start_Shell
-        (Ada.Directories.Base_Name (Argument (1)));
+      declare
+         Db : constant Kit.Server.Tables.Database_Access :=
+                new Kit.Server.Tables.Database_Type;
+      begin
+         Db.Initialise (Ada.Directories.Base_Name (Argument (1)));
 
+         Kit.Server.Shell.Start_Shell (Db);
+
+      end;
    end if;
 
    Kit.Db.Database.Close;

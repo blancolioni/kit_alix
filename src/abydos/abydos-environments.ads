@@ -6,6 +6,8 @@ package Abydos.Environments is
 
    type Environment is new Kit.Root_Database_Interface with private;
 
+   function Name (Db         : Environment) return String;
+
    function To_Table_Index (Db         : Environment;
                             Table_Name : String)
                            return Marlowe.Table_Index;
@@ -37,13 +39,18 @@ package Abydos.Environments is
      return Kit.Root_Database_Record'Class;
 
    function New_Environment
+     (Database    : not null access Kit.Root_Database_Interface'Class)
+     return Environment;
+
+   function New_Environment
      (Database    : not null access Kit.Root_Database_Interface'Class;
       Table_Name  : in String;
       Table_Index : in Marlowe.Database_Index)
      return Environment;
 
    function New_Environment
-     (From_Record : Kit.Root_Database_Record'Class)
+     (Parent      : Environment'Class;
+      From_Record : Kit.Root_Database_Record'Class)
      return Environment;
 
    procedure Close (Env : in out Environment);
@@ -51,6 +58,17 @@ package Abydos.Environments is
    procedure Insert (Env   : Environment;
                      Name  : String;
                      Value : Abydos.Values.Value);
+
+   type Evaluable is interface;
+   function Evaluate (Item : Evaluable;
+                      Args : Values.Array_Of_Values;
+                      Env  : Environment'Class)
+                      return Values.Value
+                      is abstract;
+
+   procedure Insert (Env   : Environment;
+                     Name  : String;
+                     Item  : Evaluable'Class);
 
    function Contains (Env   : Environment;
                       Name  : String)
@@ -67,6 +85,12 @@ package Abydos.Environments is
 
 private
 
-   type Environment is new Kit.Root_Database_Interface with null record;
+   type Environment_Record;
+   type Environment_Access is access Environment_Record;
+
+   type Environment is new Kit.Root_Database_Interface with
+      record
+         Env : Environment_Access;
+      end record;
 
 end Abydos.Environments;

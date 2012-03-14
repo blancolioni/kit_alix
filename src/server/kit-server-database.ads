@@ -1,6 +1,7 @@
 private with Ada.Containers.Indefinite_Vectors;
 private with Ada.Finalization;
-private with System.Storage_Elements;
+
+with System.Storage_Elements;
 
 with Marlowe;
 
@@ -12,6 +13,14 @@ package Kit.Server.Database is
      (Item     : in out Database_Record'Class;
       Table    : in     Marlowe.Table_Index;
       Index    : in     Marlowe.Database_Index);
+
+   function Table_Index
+     (Item : Database_Record'Class)
+      return Marlowe.Table_Index;
+
+   function Record_Index
+     (Item : Database_Record'Class)
+      return Marlowe.Database_Index;
 
    procedure Report (Item     : Database_Record'Class;
                      Width    : Positive := 12;

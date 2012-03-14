@@ -23,6 +23,8 @@ package Kit is
 
    type Root_Database_Interface is interface;
 
+   function Name (Db : Root_Database_Interface) return String is abstract;
+
    function To_Table_Index (Db         : Root_Database_Interface;
                             Table_Name : String)
                            return Marlowe.Table_Index

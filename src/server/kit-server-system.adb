@@ -3,11 +3,14 @@ with Kit.Db.Kit_Record;
 with Kit.Server.Commands;              use Kit.Server.Commands;
 with Kit.Server.Database;
 
+with Abydos.Environments;
+
 package body Kit.Server.System is
 
    procedure Handle_Report
-     (Arguments   : in     Command_Arguments;
-      Response    : in out Command_Response);
+     (Env       : in out Abydos.Environments.Environment;
+      Arguments : in     Command_Arguments;
+      Response  : in out Command_Response);
 
    -------------------------
    -- Add_System_Commands --
@@ -24,9 +27,11 @@ package body Kit.Server.System is
    -------------------
 
    procedure Handle_Report
-     (Arguments   : in     Command_Arguments;
-      Response    : in out Command_Response)
+     (Env       : in out Abydos.Environments.Environment;
+      Arguments : in     Command_Arguments;
+      Response  : in out Command_Response)
    is
+      pragma Unreferenced (Env);
       use Kit.Db.Kit_Record;
       Table_Name : constant String :=
                      Argument (Arguments, 1);
