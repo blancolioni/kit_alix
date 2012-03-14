@@ -48,11 +48,6 @@ package Abydos.Environments is
       Table_Index : in Marlowe.Database_Index)
      return Environment;
 
-   function New_Environment
-     (Parent      : Environment'Class;
-      From_Record : Kit.Root_Database_Record'Class)
-     return Environment;
-
    procedure Close (Env : in out Environment);
 
    procedure Insert (Env   : Environment;
