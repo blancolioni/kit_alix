@@ -332,7 +332,7 @@ package body Kit.Generate.Database_Package is
          Create : constant Statement'Class :=
                     New_Procedure_Call_Statement
                       ("Kit_Record.Create",
-                       Literal (Table.Ada_Name),
+                       Literal (Table.Standard_Name),
                        Object (Table.Index_Image),
                        Literal (Natural (Table.Length)));
 
@@ -355,12 +355,12 @@ package body Kit.Generate.Database_Package is
             New_Base.Add_Actual_Argument
               (Object
                  ("Kit_Record.First_By_Name ("""
-                  & Base.Ada_Name
+                  & Base.Standard_Name
                   & """).Reference"));
             New_Base.Add_Actual_Argument
               (Object
                  ("Kit_Record.First_By_Name ("""
-                  & Table.Ada_Name
+                  & Table.Standard_Name
                   & """).Reference"));
             Seq.Append (New_Base);
          end Create_Base;
@@ -376,11 +376,11 @@ package body Kit.Generate.Database_Package is
                           New_Procedure_Call_Statement
                             ("Kit_Field.Create");
          begin
-            New_Field.Add_Actual_Argument (Literal (Field.Ada_Name));
+            New_Field.Add_Actual_Argument (Literal (Field.Standard_Name));
             New_Field.Add_Actual_Argument
               (Object
                  ("Kit_Record.First_By_Name ("""
-                  & Table.Ada_Name
+                  & Table.Standard_Name
                   & """).Reference"));
             New_Field.Add_Actual_Argument
               (Field.Get_Field_Type.Reference_Database_Type);
@@ -395,7 +395,7 @@ package body Kit.Generate.Database_Package is
       begin
          Seq.Append (Create);
          Seq.Append (Kit.Types.Table_Reference_Type
-                     (Table.Ada_Name).Create_Database_Record);
+                     (Table.Standard_Name).Create_Database_Record);
          Table.Scan_Fields (Create_Field'Access);
          Table.Iterate (Create_Base'Access, Inclusive => False);
       end Create_Table;

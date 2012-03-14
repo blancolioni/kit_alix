@@ -54,4 +54,13 @@ package body Kit.Names is
       return Ada.Strings.Unbounded.To_String (Item.Name);
    end Name;
 
+   -------------------
+   -- Standard_Name --
+   -------------------
+
+   function Standard_Name (Item : Root_Named_Object) return String is
+   begin
+      return Ada.Characters.Handling.To_Lower (Item.Ada_Name);
+   end Standard_Name;
+
 end Kit.Names;

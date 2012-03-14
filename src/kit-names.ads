@@ -6,6 +6,7 @@ package Kit.Names is
 
    function Name (Item : Root_Named_Object) return String;
    function Ada_Name (Item : Root_Named_Object) return String;
+   function Standard_Name (Item : Root_Named_Object) return String;
 
    procedure Create (Item : in out Root_Named_Object;
                      Name : String);
