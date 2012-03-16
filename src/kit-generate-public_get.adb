@@ -8,6 +8,10 @@ with Kit.Fields;
 
 package body Kit.Generate.Public_Get is
 
+   ----------------------------------
+   -- Create_Default_Key_Functions --
+   ----------------------------------
+
    procedure Create_Default_Key_Functions
      (Table         : in     Kit.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
@@ -24,7 +28,7 @@ package body Kit.Generate.Public_Get is
       for I in 1 .. Kit.Tables.Field_Count (Key) loop
          declare
             Field : Kit.Fields.Field_Type'Class renames
-                      Kit.Tables.Compound_Field (Key, I);
+                      Kit.Tables.Field (Key, I);
          begin
             Ask.Add_Actual_Argument
               (Aquarius.Drys.Object (Field.Ada_Name));
@@ -46,7 +50,7 @@ package body Kit.Generate.Public_Get is
       for I in 1 .. Kit.Tables.Field_Count (Key) loop
          declare
             Field : Kit.Fields.Field_Type'Class renames
-                      Kit.Tables.Compound_Field (Key, I);
+                      Kit.Tables.Field (Key, I);
          begin
             Fn.Add_Formal_Argument
               (New_Formal_Argument

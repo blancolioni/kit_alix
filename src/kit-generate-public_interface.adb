@@ -1739,7 +1739,7 @@ package body Kit.Generate.Public_Interface is
          end loop;
 
          if Base.Ada_Name = Table.Ada_Name
-           and then Kit.Tables.Ada_Name (Key) = Table.Ada_Name
+           --  and then Kit.Tables.Ada_Name (Key) = Table.Ada_Name
            and then Kit.Tables.Is_Unique (Key)
          then
             --  a unique key with the same name as its table is
