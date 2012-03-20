@@ -78,10 +78,10 @@ package body Abydos.Expressions is
                       Env     : Abydos.Environments.Environment)
                      return Values.Value
    is
-      Args : Values.Array_Of_Values (Expr.Args'Range);
+      Args : Environments.Argument_List;
    begin
-      for I in Args'Range loop
-         Args (I) := Expr.Args (I).Evaluate (Env);
+      for I in Expr.Args'Range loop
+         Args.Append (Expr.Args (I).Evaluate (Env));
       end loop;
       return Environments.Apply (Env, Expr.Name.all, Args);
    end Evaluate;
@@ -113,14 +113,14 @@ package body Abydos.Expressions is
       Key_Name   : constant String := To_String (Expr.Key.Evaluate (Env));
       Key_Value  : constant String :=
         To_String (Expr.Key_Value.Evaluate (Env));
-      It : Kit.Root_Database_Record'Class :=
+      It : constant Kit.Database_Record :=
         Env.Scan_By_Key_Value (Table_Name, Key_Name, Key_Value);
       Result     : Value;
    begin
       while It.Has_Element loop
          declare
             Local_Env : Environments.Environment :=
-              Environments.New_Environment (It);
+              Environments.New_Environment (Env, Table_Name, It.Index);
          begin
             if To_Boolean (Expr.Condition.Evaluate (Local_Env)) then
                Append (Result, To_Value (It.Get (Field_Name)));

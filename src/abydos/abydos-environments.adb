@@ -3,6 +3,8 @@ with Ada.Unchecked_Deallocation;
 
 with Ada.Containers.Indefinite_Hashed_Maps;
 
+with Ada.Strings.Fixed;
+
 package body Abydos.Environments is
 
    package Entry_Map is
@@ -12,13 +14,10 @@ package body Abydos.Environments is
         Hash            => Hash,
         Equivalent_Keys => "=");
 
-   type Current_Record_Access is
-     access all Kit.Root_Database_Record'Class;
-
    type Environment_Record is
       record
-         Db      : access Kit.Root_Database_Interface'Class;
-         Current : Current_Record_Access;
+         Db      : Kit.Database_Access;
+         Current : Kit.Database_Record;
          Map     : Entry_Map.Map;
       end record;
 
@@ -31,6 +30,33 @@ package body Abydos.Environments is
                       Args : Argument_List'Class;
                       Env  : Environment'Class)
                       return Values.Value;
+
+   ------------
+   -- Append --
+   ------------
+
+   procedure Append (Args  : in out Argument_List;
+                     Name  : in     String;
+                     V     : Values.Value)
+   is
+   begin
+      Args.List.Append ((new String'(Name), V));
+   end Append;
+
+   ------------
+   -- Append --
+   ------------
+
+   procedure Append (Args  : in out Argument_List;
+                     V     : Values.Value)
+   is
+      Name : constant String :=
+               Ada.Strings.Fixed.Trim
+                 (Positive'Image (Args.List.Last_Index + 1),
+                  Ada.Strings.Left);
+   begin
+      Args.List.Append ((new String'(Name), V));
+   end Append;
 
    -----------
    -- Apply --
@@ -56,11 +82,12 @@ package body Abydos.Environments is
    procedure Close (Env : in out Environment) is
       procedure Free is
         new Ada.Unchecked_Deallocation (Kit.Root_Database_Record'Class,
-                                        Current_Record_Access);
+                                        Kit.Database_Record);
       procedure Free is
         new Ada.Unchecked_Deallocation (Environment_Record,
                                         Environment_Access);
 
+      use type Kit.Database_Record;
    begin
       if Env.Env.Current /= null then
          Free (Env.Env.Current);
@@ -114,7 +141,7 @@ package body Abydos.Environments is
      (Tables       : Environment;
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String)
-      return Kit.Root_Database_Record'Class
+      return Kit.Database_Record
    is
    begin
       return Tables.Env.Db.First_By_Key (Table_Index, Key_Name);
@@ -129,7 +156,7 @@ package body Abydos.Environments is
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String;
       Key_Value    : String)
-      return Kit.Root_Database_Record'Class
+      return Kit.Database_Record
    is
    begin
       return Tables.Env.Db.First_By_Key_Value
@@ -144,10 +171,11 @@ package body Abydos.Environments is
      (Database     : Environment;
       Table_Index  : Marlowe.Table_Index;
       Record_Index : Marlowe.Database_Index)
-      return Kit.Root_Database_Record'Class
+      return Kit.Database_Record
    is
+      Db : constant Kit.Database_Access := Database.Env.Db;
    begin
-      return Database.Env.Db.Get (Table_Index, Record_Index);
+      return Db.Get (Table_Index, Record_Index);
    end Get;
 
    ---------
@@ -203,7 +231,7 @@ package body Abydos.Environments is
                   return Abydos.Values.Value
    is
    begin
-      if Index < Args.List.Last_Index then
+      if Index <= Args.List.Last_Index then
          return Args.List.Element (Index).Argument_Value;
       else
          return Values.Null_Value;
@@ -241,7 +269,7 @@ package body Abydos.Environments is
    ---------------------
 
    function New_Environment
-     (Database    : not null access Kit.Root_Database_Interface'Class)
+     (Database    : Kit.Database_Access)
       return Environment
    is
    begin
@@ -256,17 +284,16 @@ package body Abydos.Environments is
    ---------------------
 
    function New_Environment
-     (Database    : not null access Kit.Root_Database_Interface'Class;
+     (Parent      : Environment;
       Table_Name  : in String;
       Table_Index : in Marlowe.Database_Index)
       return Environment
    is
       Result : constant Environment :=
-                 New_Environment (Database);
+                 New_Environment (Parent.Env.Db);
    begin
       Result.Env.Current :=
-        new Kit.Root_Database_Record'Class'
-          (Database.Get (Table_Name, Table_Index));
+        Parent.Get (Table_Name, Table_Index);
       return Result;
    end New_Environment;
 
@@ -290,7 +317,7 @@ package body Abydos.Environments is
       Key_Name       : String;
       Low_Key_Value  : String;
       High_Key_Value : String)
-      return Kit.Root_Database_Record'Class
+      return Kit.Database_Record
    is
    begin
       return Tables.Env.Db.Scan_By_Key_Values
@@ -311,5 +338,20 @@ package body Abydos.Environments is
    begin
       return Db.Env.Db.To_Table_Index (Table_Name);
    end To_Table_Index;
+
+   ------------
+   -- Update --
+   ------------
+
+   procedure Update (Env : Environment;
+                     Name : String;
+                     New_Value : Values.Value)
+   is
+      pragma Unreferenced (Env);
+      pragma Unreferenced (Name);
+      pragma Unreferenced (New_Value);
+   begin
+      null;
+   end Update;
 
 end Abydos.Environments;

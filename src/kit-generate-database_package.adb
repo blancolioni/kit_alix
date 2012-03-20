@@ -424,7 +424,7 @@ package body Kit.Generate.Database_Package is
               (Literal (Key_Size (Key)));
             Block.Add_Declaration
               (New_Constant_Declaration
-                 ("Ref", "Kit.Db.Kit_Key_Reference",
+                 ("Ref", "Kit_Key_Reference",
                   New_Key));
             for I in 1 .. Field_Count (Key) loop
                declare

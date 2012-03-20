@@ -24,7 +24,11 @@ package Kit is
                   Value      : String)
       is abstract;
 
+   type Database_Record is access all Root_Database_Record'Class;
+
    type Root_Database_Interface is interface;
+
+   type Database_Access is access all Root_Database_Interface'Class;
 
    function Name (Db : Root_Database_Interface) return String is abstract;
 
@@ -36,14 +40,14 @@ package Kit is
    function Get (Database     : Root_Database_Interface;
                  Table_Index  : Marlowe.Table_Index;
                  Record_Index : Marlowe.Database_Index)
-                return Root_Database_Record'Class
+                return Database_Record
       is abstract;
 
    function First_By_Key
      (Tables       : Root_Database_Interface;
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String)
-     return Root_Database_Record'Class
+      return Database_Record
       is abstract;
 
    function First_By_Key_Value
@@ -51,7 +55,7 @@ package Kit is
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String;
       Key_Value    : String)
-     return Root_Database_Record'Class
+      return Database_Record
       is abstract;
 
    function Scan_By_Key_Values
@@ -60,13 +64,13 @@ package Kit is
       Key_Name       : String;
       Low_Key_Value  : String;
       High_Key_Value : String)
-     return Root_Database_Record'Class
+      return Database_Record
       is abstract;
 
    function Get (Database     : Root_Database_Interface'Class;
                  Table_Name   : String;
                  Record_Index : Marlowe.Database_Index)
-                return Root_Database_Record'Class;
+                 return Database_Record;
 
    function Scan_By_Key_Values
      (Tables         : Root_Database_Interface'Class;
@@ -74,13 +78,13 @@ package Kit is
       Key_Name       : String;
       Low_Key_Value  : String;
       High_Key_Value : String)
-     return Root_Database_Record'Class;
+      return Database_Record;
 
    function Scan_By_Key_Value
      (Tables         : Root_Database_Interface'Class;
       Table_Name     : String;
       Key_Name       : String;
       Key_Value      : String)
-     return Root_Database_Record'Class;
+      return Database_Record;
 
 end Kit;

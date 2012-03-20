@@ -73,13 +73,13 @@ package body Abydos.System is
       Table      : constant Marlowe.Table_Index :=
                      Env.To_Table_Index (Table_Name);
 
-      function First_Result return Kit.Root_Database_Record'Class;
+      function First_Result return Kit.Database_Record;
 
       ------------------
       -- First_Result --
       ------------------
 
-      function First_Result return Kit.Root_Database_Record'Class is
+      function First_Result return Kit.Database_Record is
       begin
          if Key_Name = "" then
             return Env.Get (Table, 1);
@@ -91,7 +91,7 @@ package body Abydos.System is
          end if;
       end First_Result;
 
-      Rec        : Kit.Root_Database_Record'Class := First_Result;
+      Rec        : constant Kit.Database_Record := First_Result;
       Count      : Natural := 0;
    begin
       while Rec.Has_Element loop

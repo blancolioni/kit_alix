@@ -1,4 +1,8 @@
+with Abydos.Statements;
+
 package Abydos.Parser is
+
+   Parse_Error : exception;
 
    procedure Parse_Program (Path : String);
 

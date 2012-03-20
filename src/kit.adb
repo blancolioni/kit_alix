@@ -8,7 +8,7 @@ package body Kit is
      (Database     : Root_Database_Interface'Class;
       Table_Name   : String;
       Record_Index : Marlowe.Database_Index)
-      return Root_Database_Record'Class
+      return Database_Record
    is
    begin
       return Database.Get (Database.To_Table_Index (Table_Name),
@@ -24,7 +24,7 @@ package body Kit is
       Table_Name     : String;
       Key_Name       : String;
       Key_Value      : String)
-      return Root_Database_Record'Class
+      return Database_Record
    is
    begin
       return Tables.Scan_By_Key_Values
@@ -44,7 +44,7 @@ package body Kit is
       Key_Name       : String;
       Low_Key_Value  : String;
       High_Key_Value : String)
-      return Root_Database_Record'Class
+      return Database_Record
    is
    begin
       return Tables.Scan_By_Key_Values

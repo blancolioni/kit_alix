@@ -90,7 +90,7 @@ package body Kit.Server.Storage is
                Marlowe.Key_Storage.From_Storage (Index, Value);
                if Rec.Has_Element and then Name_Field.Has_Element then
                   declare
-                     Item : constant Root_Database_Record'Class :=
+                     Item : constant Database_Record :=
                               Kit.Server.Tables.Active_Database.Get
                                 (Marlowe.Table_Index (Rec.Table_Index),
                                  Index);

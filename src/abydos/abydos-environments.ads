@@ -17,20 +17,20 @@ package Abydos.Environments is
    function Get (Database     : Environment;
                  Table_Index  : Marlowe.Table_Index;
                  Record_Index : Marlowe.Database_Index)
-                return Kit.Root_Database_Record'Class;
+                 return Kit.Database_Record;
 
    function First_By_Key
      (Tables       : Environment;
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String)
-     return Kit.Root_Database_Record'Class;
+     return Kit.Database_Record;
 
    function First_By_Key_Value
      (Tables       : Environment;
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String;
       Key_Value    : String)
-     return Kit.Root_Database_Record'Class;
+     return Kit.Database_Record;
 
    function Scan_By_Key_Values
      (Tables         : Environment;
@@ -38,14 +38,14 @@ package Abydos.Environments is
       Key_Name       : String;
       Low_Key_Value  : String;
       High_Key_Value : String)
-     return Kit.Root_Database_Record'Class;
+     return Kit.Database_Record;
 
    function New_Environment
-     (Database    : not null access Kit.Root_Database_Interface'Class)
+     (Database    : Kit.Database_Access)
      return Environment;
 
    function New_Environment
-     (Database    : not null access Kit.Root_Database_Interface'Class;
+     (Parent      : Environment;
       Table_Name  : in String;
       Table_Index : in Marlowe.Database_Index)
      return Environment;
@@ -65,6 +65,12 @@ package Abydos.Environments is
    function Item (Args : Argument_List;
                   Name : String)
                   return Abydos.Values.Value;
+   procedure Append (Args  : in out Argument_List;
+                     V     : Values.Value);
+
+   procedure Append (Args  : in out Argument_List;
+                     Name  : in     String;
+                     V     : Values.Value);
 
    type Evaluable is interface;
    function Evaluate (Item : Evaluable;
@@ -88,7 +94,11 @@ package Abydos.Environments is
    function Apply (Env : Environment;
                    Name : String;
                    Args : Argument_List'Class)
-                  return Values.Value;
+                   return Values.Value;
+
+   procedure Update (Env : Environment;
+                     Name : String;
+                     New_Value : Values.Value);
 
 private
 
