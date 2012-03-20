@@ -1,7 +1,11 @@
 with Ada.Containers.Indefinite_Vectors;
+with Ada.Containers.Vectors;
+with Ada.Directories;
 with Ada.Finalization;
 
 with System.Storage_Elements;
+
+with Kit.Db.Database;
 
 with Kit.Db.Kit_Field;
 with Kit.Db.Kit_Key;
@@ -15,6 +19,12 @@ with Kit.Server.Storage;
 with Marlowe.Key_Storage;
 
 package body Kit.Server.Tables is
+
+   package Database_Vectors is
+     new Ada.Containers.Vectors (Positive, Database_Access);
+
+   Active_Database_Vector : Database_Vectors.Vector;
+   Current_Db : Database_Access;
 
    package Storage_Vectors is
      new Ada.Containers.Indefinite_Vectors
@@ -36,6 +46,8 @@ package body Kit.Server.Tables is
          Current_Record  : Storage_Vectors.Vector;
       end record;
 
+   type Kit_Db_Record_Access is access all Kit_Db_Record'Class;
+
    function Index (Item : Kit_Db_Record) return Marlowe.Database_Index;
    function Has_Element (Item : in Kit_Db_Record) return Boolean;
    procedure Next (Item : in out Kit_Db_Record);
@@ -56,6 +68,15 @@ package body Kit.Server.Tables is
       Key_Value : String)
       return System.Storage_Elements.Storage_Array;
 
+   ---------------------
+   -- Active_Database --
+   ---------------------
+
+   function Active_Database return Database_Access is
+   begin
+      return Current_Db;
+   end Active_Database;
+
    ------------------
    -- First_By_Key --
    ------------------
@@ -64,7 +85,7 @@ package body Kit.Server.Tables is
      (Tables       : Database_Type;
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String)
-      return Root_Database_Record'Class
+      return Kit.Database_Record
    is
       pragma Unreferenced (Tables);
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
@@ -73,14 +94,25 @@ package body Kit.Server.Tables is
       Mark : constant Marlowe.Btree_Handles.Btree_Mark :=
                Marlowe.Btree_Handles.Search (Handle, Ref, Marlowe.Forward);
    begin
-      return Result : Kit_Db_Record do
-         Result.Table_Index  := Table_Index;
-         Result.Record_Index :=
-           Marlowe.Key_Storage.To_Database_Index
-             (Marlowe.Btree_Handles.Get_Key (Mark));
-         Result.Read;
-         Result.Mark := new Marlowe.Btree_Handles.Btree_Mark'(Mark);
-      end return;
+      if Marlowe.Btree_Handles.Valid (Mark) then
+         declare
+            Result : constant Kit_Db_Record_Access := new Kit_Db_Record;
+         begin
+            Result.Table_Index  := Table_Index;
+            Result.Record_Index :=
+              Marlowe.Key_Storage.To_Database_Index
+                (Marlowe.Btree_Handles.Get_Key (Mark));
+            Result.Read;
+            Result.Mark := new Marlowe.Btree_Handles.Btree_Mark'(Mark);
+            Result.Exists := True;
+            Result.Scanning := True;
+            Result.Using_Key := True;
+            Result.Using_Key_Value := False;
+            return Database_Record (Result);
+         end;
+      else
+         return null;
+      end if;
    end First_By_Key;
 
    ------------------------
@@ -92,7 +124,7 @@ package body Kit.Server.Tables is
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String;
       Key_Value    : String)
-      return Root_Database_Record'Class
+      return Database_Record
    is
       pragma Unreferenced (Tables);
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
@@ -106,15 +138,19 @@ package body Kit.Server.Tables is
                          Key_Storage, Key_Storage,
                          Marlowe.Closed, Marlowe.Closed,
                          Marlowe.Forward);
+      Result : constant Kit_Db_Record_Access := new Kit_Db_Record;
    begin
-      return Result : Kit_Db_Record do
-         Result.Table_Index  := Table_Index;
-         Result.Record_Index :=
-           Marlowe.Key_Storage.To_Database_Index
-             (Marlowe.Btree_Handles.Get_Key (Mark));
-         Result.Read;
-         Result.Mark := new Marlowe.Btree_Handles.Btree_Mark'(Mark);
-      end return;
+      Result.Table_Index  := Table_Index;
+      Result.Record_Index :=
+        Marlowe.Key_Storage.To_Database_Index
+          (Marlowe.Btree_Handles.Get_Key (Mark));
+      Result.Read;
+      Result.Mark := new Marlowe.Btree_Handles.Btree_Mark'(Mark);
+      Result.Using_Key := True;
+      Result.Using_Key_Value := True;
+
+      return Database_Record (Result);
+
    end First_By_Key_Value;
 
    ---------
@@ -125,15 +161,16 @@ package body Kit.Server.Tables is
      (Database     : Database_Type;
       Table_Index  : Marlowe.Table_Index;
       Record_Index : Marlowe.Database_Index)
-      return Root_Database_Record'Class
+      return Database_Record
    is
       pragma Unreferenced (Database);
+      Result : constant Kit_Db_Record_Access :=
+                 new Kit_Db_Record;
    begin
-      return Result : Kit_Db_Record do
-         Result.Table_Index  := Table_Index;
-         Result.Record_Index := Record_Index;
-         Result.Read;
-      end return;
+      Result.Table_Index  := Table_Index;
+      Result.Record_Index := Record_Index;
+      Result.Read;
+      return Database_Record (Result);
    end Get;
 
    ---------
@@ -329,6 +366,23 @@ package body Kit.Server.Tables is
 
    end Next;
 
+   -------------------
+   -- Open_Database --
+   -------------------
+
+   procedure Open_Database (Path : String) is
+   begin
+      Kit.Db.Database.Open (Path);
+      declare
+         Db_Access : Database_Access;
+      begin
+         Db_Access := new Database_Type'
+           (Name => new String'(Ada.Directories.Base_Name (Path)));
+         Active_Database_Vector.Append (Db_Access);
+         Current_Db := Db_Access;
+      end;
+   end Open_Database;
+
    ----------
    -- Read --
    ----------
@@ -388,7 +442,7 @@ package body Kit.Server.Tables is
       Key_Name       : String;
       Low_Key_Value  : String;
       High_Key_Value : String)
-      return Root_Database_Record'Class
+      return Database_Record
    is
       pragma Unreferenced (High_Key_Value);
    begin

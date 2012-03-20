@@ -1,5 +1,4 @@
 with Ada.Command_Line;                  use Ada.Command_Line;
-with Ada.Directories;
 with Ada.Text_IO;                       use Ada.Text_IO;
 
 with Kit.Db.Database;
@@ -46,7 +45,8 @@ begin
        (Kit.Paths.Config_Path & "/Kit.hs");
    Kit_Module.Compile (Target);
 
-   Kit.Db.Database.Open (Argument (1));
+   Kit.Server.Tables.Open_Database (Argument (1));
+
    Handle := Kit.Db.Marlowe_Keys.Handle;
 
    Kit.Server.System.Add_System_Commands;
@@ -85,16 +85,7 @@ begin
          Kit.Paths.Config_Path & "/Kit.hs");
 
    else
-
-      declare
-         Db : constant Kit.Server.Tables.Database_Access :=
-                new Kit.Server.Tables.Database_Type;
-      begin
-         Db.Initialise (Ada.Directories.Base_Name (Argument (1)));
-
-         Kit.Server.Shell.Start_Shell (Db);
-
-      end;
+      Kit.Server.Shell.Start_Shell;
    end if;
 
    Kit.Db.Database.Close;

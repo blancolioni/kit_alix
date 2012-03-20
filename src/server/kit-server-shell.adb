@@ -1,11 +1,13 @@
 with Ada.Exceptions;
 with Ada.Text_IO;
 
-with Kit.Server.Commands;
-
 with Abydos.Environments;
+with Abydos.Parser;
+with Abydos.Statements;
 with Abydos.System;
 with Abydos.Values;
+
+with Kit.Server.Tables;
 
 package body Kit.Server.Shell is
 
@@ -13,11 +15,10 @@ package body Kit.Server.Shell is
    -- Start_Shell --
    -----------------
 
-   procedure Start_Shell
-     (Database : not null access Root_Database_Interface'Class)
-   is
-      Env : Abydos.Environments.Environment :=
-              Abydos.Environments.New_Environment (Database);
+   procedure Start_Shell is
+      Env : constant Abydos.Environments.Environment :=
+              Abydos.Environments.New_Environment
+                (Kit.Server.Tables.Active_Database);
    begin
       Abydos.System.Initialise (Env);
 
@@ -35,19 +36,18 @@ package body Kit.Server.Shell is
          Ada.Text_IO.Flush;
          declare
             Line     : constant String := Ada.Text_IO.Get_Line;
-            Response : Kit.Server.Commands.Command_Response;
+            Command  : constant Abydos.Statements.Statement :=
+                         Abydos.Parser.Parse_Command (Line);
          begin
             exit when Line = "exit";
             if Line /= "" then
                begin
-                  Kit.Server.Commands.Execute_Command (Env, Line, Response);
+                  Abydos.Statements.Execute (Command, Env);
                exception
                   when E : others =>
-                     Response.Set_Error
+                     Ada.Text_IO.Put_Line
                        (Ada.Exceptions.Exception_Message (E));
                end;
-
-               Response.Write;
             end if;
          end;
       end loop;

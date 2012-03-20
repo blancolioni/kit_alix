@@ -24,7 +24,12 @@ package Abydos.Statements is
 
 private
 
-   type Statement_Record;
-   type Statement is access Statement_Record;
+   type Root_Statement_Type is abstract tagged null record;
+
+   procedure Execute (Item    : Root_Statement_Type;
+                      Env     : Abydos.Environments.Environment)
+   is abstract;
+
+   type Statement is access all Root_Statement_Type'Class;
 
 end Abydos.Statements;
