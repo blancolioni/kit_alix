@@ -1,3 +1,5 @@
+private with Ada.Containers.Vectors;
+
 with Abydos.Values;
 with Kit;
 with Marlowe;
@@ -54,9 +56,19 @@ package Abydos.Environments is
                      Name  : String;
                      Value : Abydos.Values.Value);
 
+   type Argument_List is tagged private;
+   function No_Arguments return Argument_List'Class;
+   function Count (Args : Argument_List) return Natural;
+   function Item (Args : Argument_List;
+                  Index : Positive)
+                  return Abydos.Values.Value;
+   function Item (Args : Argument_List;
+                  Name : String)
+                  return Abydos.Values.Value;
+
    type Evaluable is interface;
    function Evaluate (Item : Evaluable;
-                      Args : Values.Array_Of_Values;
+                      Args : Argument_List'Class;
                       Env  : Environment'Class)
                       return Values.Value
                       is abstract;
@@ -75,10 +87,24 @@ package Abydos.Environments is
 
    function Apply (Env : Environment;
                    Name : String;
-                   Args : Values.Array_Of_Values)
+                   Args : Argument_List'Class)
                   return Values.Value;
 
 private
+
+   type Argument is
+      record
+         Argument_Name  : access String;
+         Argument_Value : Values.Value;
+      end record;
+
+   package Argument_Vectors is
+      new Ada.Containers.Vectors (Positive, Argument);
+
+   type Argument_List is tagged
+      record
+         List : Argument_Vectors.Vector;
+      end record;
 
    type Environment_Record;
    type Environment_Access is access Environment_Record;

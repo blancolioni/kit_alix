@@ -12,6 +12,7 @@ package Kit.Names is
                      Name : String);
 
    function Ada_Name (Raw_Name : String) return String;
+   function Standard_Name (Raw_Name : String) return String;
 
 private
 

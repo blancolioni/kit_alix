@@ -11,6 +11,9 @@ package Kit is
 
    type Root_Database_Record is limited interface and Search_Interface;
 
+   function Index (Item : Root_Database_Record) return Marlowe.Database_Index
+                   is abstract;
+
    function Get (Item       : Root_Database_Record;
                  Field_Name : String)
                 return String

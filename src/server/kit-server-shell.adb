@@ -23,7 +23,7 @@ package body Kit.Server.Shell is
 
       declare
          Result : constant Abydos.Values.Value :=
-                    Env.Apply ("listnames", (1 => Abydos.Values.Null_Value));
+                    Env.Apply ("listnames", Abydos.Environments.No_Arguments);
          pragma Unreferenced (Result);
       begin
          null;
