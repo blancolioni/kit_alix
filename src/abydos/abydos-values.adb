@@ -126,6 +126,22 @@ package body Abydos.Values is
       null;
    end Initialize;
 
+   ---------------
+   -- Null_Fill --
+   ---------------
+
+   function Null_Fill (V : Value;
+                       Fill : Value)
+                       return Value
+   is
+   begin
+      if V.V.all in Null_Value_Record'Class then
+         return Fill;
+      else
+         return V;
+      end if;
+   end Null_Fill;
+
    ----------------
    -- Null_Value --
    ----------------
@@ -290,6 +306,18 @@ package body Abydos.Values is
    function To_String (X : Value) return String is
    begin
       return X.V.To_String;
+   end To_String;
+
+   ---------------
+   -- To_String --
+   ---------------
+
+   function To_String  (X : Value;
+                        Default : String)
+                        return String
+   is
+   begin
+      return To_String (Null_Fill (X, To_Value (Default)));
    end To_String;
 
    ---------------

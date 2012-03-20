@@ -145,6 +145,8 @@ package Kit.Tables is
                   return String;
    function Ada_Name (Position : Key_Cursor)
                       return String;
+   function Standard_Name (Position : Key_Cursor)
+                      return String;
    function Key_Size (Position : Key_Cursor)
                       return Positive;
    function Key_Type (Position : Key_Cursor)

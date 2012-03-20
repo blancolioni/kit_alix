@@ -63,4 +63,13 @@ package body Kit.Names is
       return Ada.Characters.Handling.To_Lower (Item.Ada_Name);
    end Standard_Name;
 
+   -------------------
+   -- Standard_Name --
+   -------------------
+
+   function Standard_Name (Raw_Name : String) return String is
+   begin
+      return Ada.Characters.Handling.To_Lower (Raw_Name);
+   end Standard_Name;
+
 end Kit.Names;

@@ -294,7 +294,7 @@ package body Kit.Types is
                    ("Kit_Integer.Create");
    begin
       Result.Add_Actual_Argument (Literal (For_Type.Size));
-      Result.Add_Actual_Argument (Literal (For_Type.Ada_Name));
+      Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       Result.Add_Actual_Argument (Literal (For_Type.Low));
       Result.Add_Actual_Argument (Literal (For_Type.High));
       return Result;
@@ -337,7 +337,7 @@ package body Kit.Types is
                  New_Function_Call_Expression
                    ("Kit_Enumeration.Create",
                     Literal (For_Type.Size),
-                    Literal (For_Type.Ada_Name));
+                    Literal (For_Type.Standard_Name));
       Create_False : Procedure_Call_Statement'Class :=
                        New_Procedure_Call_Statement
                          ("Kit_Literal.Create");
@@ -346,11 +346,11 @@ package body Kit.Types is
                          ("Kit_Literal.Create");
       Block        : Aquarius.Drys.Blocks.Block_Type;
    begin
-      Create_False.Add_Actual_Argument (Literal ("False"));
+      Create_False.Add_Actual_Argument (Literal ("false"));
       Create_False.Add_Actual_Argument (Object ("Enum"));
       Create_False.Add_Actual_Argument (Literal (0));
 
-      Create_True.Add_Actual_Argument (Literal ("True"));
+      Create_True.Add_Actual_Argument (Literal ("true"));
       Create_True.Add_Actual_Argument (Object ("Enum"));
       Create_True.Add_Actual_Argument (Literal (1));
 
@@ -381,11 +381,11 @@ package body Kit.Types is
                    ("Kit_Reference.Create");
    begin
       Result.Add_Actual_Argument (Literal (8));
-      Result.Add_Actual_Argument (Literal (For_Type.Name));
+      Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       Result.Add_Actual_Argument
         (Object
            ("Kit_Record.First_By_Name ("""
-            & For_Type.Ada_Name
+            & For_Type.Standard_Name
             & """).Reference"));
       return Result;
    end Create_Database_Record;
@@ -404,7 +404,7 @@ package body Kit.Types is
                    ("Kit_String.Create");
    begin
       Result.Add_Actual_Argument (Literal (For_Type.Size));
-      Result.Add_Actual_Argument (Literal (For_Type.Ada_Name));
+      Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       Result.Add_Actual_Argument (Literal (For_Type.Length));
       return Result;
    end Create_Database_Record;
@@ -626,7 +626,7 @@ package body Kit.Types is
    is
    begin
       return Aquarius.Drys.Object
-        ("Kit_Type.First_By_Name (""" & Of_Kit_Type.Ada_Name
+        ("Kit_Type.First_By_Name (""" & Of_Kit_Type.Standard_Name
          & """).Reference");
    end Reference_Database_Type;
 

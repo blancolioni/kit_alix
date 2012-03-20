@@ -145,7 +145,7 @@ package body Kit.Generate.Database_Package is
             Proc.Add_Actual_Argument
               (Aquarius.Drys.Object ("Marlowe_Keys.Handle"));
             Proc.Add_Actual_Argument
-              (Aquarius.Drys.Literal (Table.Ada_Name));
+              (Aquarius.Drys.Literal (Table.Standard_Name));
             Proc.Add_Actual_Argument
               (Aquarius.Drys.Literal (Natural (Table.Length)));
             Block.Add_Statement (Proc);
@@ -285,6 +285,10 @@ package body Kit.Generate.Database_Package is
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Reference",
                            Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Key",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Key_Field",
+                           Body_With => True);
 
       if False then
          Db.Iterate (Add_Implementation_With'Access);
@@ -341,6 +345,9 @@ package body Kit.Generate.Database_Package is
 
          procedure Create_Base (Base  : Kit.Tables.Table_Type'Class);
 
+         procedure Create_Key
+           (Key : Kit.Tables.Key_Cursor);
+
          -----------------
          -- Create_Base --
          -----------------
@@ -392,11 +399,58 @@ package body Kit.Generate.Database_Package is
             Seq.Append (New_Field);
          end Create_Field;
 
+         ----------------
+         -- Create_Key --
+         ----------------
+
+         procedure Create_Key
+           (Key : Kit.Tables.Key_Cursor)
+         is
+            use Kit.Tables;
+            use Aquarius.Drys.Declarations;
+            New_Key : Function_Call_Expression'Class :=
+                        New_Function_Call_Expression ("Kit_Key.Create");
+            Block   : Aquarius.Drys.Blocks.Block_Type;
+         begin
+            New_Key.Add_Actual_Argument (Literal (Standard_Name (Key)));
+            New_Key.Add_Actual_Argument
+              (Object
+                 ("Kit_Record.First_By_Name ("""
+                  & Table.Standard_Name
+                  & """).Reference"));
+            New_Key.Add_Actual_Argument
+              (Object ((if Is_Unique (Key) then "True" else "False")));
+            New_Key.Add_Actual_Argument
+              (Literal (Key_Size (Key)));
+            Block.Add_Declaration
+              (New_Constant_Declaration
+                 ("Ref", "Kit.Db.Kit_Key_Reference",
+                  New_Key));
+            for I in 1 .. Field_Count (Key) loop
+               declare
+                  Key_Field : Procedure_Call_Statement'Class :=
+                                New_Procedure_Call_Statement
+                                  ("Kit_Key_Field.Create");
+               begin
+                  Key_Field.Add_Actual_Argument (Object ("Ref"));
+                  Key_Field.Add_Actual_Argument
+                    (Object
+                       ("Kit_Field.First_By_Name ("""
+                        & Field (Key, I).Standard_Name
+                        & """).Reference"));
+                  Block.Append (Key_Field);
+               end;
+            end loop;
+
+            Seq.Append (Declare_Statement (Block));
+         end Create_Key;
+
       begin
          Seq.Append (Create);
          Seq.Append (Kit.Types.Table_Reference_Type
                      (Table.Standard_Name).Create_Database_Record);
          Table.Scan_Fields (Create_Field'Access);
+         Table.Scan_Keys (Create_Key'Access);
          Table.Iterate (Create_Base'Access, Inclusive => False);
       end Create_Table;
 

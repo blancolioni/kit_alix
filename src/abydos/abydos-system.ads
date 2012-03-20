@@ -8,7 +8,7 @@ package Abydos.System is
 
    overriding
    function Evaluate (Item : System_Program;
-                      Args : Values.Array_Of_Values;
+                      Args : Environments.Argument_List'Class;
                       Env  : Environments.Environment'Class)
                       return Values.Value;
 
@@ -17,7 +17,7 @@ package Abydos.System is
 private
 
    type System_Executor is
-     access function (Args : Values.Array_Of_Values;
+     access function (Args : Environments.Argument_List'Class;
                       Env  : Environments.Environment'Class)
                       return Values.Value;
 

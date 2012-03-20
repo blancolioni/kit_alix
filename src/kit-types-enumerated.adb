@@ -40,7 +40,7 @@ package body Kit.Types.Enumerated is
                  New_Function_Call_Expression
                    ("Kit_Enumeration.Create",
                     Literal (Size (T)),
-                    Literal (T.Ada_Name));
+                    Literal (T.Standard_Name));
       Block        : Aquarius.Drys.Blocks.Block_Type;
    begin
       Block.Add_Declaration
@@ -54,7 +54,8 @@ package body Kit.Types.Enumerated is
                                  ("Kit_Literal.Create");
          begin
             Create_Literal.Add_Actual_Argument
-              (Literal (Kit.Names.Ada_Name (For_Type.Literals.Element (I))));
+              (Literal
+                 (Kit.Names.Standard_Name (For_Type.Literals.Element (I))));
             Create_Literal.Add_Actual_Argument
               (Object ("Enum"));
             Create_Literal.Add_Actual_Argument (Literal (I - 1));

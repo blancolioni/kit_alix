@@ -15,6 +15,9 @@ package Abydos.Values is
    function To_Integer (X : Value) return Integer;
    function To_Float   (X : Value) return Float;
    function To_String  (X : Value) return String;
+   function To_String  (X : Value;
+                        Default : String)
+                        return String;
 
    function To_Value (X : Boolean) return Value;
    function To_Value (X : Integer) return Value;
@@ -28,6 +31,10 @@ package Abydos.Values is
                      New_Item : Value);
 
    function Null_Value return Value;
+
+   function Null_Fill (V : Value;
+                       Fill : Value)
+                       return Value;
 
 private
 

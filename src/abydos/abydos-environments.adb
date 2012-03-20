@@ -28,7 +28,7 @@ package body Abydos.Environments is
       end record;
 
    function Evaluate (Item : Single_Value;
-                      Args : Values.Array_Of_Values;
+                      Args : Argument_List'Class;
                       Env  : Environment'Class)
                       return Values.Value;
 
@@ -39,7 +39,7 @@ package body Abydos.Environments is
    function Apply
      (Env : Environment;
       Name : String;
-      Args : Values.Array_Of_Values)
+      Args : Argument_List'Class)
       return Values.Value
    is
       Item : constant Evaluable'Class :=
@@ -82,12 +82,21 @@ package body Abydos.Environments is
         (To_Unbounded_String (Name));
    end Contains;
 
+   -----------
+   -- Count --
+   -----------
+
+   function Count (Args : Argument_List) return Natural is
+   begin
+      return Args.List.Last_Index;
+   end Count;
+
    --------------
    -- Evaluate --
    --------------
 
    function Evaluate (Item : Single_Value;
-                      Args : Values.Array_Of_Values;
+                      Args : Argument_List'Class;
                       Env  : Environment'Class)
                       return Values.Value
    is
@@ -150,7 +159,7 @@ package body Abydos.Environments is
       Name : String)
       return Abydos.Values.Value
    is
-      No_Args : Values.Array_Of_Values (1 .. 0);
+      No_Args : Argument_List;
    begin
       return Env.Apply (Name, No_Args);
    end Get;
@@ -184,6 +193,39 @@ package body Abydos.Environments is
         (To_Unbounded_String (Name),
          Item);
    end Insert;
+
+   ----------
+   -- Item --
+   ----------
+
+   function Item (Args : Argument_List;
+                  Index : Positive)
+                  return Abydos.Values.Value
+   is
+   begin
+      if Index < Args.List.Last_Index then
+         return Args.List.Element (Index).Argument_Value;
+      else
+         return Values.Null_Value;
+      end if;
+   end Item;
+
+   ----------
+   -- Item --
+   ----------
+
+   function Item (Args : Argument_List;
+                  Name : String)
+                  return Abydos.Values.Value
+   is
+   begin
+      for Arg of Args.List loop
+         if Arg.Argument_Name.all = Name then
+            return Arg.Argument_Value;
+         end if;
+      end loop;
+      return Values.Null_Value;
+   end Item;
 
    ----------
    -- Name --
@@ -227,6 +269,16 @@ package body Abydos.Environments is
           (Database.Get (Table_Name, Table_Index));
       return Result;
    end New_Environment;
+
+   ------------------
+   -- No_Arguments --
+   ------------------
+
+   function No_Arguments return Argument_List'Class is
+      Result : Argument_List;
+   begin
+      return Result;
+   end No_Arguments;
 
    ------------------------
    -- Scan_By_Key_Values --

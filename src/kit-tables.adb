@@ -1232,6 +1232,23 @@ package body Kit.Tables is
       Table.Scan_Keys (Call_Process'Access);
    end Scan_Keys;
 
+   -------------------
+   -- Standard_Name --
+   -------------------
+
+   function Standard_Name (Position : Key_Cursor)
+                           return String
+   is
+      use Field_Vectors;
+      Item : constant Table_Field_Access := Element (Cursor (Position));
+   begin
+      if Item.Is_Compound then
+         return Item.Compound_Field.Standard_Name;
+      else
+         return Item.Field.Standard_Name;
+      end if;
+   end Standard_Name;
+
    ----------------
    -- To_Storage --
    ----------------

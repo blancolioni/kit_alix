@@ -4,6 +4,8 @@ with Ada.Finalization;
 with System.Storage_Elements;
 
 with Kit.Db.Kit_Field;
+with Kit.Db.Kit_Key;
+with Kit.Db.Kit_Key_Field;
 with Kit.Db.Kit_Record;
 with Kit.Db.Kit_Record_Base;
 with Kit.Db.Kit_Type;
@@ -34,6 +36,7 @@ package body Kit.Server.Tables is
          Current_Record  : Storage_Vectors.Vector;
       end record;
 
+   function Index (Item : Kit_Db_Record) return Marlowe.Database_Index;
    function Has_Element (Item : in Kit_Db_Record) return Boolean;
    procedure Next (Item : in out Kit_Db_Record);
 
@@ -46,6 +49,12 @@ package body Kit.Server.Tables is
                   Value      : String);
 
    procedure Read (Item : in out Kit_Db_Record'Class);
+
+   function Key_To_Storage
+     (Table     : Marlowe.Table_Index;
+      Key_Name  : String;
+      Key_Value : String)
+      return System.Storage_Elements.Storage_Array;
 
    ------------------
    -- First_By_Key --
@@ -86,12 +95,17 @@ package body Kit.Server.Tables is
       return Root_Database_Record'Class
    is
       pragma Unreferenced (Tables);
-      pragma Unreferenced (Key_Value);
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
               Marlowe.Btree_Handles.Get_Reference
-                (Handle, Key_Name);
+        (Handle, Key_Name);
+      Key_Storage : constant System.Storage_Elements.Storage_Array :=
+        Key_To_Storage (Table_Index, Key_Name, Key_Value);
       Mark : constant Marlowe.Btree_Handles.Btree_Mark :=
-               Marlowe.Btree_Handles.Search (Handle, Ref, Marlowe.Forward);
+                      Marlowe.Btree_Handles.Search
+                        (Handle, Ref,
+                         Key_Storage, Key_Storage,
+                         Marlowe.Closed, Marlowe.Closed,
+                         Marlowe.Forward);
    begin
       return Result : Kit_Db_Record do
          Result.Table_Index  := Table_Index;
@@ -197,6 +211,15 @@ package body Kit.Server.Tables is
       return Item.Exists;
    end Has_Element;
 
+   -----------
+   -- Index --
+   -----------
+
+   function Index (Item : Kit_Db_Record) return Marlowe.Database_Index is
+   begin
+      return Item.Record_Index;
+   end Index;
+
    ----------------
    -- Initialise --
    ----------------
@@ -207,6 +230,48 @@ package body Kit.Server.Tables is
    begin
       Item.Name := new String'(Name);
    end Initialise;
+
+   --------------------
+   -- Key_To_Storage --
+   --------------------
+
+   function Key_To_Storage
+     (Table     : Marlowe.Table_Index;
+      Key_Name  : String;
+      Key_Value : String)
+      return System.Storage_Elements.Storage_Array
+   is
+      use System.Storage_Elements;
+      Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
+              Kit.Db.Kit_Record.First_By_Table_Index
+                (Positive (Table));
+      Key : Kit.Db.Kit_Key.Kit_Key_Type :=
+              Kit.Db.Kit_Key.First_By_Record_Key
+                (Rec.Reference, Key_Name);
+      Result : Storage_Array (1 .. Storage_Count (Key.Length));
+      Start  : Storage_Offset := 1;
+      Key_Field : Kit.Db.Kit_Key_Field.Kit_Key_Field_Type :=
+                    Kit.Db.Kit_Key_Field.First_By_Kit_Key
+                      (Key.Reference);
+   begin
+      while Key_Field.Has_Element loop
+         declare
+            Field : Kit.Db.Kit_Field.Kit_Field_Type :=
+                      Kit.Db.Kit_Field.Get (Key_Field.Kit_Field);
+            Field_Type : Kit.Db.Kit_Type.Kit_Type_Type :=
+                           Kit.Db.Kit_Type.Get (Field.Field_Type);
+            Last       : constant Storage_Offset :=
+                           Start + Storage_Count (Field.Field_Length) - 1;
+         begin
+            Kit.Server.Storage.String_To_Storage
+              (Value      => Key_Value,
+               Value_Type => Field_Type,
+               Storage    => Result (Start .. Last));
+            Start := Last + 1;
+         end;
+      end loop;
+      return Result;
+   end Key_To_Storage;
 
    ----------
    -- Name --

@@ -58,8 +58,11 @@ package Kit.Db is
       unique key Record_Field with Kit_Record, Name;
    end Kit_Field;
 
-   record Kit_Key is
+   record Kit_Key : Kit_Named_Item is
+      key Kit_Record;
       Is_Unique : Boolean;
+      Length    : Natural;
+      unique key Record_Key with Kit_Record, Name;
    end Kit_Key;
 
    record Kit_Key_Field is
