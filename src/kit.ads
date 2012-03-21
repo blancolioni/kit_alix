@@ -22,7 +22,10 @@ package Kit is
    procedure Set (Item       : in out Root_Database_Record;
                   Field_Name : String;
                   Value      : String)
-      is abstract;
+   is abstract;
+
+   procedure Close (Item : in out Root_Database_Record)
+   is abstract;
 
    type Database_Record is access all Root_Database_Record'Class;
 

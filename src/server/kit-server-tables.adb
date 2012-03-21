@@ -20,6 +20,8 @@ with Marlowe.Key_Storage;
 
 package body Kit.Server.Tables is
 
+   type Mark_Access is access Marlowe.Btree_Handles.Btree_Mark;
+
    package Database_Vectors is
      new Ada.Containers.Vectors (Positive, Database_Access);
 
@@ -42,7 +44,7 @@ package body Kit.Server.Tables is
          Using_Key_Value : Boolean := False;
          Table_Index     : Marlowe.Table_Index;
          Record_Index    : Marlowe.Database_Index;
-         Mark            : access Marlowe.Btree_Handles.Btree_Mark;
+         Mark            : Mark_Access;
          Current_Record  : Storage_Vectors.Vector;
       end record;
 
@@ -60,6 +62,8 @@ package body Kit.Server.Tables is
                   Field_Name : String;
                   Value      : String);
 
+   procedure Close (Item : in out Kit_Db_Record);
+
    procedure Read (Item : in out Kit_Db_Record'Class);
 
    function Key_To_Storage
@@ -67,6 +71,12 @@ package body Kit.Server.Tables is
       Key_Name  : String;
       Key_Value : String)
       return System.Storage_Elements.Storage_Array;
+
+   function Get_Key_Reference
+     (Tables    : Database_Type'Class;
+      Index     : Marlowe.Table_Index;
+      Key_Name  : String)
+      return Marlowe.Btree_Handles.Btree_Reference;
 
    ---------------------
    -- Active_Database --
@@ -76,6 +86,15 @@ package body Kit.Server.Tables is
    begin
       return Current_Db;
    end Active_Database;
+
+   -----------
+   -- Close --
+   -----------
+
+   procedure Close (Item : in out Kit_Db_Record) is
+   begin
+      Marlowe.Btree_Handles.Release (Item.Mark.all);
+   end Close;
 
    ------------------
    -- First_By_Key --
@@ -87,23 +106,22 @@ package body Kit.Server.Tables is
       Key_Name     : String)
       return Kit.Database_Record
    is
-      pragma Unreferenced (Tables);
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
-              Marlowe.Btree_Handles.Get_Reference
-                (Handle, Key_Name);
-      Mark : constant Marlowe.Btree_Handles.Btree_Mark :=
-               Marlowe.Btree_Handles.Search (Handle, Ref, Marlowe.Forward);
+              Get_Key_Reference (Tables, Table_Index, Key_Name);
+      Mark : constant Mark_Access :=
+               new Marlowe.Btree_Handles.Btree_Mark'
+                 (Marlowe.Btree_Handles.Search (Handle, Ref, Marlowe.Forward));
    begin
-      if Marlowe.Btree_Handles.Valid (Mark) then
+      if Marlowe.Btree_Handles.Valid (Mark.all) then
          declare
             Result : constant Kit_Db_Record_Access := new Kit_Db_Record;
          begin
             Result.Table_Index  := Table_Index;
             Result.Record_Index :=
               Marlowe.Key_Storage.To_Database_Index
-                (Marlowe.Btree_Handles.Get_Key (Mark));
+                (Marlowe.Btree_Handles.Get_Key (Mark.all));
             Result.Read;
-            Result.Mark := new Marlowe.Btree_Handles.Btree_Mark'(Mark);
+            Result.Mark := Mark;
             Result.Exists := True;
             Result.Scanning := True;
             Result.Using_Key := True;
@@ -126,31 +144,36 @@ package body Kit.Server.Tables is
       Key_Value    : String)
       return Database_Record
    is
-      pragma Unreferenced (Tables);
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
-              Marlowe.Btree_Handles.Get_Reference
-        (Handle, Key_Name);
+              Get_Key_Reference (Tables, Table_Index, Key_Name);
       Key_Storage : constant System.Storage_Elements.Storage_Array :=
         Key_To_Storage (Table_Index, Key_Name, Key_Value);
-      Mark : constant Marlowe.Btree_Handles.Btree_Mark :=
-                      Marlowe.Btree_Handles.Search
-                        (Handle, Ref,
-                         Key_Storage, Key_Storage,
-                         Marlowe.Closed, Marlowe.Closed,
-                         Marlowe.Forward);
-      Result : constant Kit_Db_Record_Access := new Kit_Db_Record;
+      Mark        : constant Mark_Access :=
+                      new Marlowe.Btree_Handles.Btree_Mark'
+                        (Marlowe.Btree_Handles.Search
+                           (Handle, Ref,
+                            Key_Storage, Key_Storage,
+                            Marlowe.Closed, Marlowe.Closed,
+                            Marlowe.Forward));
    begin
-      Result.Table_Index  := Table_Index;
-      Result.Record_Index :=
-        Marlowe.Key_Storage.To_Database_Index
-          (Marlowe.Btree_Handles.Get_Key (Mark));
-      Result.Read;
-      Result.Mark := new Marlowe.Btree_Handles.Btree_Mark'(Mark);
-      Result.Using_Key := True;
-      Result.Using_Key_Value := True;
+      if Marlowe.Btree_Handles.Valid (Mark.all) then
+         declare
+            Result : constant Kit_Db_Record_Access := new Kit_Db_Record;
+         begin
+            Result.Table_Index  := Table_Index;
+            Result.Record_Index :=
+              Marlowe.Key_Storage.To_Database_Index
+                (Marlowe.Btree_Handles.Get_Key (Mark.all));
+            Result.Read;
+            Result.Mark := Mark;
+            Result.Using_Key := True;
+            Result.Using_Key_Value := True;
 
-      return Database_Record (Result);
-
+            return Database_Record (Result);
+         end;
+      else
+         return null;
+      end if;
    end First_By_Key_Value;
 
    ---------
@@ -239,6 +262,37 @@ package body Kit.Server.Tables is
          Kit.Db.Kit_Type.Get (Field_Type));
    end Get;
 
+   -----------------------
+   -- Get_Key_Reference --
+   -----------------------
+
+   function Get_Key_Reference
+     (Tables    : Database_Type'Class;
+      Index     : Marlowe.Table_Index;
+      Key_Name  : String)
+      return Marlowe.Btree_Handles.Btree_Reference
+   is
+      Table_Name : constant String := Tables.Get_Table_Name (Index);
+      Key_Full_Name : constant String := Table_Name & "_" & Key_Name;
+   begin
+      return Marlowe.Btree_Handles.Get_Reference (Handle, Key_Full_Name);
+   end Get_Key_Reference;
+
+   --------------------
+   -- Get_Table_Name --
+   --------------------
+
+   function Get_Table_Name (Db    : Database_Type;
+                            Index : Marlowe.Table_Index)
+                            return String
+   is
+      pragma Unreferenced (Db);
+      Rec : constant Kit.Db.Kit_Record.Kit_Record_Type :=
+              Kit.Db.Kit_Record.First_By_Table_Index (Positive (Index));
+   begin
+      return Rec.Name;
+   end Get_Table_Name;
+
    -----------------
    -- Has_Element --
    -----------------
@@ -282,9 +336,11 @@ package body Kit.Server.Tables is
       Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
               Kit.Db.Kit_Record.First_By_Table_Index
                 (Positive (Table));
+      pragma Assert (Rec.Has_Element);
       Key : Kit.Db.Kit_Key.Kit_Key_Type :=
               Kit.Db.Kit_Key.First_By_Record_Key
-                (Rec.Reference, Key_Name);
+                (Rec.Reference, Rec.Name & "_" & Key_Name);
+      pragma Assert (Key.Has_Element);
       Result : Storage_Array (1 .. Storage_Count (Key.Length));
       Start  : Storage_Offset := 1;
       Key_Field : Kit.Db.Kit_Key_Field.Kit_Key_Field_Type :=

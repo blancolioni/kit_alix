@@ -16,6 +16,10 @@ package Kit.Server.Tables is
                             Table_Name : String)
                            return Marlowe.Table_Index;
 
+   function Get_Table_Name (Db    : Database_Type;
+                            Index : Marlowe.Table_Index)
+                           return String;
+
    function Get (Database     : Database_Type;
                  Table_Index  : Marlowe.Table_Index;
                  Record_Index : Marlowe.Database_Index)
