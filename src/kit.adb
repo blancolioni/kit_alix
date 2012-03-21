@@ -29,7 +29,7 @@ package body Kit is
    begin
       return Tables.Scan_By_Key_Values
         (Table_Index    => Tables.To_Table_Index (Table_Name),
-         Key_Name       => Key_Name,
+         Key_Name       => Table_Name & "_" & Key_Name,
          Low_Key_Value  => Key_Value,
          High_Key_Value => Key_Value);
    end Scan_By_Key_Value;
@@ -49,7 +49,7 @@ package body Kit is
    begin
       return Tables.Scan_By_Key_Values
         (Table_Index    => Tables.To_Table_Index (Table_Name),
-         Key_Name       => Key_Name,
+         Key_Name       => Table_Name & "_" & Key_Name,
          Low_Key_Value  => Low_Key_Value,
          High_Key_Value => High_Key_Value);
    end Scan_By_Key_Values;

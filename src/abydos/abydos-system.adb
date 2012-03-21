@@ -69,7 +69,6 @@ package body Abydos.System is
       use Abydos.Values;
       Table_Name : constant String := To_String (Args.Item (1));
       Key_Name   : constant String := To_String (Args.Item (2));
-      Key_Value  : constant String := To_String (Args.Item (3));
       Table      : constant Marlowe.Table_Index :=
                      Env.To_Table_Index (Table_Name);
 
@@ -83,11 +82,8 @@ package body Abydos.System is
       begin
          if Key_Name = "" then
             return Env.Get (Table, 1);
-         elsif Key_Value = "" then
-            return Env.First_By_Key (Table, Key_Name);
          else
-            return Env.First_By_Key_Value
-              (Table, Key_Name, Key_Value);
+            return Env.First_By_Key (Table, Key_Name);
          end if;
       end First_Result;
 
@@ -95,11 +91,17 @@ package body Abydos.System is
       Count      : Natural := 0;
    begin
       while Rec.Has_Element loop
-         Ada.Text_IO.Put_Line
-           (Marlowe.Database_Index'Image (Rec.Index));
+         Ada.Text_IO.Put (Rec.Get (To_String (Args.Item (2))));
+         for I in 3 .. 10 loop
+            exit when To_String (Args.Item (I)) = "";
+            Ada.Text_IO.Put (' ' & Rec.Get (To_String (Args.Item (I))));
+         end loop;
+         Ada.Text_IO.New_Line;
+
          Rec.Next;
          Count := Count + 1;
       end loop;
+      Rec.Close;
       return To_Value (Count);
    end Report;
 
