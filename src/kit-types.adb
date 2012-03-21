@@ -1,3 +1,4 @@
+with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded.Hash;
@@ -317,7 +318,8 @@ package body Kit.Types is
                    ("Kit_" & Record_Name & ".Create");
    begin
       Result.Add_Actual_Argument (Literal (For_Type.Size));
-      Result.Add_Actual_Argument (Literal (Record_Name));
+      Result.Add_Actual_Argument
+        (Literal (Ada.Characters.Handling.To_Lower (Record_Name)));
       return Result;
    end Create_Database_Record;
 
