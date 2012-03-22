@@ -28,14 +28,53 @@ package body Abydos.System is
       return Item.Exec (Args, Env);
    end Evaluate;
 
+   ---------------------------
+   -- Formal_Argument_Count --
+   ---------------------------
+
+   overriding
+   function Formal_Argument_Count
+     (Item : System_Program)
+      return Natural
+   is
+   begin
+      return Item.Args.Last_Index;
+   end Formal_Argument_Count;
+
+   --------------------------
+   -- Formal_Argument_Name --
+   --------------------------
+
+   overriding
+   function Formal_Argument_Name
+     (Item : System_Program;
+      Index : Positive)
+      return String
+   is
+   begin
+      return Item.Args.Element (Index);
+   end Formal_Argument_Name;
+
    ----------------
    -- Initialise --
    ----------------
 
    procedure Initialise (Top : Environments.Environment) is
+      Report_Arguments : Formal_Argument_Vectors.Vector;
    begin
-      Top.Insert ("listnames", System_Program'(Exec => List_Names'Access));
-      Top.Insert ("report", System_Program'(Exec => Report'Access));
+      Report_Arguments.Append ("table");
+      Report_Arguments.Append ("key");
+
+      Top.Insert
+        ("listnames",
+         System_Program'
+           (List_Names'Access,
+            Formal_Argument_Vectors.Empty_Vector));
+      Top.Insert
+        ("report",
+         System_Program'
+           (Report'Access,
+            Report_Arguments));
    end Initialise;
 
    ----------------
@@ -87,7 +126,7 @@ package body Abydos.System is
          end if;
       end First_Result;
 
-      Rec        : constant Kit.Database_Record := First_Result;
+      Rec        : Kit.Database_Record := First_Result;
       Count      : Natural := 0;
    begin
       while Rec.Has_Element loop
@@ -101,7 +140,7 @@ package body Abydos.System is
          Rec.Next;
          Count := Count + 1;
       end loop;
-      Rec.Close;
+      Kit.Close (Rec);
       return To_Value (Count);
    end Report;
 
