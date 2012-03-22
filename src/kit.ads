@@ -24,10 +24,9 @@ package Kit is
                   Value      : String)
    is abstract;
 
-   procedure Close (Item : in out Root_Database_Record)
-   is abstract;
-
    type Database_Record is access all Root_Database_Record'Class;
+
+   procedure Close (Rec : in out Database_Record);
 
    type Root_Database_Interface is interface;
 
