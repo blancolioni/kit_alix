@@ -79,6 +79,14 @@ package Abydos.Environments is
                       return Values.Value
                       is abstract;
 
+   function Formal_Argument_Count (Item : Evaluable) return Natural
+                                   is abstract;
+
+   function Formal_Argument_Name (Item : Evaluable;
+                                  Index : Positive)
+                                  return String
+                                  is abstract;
+
    procedure Insert (Env   : Environment;
                      Name  : String;
                      Item  : Evaluable'Class);
