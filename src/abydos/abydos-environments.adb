@@ -31,6 +31,14 @@ package body Abydos.Environments is
                       Env  : Environment'Class)
                       return Values.Value;
 
+   overriding
+   function Formal_Argument_Count (Item : Single_Value) return Natural;
+
+   overriding
+   function Formal_Argument_Name (Item : Single_Value;
+                                  Index : Positive)
+                                  return String;
+
    ------------
    -- Append --
    ------------
@@ -162,6 +170,32 @@ package body Abydos.Environments is
       return Tables.Env.Db.First_By_Key_Value
         (Table_Index, Key_Name, Key_Value);
    end First_By_Key_Value;
+
+   ---------------------------
+   -- Formal_Argument_Count --
+   ---------------------------
+
+   overriding
+   function Formal_Argument_Count (Item : Single_Value) return Natural is
+      pragma Unreferenced (Item);
+   begin
+      return 0;
+   end Formal_Argument_Count;
+
+   --------------------------
+   -- Formal_Argument_Name --
+   --------------------------
+
+   overriding
+   function Formal_Argument_Name (Item : Single_Value;
+                                  Index : Positive)
+                                  return String
+   is
+      pragma Unreferenced (Item);
+      pragma Unreferenced (Index);
+   begin
+      return "";
+   end Formal_Argument_Name;
 
    ---------
    -- Get --
