@@ -18,7 +18,8 @@ package body Abydos.Parser is
 
    function At_Expression return Boolean is
    begin
-      return Tok = Tok_Identifier;
+      return Tok = Tok_Identifier or else Tok = Tok_Integer_Constant
+        or else Tok = Tok_String_Constant;
    end At_Expression;
 
    -----------------------------
@@ -36,11 +37,14 @@ package body Abydos.Parser is
                Args : Array_Of_Expressions (1 .. 0);
             begin
                Scan;
-               if True then
-                  return To_Expression (To_Value (Id));
-               else
-                  return Function_Call (Id, Args);
-               end if;
+               return Function_Call (Id, Args);
+            end;
+         when Tok_String_Constant =>
+            declare
+               Id   : constant String := Tok_Text;
+            begin
+               Scan;
+               return To_Expression (To_Value (Id));
             end;
          when Tok_Integer_Constant =>
             declare
