@@ -36,11 +36,12 @@ package body Kit.Server.Shell is
          Ada.Text_IO.Flush;
          declare
             Line     : constant String := Ada.Text_IO.Get_Line;
-            Command  : constant Abydos.Statements.Statement :=
-                         Abydos.Parser.Parse_Command (Line);
          begin
             exit when Line = "exit";
             if Line /= "" then
+               declare
+                  Command  : constant Abydos.Statements.Statement :=
+                               Abydos.Parser.Parse_Command (Line);
                begin
                   Abydos.Statements.Execute (Command, Env);
                exception
