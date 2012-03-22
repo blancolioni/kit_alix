@@ -20,8 +20,6 @@ with Marlowe.Key_Storage;
 
 package body Kit.Server.Tables is
 
-   type Mark_Access is access Marlowe.Btree_Handles.Btree_Mark;
-
    package Database_Vectors is
      new Ada.Containers.Vectors (Positive, Database_Access);
 
@@ -34,7 +32,7 @@ package body Kit.Server.Tables is
         System.Storage_Elements.Storage_Array,
         System.Storage_Elements."=");
 
-   type Kit_Db_Record is
+   type Kit_Db_Record (Key_Length : System.Storage_Elements.Storage_Count) is
      new Ada.Finalization.Limited_Controlled
      and Root_Database_Record with
       record
@@ -44,11 +42,14 @@ package body Kit.Server.Tables is
          Using_Key_Value : Boolean := False;
          Table_Index     : Marlowe.Table_Index;
          Record_Index    : Marlowe.Database_Index;
-         Mark            : Mark_Access;
+         Mark            : Marlowe.Btree_Handles.Btree_Mark (Key_Length);
          Current_Record  : Storage_Vectors.Vector;
       end record;
 
    type Kit_Db_Record_Access is access all Kit_Db_Record'Class;
+
+   procedure Initialize (Item : in out Kit_Db_Record);
+   procedure Finalize (Item : in out Kit_Db_Record);
 
    function Index (Item : Kit_Db_Record) return Marlowe.Database_Index;
    function Has_Element (Item : in Kit_Db_Record) return Boolean;
@@ -61,8 +62,6 @@ package body Kit.Server.Tables is
    procedure Set (Item       : in out Kit_Db_Record;
                   Field_Name : String;
                   Value      : String);
-
-   procedure Close (Item : in out Kit_Db_Record);
 
    procedure Read (Item : in out Kit_Db_Record'Class);
 
@@ -87,14 +86,15 @@ package body Kit.Server.Tables is
       return Current_Db;
    end Active_Database;
 
-   -----------
-   -- Close --
-   -----------
+   --------------
+   -- Finalize --
+   --------------
 
-   procedure Close (Item : in out Kit_Db_Record) is
+   procedure Finalize (Item : in out Kit_Db_Record) is
+      pragma Unreferenced (Item);
    begin
-      Marlowe.Btree_Handles.Release (Item.Mark.all);
-   end Close;
+      null;
+   end Finalize;
 
    ------------------
    -- First_By_Key --
@@ -108,18 +108,18 @@ package body Kit.Server.Tables is
    is
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
               Get_Key_Reference (Tables, Table_Index, Key_Name);
-      Mark : constant Mark_Access :=
-               new Marlowe.Btree_Handles.Btree_Mark'
-                 (Marlowe.Btree_Handles.Search (Handle, Ref, Marlowe.Forward));
+      Mark : constant Marlowe.Btree_Handles.Btree_Mark :=
+               Marlowe.Btree_Handles.Search (Handle, Ref, Marlowe.Forward);
    begin
-      if Marlowe.Btree_Handles.Valid (Mark.all) then
+      if Marlowe.Btree_Handles.Valid (Mark) then
          declare
-            Result : constant Kit_Db_Record_Access := new Kit_Db_Record;
+            Result : constant Kit_Db_Record_Access :=
+                       new Kit_Db_Record (Mark.Key_Length);
          begin
             Result.Table_Index  := Table_Index;
             Result.Record_Index :=
               Marlowe.Key_Storage.To_Database_Index
-                (Marlowe.Btree_Handles.Get_Key (Mark.all));
+                (Marlowe.Btree_Handles.Get_Key (Mark));
             Result.Read;
             Result.Mark := Mark;
             Result.Exists := True;
@@ -148,22 +148,22 @@ package body Kit.Server.Tables is
               Get_Key_Reference (Tables, Table_Index, Key_Name);
       Key_Storage : constant System.Storage_Elements.Storage_Array :=
         Key_To_Storage (Table_Index, Key_Name, Key_Value);
-      Mark        : constant Mark_Access :=
-                      new Marlowe.Btree_Handles.Btree_Mark'
-                        (Marlowe.Btree_Handles.Search
-                           (Handle, Ref,
-                            Key_Storage, Key_Storage,
-                            Marlowe.Closed, Marlowe.Closed,
-                            Marlowe.Forward));
+      Mark : constant Marlowe.Btree_Handles.Btree_Mark :=
+                      Marlowe.Btree_Handles.Search
+                        (Handle, Ref,
+                         Key_Storage, Key_Storage,
+                         Marlowe.Closed, Marlowe.Closed,
+                         Marlowe.Forward);
    begin
-      if Marlowe.Btree_Handles.Valid (Mark.all) then
+      if Marlowe.Btree_Handles.Valid (Mark) then
          declare
-            Result : constant Kit_Db_Record_Access := new Kit_Db_Record;
+            Result : constant Kit_Db_Record_Access :=
+                       new Kit_Db_Record (Mark.Key_Length);
          begin
             Result.Table_Index  := Table_Index;
             Result.Record_Index :=
               Marlowe.Key_Storage.To_Database_Index
-                (Marlowe.Btree_Handles.Get_Key (Mark.all));
+                (Marlowe.Btree_Handles.Get_Key (Mark));
             Result.Read;
             Result.Mark := Mark;
             Result.Using_Key := True;
@@ -188,7 +188,7 @@ package body Kit.Server.Tables is
    is
       pragma Unreferenced (Database);
       Result : constant Kit_Db_Record_Access :=
-                 new Kit_Db_Record;
+                 new Kit_Db_Record (0);
    begin
       Result.Table_Index  := Table_Index;
       Result.Record_Index := Record_Index;
@@ -322,6 +322,16 @@ package body Kit.Server.Tables is
       Item.Name := new String'(Name);
    end Initialise;
 
+   ----------------
+   -- Initialize --
+   ----------------
+
+   procedure Initialize (Item : in out Kit_Db_Record) is
+      pragma Unreferenced (Item);
+   begin
+      null;
+   end Initialize;
+
    --------------------
    -- Key_To_Storage --
    --------------------
@@ -406,12 +416,12 @@ package body Kit.Server.Tables is
 
       else
 
-         Marlowe.Btree_Handles.Next (Item.Mark.all);
-         Item.Exists := Marlowe.Btree_Handles.Valid (Item.Mark.all);
+         Marlowe.Btree_Handles.Next (Item.Mark);
+         Item.Exists := Marlowe.Btree_Handles.Valid (Item.Mark);
          if Item.Exists then
             New_Index :=
               Marlowe.Key_Storage.To_Database_Index
-                (Marlowe.Btree_Handles.Get_Key (Item.Mark.all));
+                (Marlowe.Btree_Handles.Get_Key (Item.Mark));
          end if;
       end if;
 
