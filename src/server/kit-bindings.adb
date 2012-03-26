@@ -111,22 +111,7 @@ package body Kit.Bindings is
                     (Arguments (Arguments'First)));
       Name : constant String := Root.Name;
    begin
-      SK.Machine.Push (Context, SK.To_Object (1));
-      for I in reverse Name'Range loop
-         SK.Machine.Push (Context,
-                          SK.To_Object (Character'Pos (Name (I))));
-         SK.Machine.Push (Context, SK.To_Object (2));
-         SK.Machine.Cons (Context);
-         SK.Machine.Cons (Context);
-      end loop;
-
-      declare
-         Result : SK.Object;
-      begin
-         --  Ada.Text_IO.Put_Line (SK.Machine.Show_Stack_Top (Context));
-         SK.Machine.Pop (Context, Result);
-         return Result;
-      end;
+      return SK.Machine.Marshall_String_To_Object (Context, Name);
    end Evaluate_Named_Item_Get_Name;
 
    ----------------------------
