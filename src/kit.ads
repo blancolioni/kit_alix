@@ -39,6 +39,10 @@ package Kit is
                            return Marlowe.Table_Index
       is abstract;
 
+   function Last_Table_Index (Database : Root_Database_Interface)
+                              return Marlowe.Table_Index
+                              is abstract;
+
    function Get (Database     : Root_Database_Interface;
                  Table_Index  : Marlowe.Table_Index;
                  Record_Index : Marlowe.Database_Index)
