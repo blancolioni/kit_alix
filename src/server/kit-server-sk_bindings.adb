@@ -2,6 +2,8 @@ with Ada.Containers.Vectors;
 
 with Kit.Server.Tables;
 
+with Kit.Db.Kit_Record;
+
 with Leander.Builtin;
 
 package body Kit.Server.SK_Bindings is
@@ -15,6 +17,16 @@ package body Kit.Server.SK_Bindings is
                       return Positive;
 
    procedure Deactivate (Handle : Positive);
+
+   function Evaluate_Table_Count
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
+   function Evaluate_Table_Name
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
 
    function Evaluate_Get_Record
      (Context   : SK.Machine.Function_Call_Context;
@@ -64,6 +76,12 @@ package body Kit.Server.SK_Bindings is
    is
    begin
 
+      SK.Machine.Import_Function
+        (Machine, "#tableCount",
+         0, Evaluate_Table_Count'Access);
+      SK.Machine.Import_Function
+        (Machine, "#tableName",
+         1, Evaluate_Table_Name'Access);
       SK.Machine.Import_Function
         (Machine, "#getRecord",
          2, Evaluate_Get_Record'Access);
@@ -151,5 +169,39 @@ package body Kit.Server.SK_Bindings is
    begin
       return SK.To_Object (Handle);
    end Evaluate_Get_Record;
+
+   --------------------------
+   -- Evaluate_Table_Count --
+   --------------------------
+
+   function Evaluate_Table_Count
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+      pragma Unreferenced (Context);
+      pragma Unreferenced (Arguments);
+   begin
+      return SK.To_Object
+        (Natural (Kit.Server.Tables.Active_Database.Last_Table_Index));
+   end Evaluate_Table_Count;
+
+   -------------------------
+   -- Evaluate_Table_Name --
+   -------------------------
+
+   function Evaluate_Table_Name
+     (Context   : SK.Machine.Function_Call_Context;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+      Table_Index : constant Positive :=
+                      SK.Get_Integer
+                        (Arguments (Arguments'First));
+      Rec         : constant Kit.Db.Kit_Record.Kit_Record_Type :=
+                      Kit.Db.Kit_Record.First_By_Table_Index (Table_Index);
+   begin
+      return Leander.Builtin.String_To_Object (Context, Rec.Name);
+   end Evaluate_Table_Name;
 
 end Kit.Server.SK_Bindings;
