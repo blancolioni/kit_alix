@@ -8,29 +8,20 @@ class Search a where
   hasElement :: a -> Bool
   next :: a -> IO a
 
-primFirstRootRecord :: Int -> Int
-primFirstRootRecord = primitive #firstRootRecord
+primGetRecord :: Int -> Int -> Int
+primGetRecord = primitive #getRecord
 
-firstRootRecord :: IO Int
-firstRootRecord = return $ primFirstRootRecord 0
+primCloseRecord :: Int -> ()
+primCloseRecord = primitive #closeRecord
 
-primRootRecordGetTopRecord :: Int -> Int
-primRootRecordGetTopRecord = primitive #rootRecordGetTopRecord
+primGetField :: Int -> String -> String
+primGetField = primitive #getField
 
-rootRecordGetTopRecord :: Int -> IO Int
-rootRecordGetTopRecord = return . primRootRecordGetTopRecord
+getRecord :: Int -> Int -> IO Int
+getRecord x y = return $ primGetRecord x y
 
-primNamedItemGetName :: Int -> String
-primNamedItemGetName = primitive #namedItemGetName
+closeRecord :: Int -> IO Int
+closeRecord = return . primCloseRecord
 
-namedItemGetName :: Int -> IO String
-namedItemGetName = return . primNamedItemGetName
-
-primReportRecord :: Int -> Int -> Int
-primReportRecord = primitive #reportRecord
-
-reportRecord :: Int -> Int -> IO Int
-reportRecord table index = return $ primReportRecord table index
-
-nameToTable :: String -> Int
-nameToTable = primitive #nameToTable
+getField :: Int -> String -> IO String
+getField r f = return $ primGetField r f
