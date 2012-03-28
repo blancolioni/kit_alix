@@ -5,11 +5,11 @@ with Kit.Db.Database;
 with Kit.Db.Kit_Record;
 with Kit.Db.Marlowe_Keys;
 
-with Kit.Bindings;
 with Kit.Paths;
 
 with Kit.Server.Database;
 with Kit.Server.Shell;
+with Kit.Server.SK_Bindings;
 with Kit.Server.System;
 with Kit.Server.Tables;
 
@@ -22,7 +22,7 @@ with Leander.Target;
 
 procedure Kit.Server.Driver is
 
-   Use_Leander : constant Boolean := False;
+   Use_Leander : constant Boolean := True;
 
    Target : Leander.Target.Leander_Target;
    Kit_Module : Leander.Modules.Leander_Module;
@@ -35,15 +35,6 @@ begin
       Set_Exit_Status (1);
       return;
    end if;
-
-   Leander.Initialise (Target);
-   Kit.Bindings.Create_Kit_Bindings
-     (Leander.Target.Machine (Target));
-
-   Kit_Module :=
-     Hero.Modules.Parse_Module
-       (Kit.Paths.Config_Path & "/Kit.hs");
-   Kit_Module.Compile (Target);
 
    Kit.Server.Tables.Open_Database (Argument (1));
 
@@ -79,6 +70,15 @@ begin
    end if;
 
    if Use_Leander then
+
+      Leander.Initialise (Target);
+      SK_Bindings.Create_SK_Bindings
+        (Leander.Target.Machine (Target));
+
+      Kit_Module :=
+        Hero.Modules.Parse_Module
+          (Kit.Paths.Config_Path & "/Kit.hs");
+      Kit_Module.Compile (Target);
 
       Leander.Shell.Start_Shell
         (Target,
