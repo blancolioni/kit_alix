@@ -289,6 +289,18 @@ package body Abydos.Environments is
       return Values.Null_Value;
    end Item;
 
+   ----------------------
+   -- Last_Table_Index --
+   ----------------------
+
+   function Last_Table_Index
+     (Db         : Environment)
+      return Marlowe.Table_Index
+   is
+   begin
+      return Db.Env.Db.Last_Table_Index;
+   end Last_Table_Index;
+
    ----------
    -- Name --
    ----------

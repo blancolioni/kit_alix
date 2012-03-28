@@ -376,6 +376,25 @@ package body Kit.Server.Tables is
       return Result;
    end Key_To_Storage;
 
+   ----------------------
+   -- Last_Table_Index --
+   ----------------------
+
+   function Last_Table_Index (Db         : Database_Type)
+                              return Marlowe.Table_Index
+   is
+      pragma Unreferenced (Db);
+      Result : Natural := 0;
+      Rec    : Kit.Db.Kit_Record.Kit_Record_Type :=
+                 Kit.Db.Kit_Record.First;
+   begin
+      while Rec.Has_Element loop
+         Result := Result + 1;
+         Rec.Next;
+      end loop;
+      return Marlowe.Table_Index (Result);
+   end Last_Table_Index;
+
    ----------
    -- Name --
    ----------

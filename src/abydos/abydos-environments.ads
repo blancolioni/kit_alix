@@ -10,6 +10,9 @@ package Abydos.Environments is
 
    function Name (Db         : Environment) return String;
 
+   function Last_Table_Index (Db         : Environment)
+                              return Marlowe.Table_Index;
+
    function To_Table_Index (Db         : Environment;
                             Table_Name : String)
                            return Marlowe.Table_Index;

@@ -12,6 +12,9 @@ package Kit.Server.Tables is
 
    function Name (Db         : Database_Type) return String;
 
+   function Last_Table_Index (Db         : Database_Type)
+                              return Marlowe.Table_Index;
+
    function To_Table_Index (Db         : Database_Type;
                             Table_Name : String)
                            return Marlowe.Table_Index;
