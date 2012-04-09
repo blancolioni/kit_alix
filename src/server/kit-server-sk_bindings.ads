@@ -1,8 +1,5 @@
-with SK.Machine;
-
 package Kit.Server.SK_Bindings is
 
-   procedure Create_SK_Bindings
-     (Machine  : SK.Machine.SK_Machine);
+   procedure Create_SK_Bindings;
 
 end Kit.Server.SK_Bindings;
