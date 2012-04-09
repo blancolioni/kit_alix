@@ -6,6 +6,9 @@ with Kit.Db.Kit_Record;
 
 with Leander.Builtin;
 
+with SK.Cells;
+with SK.Functions;
+
 package body Kit.Server.SK_Bindings is
 
    package Database_Record_Vectors is
@@ -19,27 +22,27 @@ package body Kit.Server.SK_Bindings is
    procedure Deactivate (Handle : Positive);
 
    function Evaluate_Table_Count
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
    function Evaluate_Table_Name
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
    function Evaluate_Get_Record
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
    function Evaluate_Close_Record
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
    function Evaluate_Get_Field
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
@@ -71,26 +74,14 @@ package body Kit.Server.SK_Bindings is
    -- Create_SK_Bindings --
    ------------------------
 
-   procedure Create_SK_Bindings
-     (Machine  : SK.Machine.SK_Machine)
-   is
+   procedure Create_SK_Bindings is
+      use SK.Functions;
    begin
-
-      SK.Machine.Import_Function
-        (Machine, "#tableCount",
-         0, Evaluate_Table_Count'Access);
-      SK.Machine.Import_Function
-        (Machine, "#tableName",
-         1, Evaluate_Table_Name'Access);
-      SK.Machine.Import_Function
-        (Machine, "#getRecord",
-         2, Evaluate_Get_Record'Access);
-      SK.Machine.Import_Function
-        (Machine, "#closeRecord",
-         1, Evaluate_Close_Record'Access);
-      SK.Machine.Import_Function
-        (Machine, "#getField",
-         2, Evaluate_Get_Field'Access);
+      Bind_Function ("#tableCount", 0, Evaluate_Table_Count'Access);
+      Bind_Function ("#tableName", 1, Evaluate_Table_Name'Access);
+      Bind_Function ("#getRecord", 2, Evaluate_Get_Record'Access);
+      Bind_Function ("#closeRecord", 1, Evaluate_Close_Record'Access);
+      Bind_Function ("#getField", 2, Evaluate_Get_Field'Access);
    end Create_SK_Bindings;
 
    ----------------
@@ -109,7 +100,7 @@ package body Kit.Server.SK_Bindings is
    ---------------------------
 
    function Evaluate_Close_Record
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object
    is
@@ -127,7 +118,7 @@ package body Kit.Server.SK_Bindings is
    ------------------------
 
    function Evaluate_Get_Field
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object
    is
@@ -149,7 +140,7 @@ package body Kit.Server.SK_Bindings is
    -------------------------
 
    function Evaluate_Get_Record
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object
    is
@@ -175,7 +166,7 @@ package body Kit.Server.SK_Bindings is
    --------------------------
 
    function Evaluate_Table_Count
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object
    is
@@ -191,7 +182,7 @@ package body Kit.Server.SK_Bindings is
    -------------------------
 
    function Evaluate_Table_Name
-     (Context   : SK.Machine.Function_Call_Context;
+     (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object
    is
