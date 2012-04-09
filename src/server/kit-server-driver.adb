@@ -20,6 +20,8 @@ with Leander.Modules;
 with Leander.Shell;
 with Leander.Target;
 
+with Leander.Debug;
+
 procedure Kit.Server.Driver is
 
    Use_Leander : constant Boolean := True;
@@ -71,9 +73,13 @@ begin
 
    if Use_Leander then
 
+      if False then
+         Leander.Debug.Enable (Leander.Debug.Case_Values);
+      end if;
+
       Leander.Initialise (Target);
-      SK_Bindings.Create_SK_Bindings
-        (Leander.Target.Machine (Target));
+
+      SK_Bindings.Create_SK_Bindings;
 
       Kit_Module :=
         Hero.Modules.Parse_Module
