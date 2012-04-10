@@ -37,3 +37,20 @@ closeRecord = return . primCloseRecord
 
 getField :: Int -> String -> IO String
 getField r f = return $ primGetField r f
+
+tables = map (\x->(tableName x, x)) [1 .. tableCount]
+
+listTables = mapM_ putStrLn $ map (\ (x,y) -> show y ++ " " ++ x) tables
+
+tableIndex n = go tables
+   where go x = if null x then 0
+                else if n == fst (head x)
+                     then snd (head x)
+                     else go (tail x)
+
+   -- where go [] = 0
+   --       go (x:xs) = if n == fst x then snd x else go xs
+
+test_1 [] = False
+test_1 (x:xs) = x == 1 || test_1 xs
+
