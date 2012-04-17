@@ -48,20 +48,38 @@ package body Kit.Server.Tables is
 
    type Kit_Db_Record_Access is access all Kit_Db_Record'Class;
 
+   overriding
    procedure Initialize (Item : in out Kit_Db_Record);
+
+   overriding
    procedure Finalize (Item : in out Kit_Db_Record);
 
+   overriding
    function Index (Item : Kit_Db_Record) return Marlowe.Database_Index;
+
+   overriding
    function Has_Element (Item : in Kit_Db_Record) return Boolean;
+
+   overriding
    procedure Next (Item : in out Kit_Db_Record);
 
+   overriding
    function Get (Item       : Kit_Db_Record;
                  Field_Name : String)
                  return String;
 
+   overriding
    procedure Set (Item       : in out Kit_Db_Record;
                   Field_Name : String;
                   Value      : String);
+
+   overriding
+   function Field_Count (Item : Kit_Db_Record) return Natural;
+
+   overriding
+   function Field_Name (Item : Kit_Db_Record;
+                        Index : Positive)
+                        return String;
 
    procedure Read (Item : in out Kit_Db_Record'Class);
 
@@ -86,10 +104,128 @@ package body Kit.Server.Tables is
       return Current_Db;
    end Active_Database;
 
+   -----------------
+   -- Field_Count --
+   -----------------
+
+   overriding
+   function Field_Count (Item : Kit_Db_Record) return Natural is
+      use System.Storage_Elements;
+      Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
+                Kit.Db.Kit_Record.First_By_Table_Index
+                  (Positive (Item.Table_Index));
+      pragma Assert (Rec.Has_Element);
+      Result : Natural := 0;
+   begin
+
+      declare
+         F : Kit.Db.Kit_Field.Kit_Field_Type :=
+               Kit.Db.Kit_Field.First_By_Kit_Record (Rec.Reference);
+      begin
+         while F.Has_Element loop
+            Result := Result + 1;
+            F.Next;
+         end loop;
+      end;
+
+      declare
+         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
+                  Kit.Db.Kit_Record_Base.First_By_Derived
+                    (Rec.Reference);
+      begin
+         while Base.Has_Element loop
+            declare
+               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
+                            Kit.Db.Kit_Record.Get (Base.Base);
+               pragma Assert (Base_Rec.Has_Element);
+               F        : Kit.Db.Kit_Field.Kit_Field_Type :=
+                            Kit.Db.Kit_Field.First_By_Kit_Record
+                              (Base_Rec.Reference);
+            begin
+               while F.Has_Element loop
+                  Result := Result + 1;
+                  F.Next;
+               end loop;
+            end;
+
+            Base.Next;
+
+         end loop;
+
+      end;
+
+      return Result;
+
+   end Field_Count;
+
+   ----------------
+   -- Field_Name --
+   ----------------
+
+   overriding
+   function Field_Name (Item : Kit_Db_Record;
+                        Index : Positive)
+                        return String
+   is
+      use System.Storage_Elements;
+      Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
+                Kit.Db.Kit_Record.First_By_Table_Index
+                  (Positive (Item.Table_Index));
+      pragma Assert (Rec.Has_Element);
+      Result : Natural := 0;
+   begin
+
+      declare
+         F : Kit.Db.Kit_Field.Kit_Field_Type :=
+               Kit.Db.Kit_Field.First_By_Kit_Record (Rec.Reference);
+      begin
+         while F.Has_Element loop
+            Result := Result + 1;
+            if Result = Index then
+               return F.Name;
+            end if;
+            F.Next;
+         end loop;
+      end;
+
+      declare
+         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
+                  Kit.Db.Kit_Record_Base.First_By_Derived
+                    (Rec.Reference);
+      begin
+         while Base.Has_Element loop
+            declare
+               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
+                            Kit.Db.Kit_Record.Get (Base.Base);
+               pragma Assert (Base_Rec.Has_Element);
+               F        : Kit.Db.Kit_Field.Kit_Field_Type :=
+                            Kit.Db.Kit_Field.First_By_Kit_Record
+                              (Base_Rec.Reference);
+            begin
+               while F.Has_Element loop
+                  Result := Result + 1;
+                  if Result = Index then
+                     return F.Name;
+                  end if;
+                  F.Next;
+               end loop;
+            end;
+
+            Base.Next;
+
+         end loop;
+
+      end;
+
+      raise Constraint_Error with "index out of range";
+
+   end Field_Name;
+
    --------------
    -- Finalize --
    --------------
 
+   overriding
    procedure Finalize (Item : in out Kit_Db_Record) is
       pragma Unreferenced (Item);
    begin
@@ -100,6 +236,7 @@ package body Kit.Server.Tables is
    -- First_By_Key --
    ------------------
 
+   overriding
    function First_By_Key
      (Tables       : Database_Type;
       Table_Index  : Marlowe.Table_Index;
@@ -137,6 +274,7 @@ package body Kit.Server.Tables is
    -- First_By_Key_Value --
    ------------------------
 
+   overriding
    function First_By_Key_Value
      (Tables       : Database_Type;
       Table_Index  : Marlowe.Table_Index;
@@ -180,6 +318,7 @@ package body Kit.Server.Tables is
    -- Get --
    ---------
 
+   overriding
    function Get
      (Database     : Database_Type;
       Table_Index  : Marlowe.Table_Index;
@@ -200,6 +339,7 @@ package body Kit.Server.Tables is
    -- Get --
    ---------
 
+   overriding
    function Get (Item       : Kit_Db_Record;
                  Field_Name : String)
                  return String
@@ -297,6 +437,7 @@ package body Kit.Server.Tables is
    -- Has_Element --
    -----------------
 
+   overriding
    function Has_Element (Item : in Kit_Db_Record) return Boolean is
    begin
       return Item.Exists;
@@ -306,6 +447,7 @@ package body Kit.Server.Tables is
    -- Index --
    -----------
 
+   overriding
    function Index (Item : Kit_Db_Record) return Marlowe.Database_Index is
    begin
       return Item.Record_Index;
@@ -326,6 +468,7 @@ package body Kit.Server.Tables is
    -- Initialize --
    ----------------
 
+   overriding
    procedure Initialize (Item : in out Kit_Db_Record) is
       pragma Unreferenced (Item);
    begin
@@ -380,6 +523,7 @@ package body Kit.Server.Tables is
    -- Last_Table_Index --
    ----------------------
 
+   overriding
    function Last_Table_Index (Db         : Database_Type)
                               return Marlowe.Table_Index
    is
@@ -399,6 +543,7 @@ package body Kit.Server.Tables is
    -- Name --
    ----------
 
+   overriding
    function Name (Db         : Database_Type) return String is
    begin
       return Db.Name.all;
@@ -408,6 +553,7 @@ package body Kit.Server.Tables is
    -- Next --
    ----------
 
+   overriding
    procedure Next (Item : in out Kit_Db_Record) is
       use type Marlowe.Database_Index;
       New_Index : Marlowe.Database_Index;
@@ -521,6 +667,7 @@ package body Kit.Server.Tables is
    -- Scan_By_Key_Values --
    ------------------------
 
+   overriding
    function Scan_By_Key_Values
      (Tables         : Database_Type;
       Table_Index    : Marlowe.Table_Index;
@@ -538,6 +685,7 @@ package body Kit.Server.Tables is
    -- Set --
    ---------
 
+   overriding
    procedure Set (Item       : in out Kit_Db_Record;
                   Field_Name : String;
                   Value      : String)
@@ -553,6 +701,7 @@ package body Kit.Server.Tables is
    -- To_Table_Index --
    --------------------
 
+   overriding
    function To_Table_Index
      (Db         : Database_Type;
       Table_Name : String)
