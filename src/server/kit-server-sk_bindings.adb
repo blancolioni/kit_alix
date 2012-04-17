@@ -41,7 +41,17 @@ package body Kit.Server.SK_Bindings is
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
-   function Evaluate_Get_Field
+   function Evaluate_Get_Field_Count
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
+   function Evaluate_Get_Field_Name
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
+   function Evaluate_Get_Field_Value
      (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
@@ -81,7 +91,9 @@ package body Kit.Server.SK_Bindings is
       Bind_Function ("#tableName", 1, Evaluate_Table_Name'Access);
       Bind_Function ("#getRecord", 2, Evaluate_Get_Record'Access);
       Bind_Function ("#closeRecord", 1, Evaluate_Close_Record'Access);
-      Bind_Function ("#getField", 2, Evaluate_Get_Field'Access);
+      Bind_Function ("#getFieldCount", 1, Evaluate_Get_Field_Count'Access);
+      Bind_Function ("#getFieldName", 2, Evaluate_Get_Field_Name'Access);
+      Bind_Function ("#getFieldValue", 2, Evaluate_Get_Field_Value'Access);
    end Create_SK_Bindings;
 
    ----------------
@@ -113,11 +125,49 @@ package body Kit.Server.SK_Bindings is
       return SK.To_Object (Integer'(0));
    end Evaluate_Close_Record;
 
-   ------------------------
-   -- Evaluate_Get_Field --
-   ------------------------
+   ------------------------------
+   -- Evaluate_Get_Field_Count --
+   ------------------------------
 
-   function Evaluate_Get_Field
+   function Evaluate_Get_Field_Count
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+      pragma Unreferenced (Context);
+      Handle : constant Positive :=
+                 SK.Get_Integer (Arguments (Arguments'First));
+      Result : constant Natural :=
+                 Active_Records.Element (Handle).Field_Count;
+   begin
+      return SK.To_Object (Result);
+   end Evaluate_Get_Field_Count;
+
+   -----------------------------
+   -- Evaluate_Get_Field_Name --
+   -----------------------------
+
+   function Evaluate_Get_Field_Name
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+      Handle : constant Positive :=
+                 SK.Get_Integer (Arguments (Arguments'First));
+      Index  : constant Positive :=
+                 SK.Get_Integer (Arguments (Arguments'First + 1));
+      Result     : constant String :=
+                     Active_Records.Element (Handle).Field_Name (Index);
+   begin
+      return Leander.Builtin.String_To_Object
+        (Context, Result);
+   end Evaluate_Get_Field_Name;
+
+   ------------------------------
+   -- Evaluate_Get_Field_Value --
+   ------------------------------
+
+   function Evaluate_Get_Field_Value
      (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object
@@ -133,7 +183,7 @@ package body Kit.Server.SK_Bindings is
    begin
       return Leander.Builtin.String_To_Object
         (Context, Result);
-   end Evaluate_Get_Field;
+   end Evaluate_Get_Field_Value;
 
    -------------------------
    -- Evaluate_Get_Record --

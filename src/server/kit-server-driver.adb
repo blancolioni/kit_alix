@@ -2,15 +2,11 @@ with Ada.Command_Line;                  use Ada.Command_Line;
 with Ada.Text_IO;                       use Ada.Text_IO;
 
 with Kit.Db.Database;
-with Kit.Db.Kit_Record;
 with Kit.Db.Marlowe_Keys;
 
 with Kit.Paths;
 
-with Kit.Server.Database;
-with Kit.Server.Shell;
 with Kit.Server.SK_Bindings;
-with Kit.Server.System;
 with Kit.Server.Tables;
 
 with Hero.Modules;
@@ -20,11 +16,9 @@ with Leander.Modules;
 with Leander.Shell;
 with Leander.Target;
 
-with Leander.Debug;
+--  with Leander.Debug;
 
 procedure Kit.Server.Driver is
-
-   Use_Leander : constant Boolean := True;
 
    Target : Leander.Target.Leander_Target;
    Kit_Module : Leander.Modules.Leander_Module;
@@ -39,62 +33,23 @@ begin
    end if;
 
    Kit.Server.Tables.Open_Database (Argument (1));
-
    Handle := Kit.Db.Marlowe_Keys.Handle;
 
-   Kit.Server.System.Add_System_Commands;
+   --  Leander.Debug.Enable (Leander.Debug.Case_Values);
 
-   if False then
-      declare
-         Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-           Kit.Db.Kit_Record.First_By_Name;
-      begin
-         while Rec.Has_Element loop
-            Ada.Text_IO.Put_Line
-              (Rec.Name & " "
-                 & Kit.Db.Record_Type'Image (Rec.Top_Record));
-            Rec.Next;
-         end loop;
-      end;
-   end if;
+   Leander.Initialise (Target);
 
-   if False then
-      declare
-         Rec : Kit.Server.Database.Database_Record;
-      begin
-         Rec.Get (20, 1);
-         Rec.Report;
-      end;
-   end if;
+   SK_Bindings.Create_SK_Bindings;
 
-   if False then
-      Kit.Server.Database.Report (21);
-   end if;
+   Kit_Module :=
+     Hero.Modules.Parse_Module
+       (Kit.Paths.Config_Path & "/Kit.hs");
+   Kit_Module.Compile (Target);
 
-   if Use_Leander then
-
-      if False then
-         Leander.Debug.Enable (Leander.Debug.Case_Values);
-      end if;
-
-      Leander.Initialise (Target);
-
-      SK_Bindings.Create_SK_Bindings;
-
-      Kit_Module :=
-        Hero.Modules.Parse_Module
-          (Kit.Paths.Config_Path & "/Kit.hs");
-      Kit_Module.Compile (Target);
-
-      Leander.Shell.Start_Shell
-        (Target,
-         Kit.Paths.Config_Path & "/Kit.hs");
-
-   else
-      Kit.Server.Shell.Start_Shell;
-   end if;
+   Leander.Shell.Start_Shell
+     (Target,
+      Kit.Paths.Config_Path & "/Kit.hs");
 
    Kit.Db.Database.Close;
 
 end Kit.Server.Driver;
-
