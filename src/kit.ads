@@ -24,6 +24,14 @@ package Kit is
                   Value      : String)
    is abstract;
 
+   function Field_Count (Item : Root_Database_Record) return Natural
+                         is abstract;
+
+   function Field_Name (Item : Root_Database_Record;
+                        Index : Positive)
+                        return String
+                        is abstract;
+
    type Database_Record is access all Root_Database_Record'Class;
 
    procedure Close (Rec : in out Database_Record);
