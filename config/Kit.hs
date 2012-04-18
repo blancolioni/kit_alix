@@ -8,6 +8,8 @@ class Search a where
   hasElement :: a -> Bool
   next :: a -> IO a
 
+newtype Record = Record Int
+
 primTableCount :: Int
 primTableCount = primitive #tableCount
 
@@ -20,8 +22,14 @@ primGetRecord = primitive #getRecord
 primCloseRecord :: Int -> ()
 primCloseRecord = primitive #closeRecord
 
-primGetField :: Int -> String -> String
-primGetField = primitive #getField
+primGetFieldCount :: Int -> Int
+primGetFieldCount = primitive #getFieldCount
+
+primGetFieldName :: Int -> Int -> String
+primGetFieldName = primitive #getFieldName
+
+primGetFieldValue :: Int -> String -> String
+primGetFieldValue = primitive #getFieldValue
 
 tableCount :: Int
 tableCount = primTableCount
@@ -35,8 +43,14 @@ getRecord x y = return $ primGetRecord x y
 closeRecord :: Int -> IO Int
 closeRecord = return . primCloseRecord
 
-getField :: Int -> String -> IO String
-getField r f = return $ primGetField r f
+getFieldCount :: Int -> IO Int
+getFieldCount r = return $ primGetFieldCount r
+
+getFieldName :: Int -> Int -> IO String
+getFieldName r f = return $ primGetFieldName r f
+
+getFieldValue :: Int -> String -> IO String
+getFieldValue r f = return $ primGetFieldValue r f
 
 tables = map (\x->(tableName x, x)) [1 .. tableCount]
 
@@ -51,6 +65,28 @@ tableIndex n = go tables
    -- where go [] = 0
    --       go (x:xs) = if n == fst x then snd x else go xs
 
-test_1 [] = False
-test_1 (x:xs) = x == 1 || test_1 xs
+recNameValue r n = do
+  fieldName <- getFieldName r n
+  fieldValue <- getFieldValue r fieldName
+  return (fieldName, fieldValue)
 
+
+--  getFieldName r n >>= \ fn ->
+--                   getFieldValue r fn >>= \ v ->
+--                   return (fn, v)
+
+--  reportRecord r = getFieldCount r >>= \n -> (mapM_ (\x -> recNameValue 1 x >>= \ (a,b) -> putStrLn (a ++ ": " ++ b)) [1 .. n])
+
+reportRecord r = do
+  n <- getFieldCount r
+  mapM_ (\x -> recNameValue r x >>= \ (a,b) -> putStrLn (a ++ ": " ++ b)) [1 .. n]
+
+  -- let putnv x = do (a,b) <- recNameValue r x
+  --                  putStrLn $ a ++ ": " ++ b
+  -- mapM_ putnv [1 .. n]
+
+withRecord tableId recordId action = do
+  rec <- getRecord tableId recordId
+  action rec
+  closeRecord rec
+  return ()
