@@ -68,6 +68,7 @@ package body Kit.Server.Kit_XML is
 
    overriding procedure End_Export (Exporter : in out XML_Export_Type) is
    begin
+      Ada.Text_IO.Put_Line (Exporter.File, "</db>");
       Ada.Text_IO.Close (Exporter.File);
    end End_Export;
 
@@ -112,6 +113,7 @@ package body Kit.Server.Kit_XML is
                 "<!-- Created by Kit.XML on "
                 & Ada.Calendar.Formatting.Image (Ada.Calendar.Clock)
                 & " -->");
+      Put_Line (Exporter.File, "<db name=""" & Name & """>");
    end Start_Export;
 
    -----------------
