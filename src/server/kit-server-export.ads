@@ -24,13 +24,15 @@ package Kit.Server.Export is
 
    procedure Field (Exporter   : in out Root_Exporter;
                     Name       : in String;
-                    Field_Type : in String)
+                    Field_Type : in String;
+                    Field_Size : in Natural)
    is abstract;
 
    procedure Field (Exporter   : in out Root_Exporter;
                     Name       : in String;
                     Base       : in String;
-                    Field_Type : in String)
+                    Field_Type : in String;
+                    Field_Size : in Natural)
    is abstract;
 
    procedure Start_Key (Exporter    : in out Root_Exporter;
