@@ -48,6 +48,13 @@ package body Kit.Server.Tables is
                               Index    : Positive)
                               return Root_Field_Interface'Class;
 
+   overriding function Key_Count (Table    : Table_Type)
+                                  return Natural;
+
+   overriding function Key (Table    : Table_Type;
+                            Index    : Positive)
+                            return Root_Key_Interface'Class;
+
    type Table_Field_Type is
      new Root_Field_Interface with
       record
@@ -60,8 +67,30 @@ package body Kit.Server.Tables is
    function Name (Field : Table_Field_Type) return String;
 
    overriding
+   function Size (Field : Table_Field_Type) return Natural;
+
+   overriding
    function Field_Type (Field : Table_Field_Type)
                         return String;
+
+   type Table_Key_Type is
+     new Root_Key_Interface with
+      record
+         Db        : Database_Access;
+         Table     : Marlowe.Table_Index;
+         Reference : Kit.Db.Kit_Key_Reference;
+      end record;
+
+   overriding function Name (Key : Table_Key_Type) return String;
+   overriding function Unique (Key : Table_Key_Type) return Boolean;
+
+   overriding function Field_Count (Key : Table_Key_Type)
+                                    return Positive;
+
+   overriding function Field
+     (Key : Table_Key_Type;
+      Index : Positive)
+      return Kit.Databases.Root_Field_Interface'Class;
 
    package Database_Vectors is
      new Ada.Containers.Vectors (Positive, Database_Access);
@@ -146,6 +175,10 @@ package body Kit.Server.Tables is
    begin
       return Current_Db;
    end Active_Database;
+
+   ----------
+   -- Base --
+   ----------
 
    overriding function Base
      (Table    : Table_Type;
@@ -268,6 +301,41 @@ package body Kit.Server.Tables is
 
    end Field;
 
+   -----------
+   -- Field --
+   -----------
+
+   overriding function Field
+     (Key : Table_Key_Type;
+      Index : Positive)
+      return Kit.Databases.Root_Field_Interface'Class
+   is
+      F       : Kit.Db.Kit_Key_Field.Kit_Key_Field_Type :=
+                  Kit.Db.Kit_Key_Field.First_By_Kit_Key
+                    (Key.Reference);
+      Result : Natural := 0;
+   begin
+      while F.Has_Element loop
+         Result := Result + 1;
+         if Result = Index then
+            return Table_Field_Type'(Db        => Key.Db,
+                                     Table     => Key.Table,
+                                     Reference => F.Kit_Field);
+         end if;
+         F.Next;
+      end loop;
+
+      declare
+         Rec : constant Kit.Db.Kit_Key.Kit_Key_Type :=
+                 Kit.Db.Kit_Key.Get (Key.Reference);
+      begin
+         raise Constraint_Error
+           with "asked for illegal field number" & Positive'Image (Index)
+           & " in key " & Rec.Name;
+      end;
+
+   end Field;
+
    -----------------
    -- Field_Count --
    -----------------
@@ -377,6 +445,23 @@ package body Kit.Server.Tables is
 
    end Field_Count;
 
+   -----------------
+   -- Field_Count --
+   -----------------
+
+   overriding function Field_Count (Key : Table_Key_Type) return Positive is
+      F       : Kit.Db.Kit_Key_Field.Kit_Key_Field_Type :=
+                  Kit.Db.Kit_Key_Field.First_By_Kit_Key
+                    (Key.Reference);
+      Result : Natural := 0;
+   begin
+      while F.Has_Element loop
+         Result := Result + 1;
+         F.Next;
+      end loop;
+      return Result;
+   end Field_Count;
+
    ----------------
    -- Field_Name --
    ----------------
@@ -463,6 +548,8 @@ package body Kit.Server.Tables is
             return "string";
          when R_Kit_Enumeration =>
             return "integer";
+         when R_Kit_Reference =>
+            return "reference";
          when others =>
             return "unknown";
       end case;
@@ -722,6 +809,126 @@ package body Kit.Server.Tables is
       null;
    end Initialize;
 
+   ---------
+   -- Key --
+   ---------
+
+   overriding function Key
+     (Table : Table_Type;
+      Index : Positive)
+      return Root_Key_Interface'Class
+   is
+      Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
+                Kit.Db.Kit_Record.First_By_Table_Index
+                  (Positive (Table.Index));
+      pragma Assert (Rec.Has_Element);
+      Result : Natural := 0;
+   begin
+
+      declare
+         K : Kit.Db.Kit_Key.Kit_Key_Type :=
+               Kit.Db.Kit_Key.First_By_Kit_Record (Rec.Reference);
+      begin
+         while K.Has_Element loop
+            Result := Result + 1;
+            if Result = Index then
+               return Table_Key_Type'(Table.Db, Table.Index, K.Reference);
+            end if;
+
+            K.Next;
+         end loop;
+      end;
+
+      declare
+         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
+                  Kit.Db.Kit_Record_Base.First_By_Derived
+                    (Rec.Reference);
+      begin
+         while Base.Has_Element loop
+            declare
+               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
+                            Kit.Db.Kit_Record.Get (Base.Base);
+               pragma Assert (Base_Rec.Has_Element);
+               K        : Kit.Db.Kit_Key.Kit_Key_Type :=
+                            Kit.Db.Kit_Key.First_By_Kit_Record
+                              (Base_Rec.Reference);
+            begin
+               while K.Has_Element loop
+                  Result := Result + 1;
+                  if Result = Index then
+                     return Table_Key_Type'(Table.Db, Table.Index,
+                                            K.Reference);
+                  end if;
+                  K.Next;
+               end loop;
+            end;
+
+            Base.Next;
+
+         end loop;
+
+      end;
+      raise Constraint_Error
+        with "asked for illegal key number" & Positive'Image (Index)
+        & " in table " & Rec.Name;
+
+   end Key;
+
+   ---------------
+   -- Key_Count --
+   ---------------
+
+   overriding function Key_Count
+     (Table    : Table_Type)
+      return Natural
+   is
+      Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
+                Kit.Db.Kit_Record.First_By_Table_Index
+                  (Positive (Table.Index));
+      pragma Assert (Rec.Has_Element);
+      Result : Natural := 0;
+   begin
+
+      declare
+         K : Kit.Db.Kit_Key.Kit_Key_Type :=
+               Kit.Db.Kit_Key.First_By_Kit_Record (Rec.Reference);
+      begin
+         while K.Has_Element loop
+            Result := Result + 1;
+            K.Next;
+         end loop;
+      end;
+
+      declare
+         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
+                  Kit.Db.Kit_Record_Base.First_By_Derived
+                    (Rec.Reference);
+      begin
+         while Base.Has_Element loop
+            declare
+               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
+                            Kit.Db.Kit_Record.Get (Base.Base);
+               pragma Assert (Base_Rec.Has_Element);
+               K        : Kit.Db.Kit_Key.Kit_Key_Type :=
+                            Kit.Db.Kit_Key.First_By_Kit_Record
+                              (Base_Rec.Reference);
+            begin
+               while K.Has_Element loop
+                  Result := Result + 1;
+                  K.Next;
+               end loop;
+            end;
+
+            Base.Next;
+
+         end loop;
+
+      end;
+
+      return Result;
+
+   end Key_Count;
+
    --------------------
    -- Key_To_Storage --
    --------------------
@@ -815,6 +1022,18 @@ package body Kit.Server.Tables is
                     Kit.Db.Kit_Field.Get (Field.Reference);
    begin
       return Field_Rec.Name;
+   end Name;
+
+   ----------
+   -- Name --
+   ----------
+
+   overriding
+   function Name (Key : Table_Key_Type) return String is
+      Key_Rec : constant Kit.Db.Kit_Key.Kit_Key_Type :=
+                  Kit.Db.Kit_Key.Get (Key.Reference);
+   begin
+      return Key_Rec.Name;
    end Name;
 
    ----------
@@ -965,6 +1184,18 @@ package body Kit.Server.Tables is
       null;
    end Set;
 
+   ----------
+   -- Size --
+   ----------
+
+   overriding
+   function Size (Field : Table_Field_Type) return Natural is
+      Field_Rec : constant Kit.Db.Kit_Field.Kit_Field_Type :=
+                    Kit.Db.Kit_Field.Get (Field.Reference);
+   begin
+      return Field_Rec.Field_Length;
+   end Size;
+
    -----------
    -- Table --
    -----------
@@ -1001,5 +1232,17 @@ package body Kit.Server.Tables is
            with Table_Name & ": no such table in database " & Name (Db);
       end if;
    end To_Table_Index;
+
+   ------------
+   -- Unique --
+   ------------
+
+   overriding
+   function Unique (Key : Table_Key_Type) return Boolean is
+      Key_Rec : constant Kit.Db.Kit_Key.Kit_Key_Type :=
+                  Kit.Db.Kit_Key.Get (Key.Reference);
+   begin
+      return Key_Rec.Is_Unique;
+   end Unique;
 
 end Kit.Server.Tables;

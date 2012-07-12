@@ -48,9 +48,38 @@ package Kit.Databases is
    function Name (Field : Root_Field_Interface) return String
                   is abstract;
 
+   function Size (Field : Root_Field_Interface) return Natural
+                  is abstract;
+
    function Field_Type (Field : Root_Field_Interface)
                         return String
                         is abstract;
+
+   function Key_Count (Table    : Root_Table_Interface)
+                       return Natural
+                       is abstract;
+
+   type Root_Key_Interface is interface;
+
+   function Key (Table    : Root_Table_Interface;
+                 Index    : Positive)
+                 return Root_Key_Interface'Class
+                 is abstract;
+
+   function Name (Key : Root_Key_Interface) return String
+                  is abstract;
+
+   function Unique (Key : Root_Key_Interface) return Boolean
+                    is abstract;
+
+   function Field_Count (Key : Root_Key_Interface)
+                         return Positive
+                         is abstract;
+
+   function Field (Key : Root_Key_Interface;
+                   Index : Positive)
+                   return Root_Field_Interface'Class
+                   is abstract;
 
 --     function Is_Key (Field : Root_Field_Interface) return Boolean
 --                      is abstract;
