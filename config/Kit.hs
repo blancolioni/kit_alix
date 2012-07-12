@@ -31,6 +31,9 @@ primGetFieldName = primitive #getFieldName
 primGetFieldValue :: Int -> String -> String
 primGetFieldValue = primitive #getFieldValue
 
+primExportXML :: String -> Int
+primExportXML = primitive #exportxml
+
 tableCount :: Int
 tableCount = primTableCount
 
@@ -90,3 +93,8 @@ withRecord tableId recordId action = do
   action rec
   closeRecord rec
   return ()
+
+exportXML :: String -> IO ()
+exportXML path =
+  return (primExportXML path) >>= print
+

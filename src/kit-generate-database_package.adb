@@ -1,6 +1,6 @@
-with Kit.Fields;
-with Kit.Tables;
-with Kit.Types;
+with Kit.Schema.Fields;
+with Kit.Schema.Tables;
+with Kit.Schema.Types;
 
 with Aquarius.Drys.Blocks;
 with Aquarius.Drys.Expressions;
@@ -13,7 +13,7 @@ package body Kit.Generate.Database_Package is
    function Operation_Name (Op : Database_Operation) return String;
 
    procedure Initialise_Database_Structure
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Seq : in out Aquarius.Drys.Statement_Sequencer'Class);
 
    -------------------------------
@@ -21,7 +21,7 @@ package body Kit.Generate.Database_Package is
    -------------------------------
 
    function Generate_Database_Package
-     (Db : in out Kit.Databases.Database_Type)
+     (Db : in out Kit.Schema.Databases.Database_Type)
       return Aquarius.Drys.Declarations.Package_Type
    is
       Result : Aquarius.Drys.Declarations.Package_Type :=
@@ -29,7 +29,7 @@ package body Kit.Generate.Database_Package is
                    (Db.Name & ".Database");
 
       procedure Add_Implementation_With
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
       function Create_Database_Procedure
         (Operation : Database_Operation)
@@ -39,7 +39,7 @@ package body Kit.Generate.Database_Package is
         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class;
 
       procedure Add_Implementation_With
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
       begin
          Result.With_Package
@@ -86,36 +86,36 @@ package body Kit.Generate.Database_Package is
          Block : Aquarius.Drys.Blocks.Block_Type;
 
          procedure Create_Table
-           (Table : Kit.Tables.Table_Type'Class);
+           (Table : Kit.Schema.Tables.Table_Type'Class);
 
          procedure Open_Table
-           (Table : Kit.Tables.Table_Type'Class);
+           (Table : Kit.Schema.Tables.Table_Type'Class);
 
          ------------------
          -- Create_Table --
          ------------------
 
          procedure Create_Table
-           (Table : Kit.Tables.Table_Type'Class)
+           (Table : Kit.Schema.Tables.Table_Type'Class)
          is
             use Aquarius.Drys.Statements;
 
             procedure Create_Key
-              (Base     : Kit.Tables.Table_Type'Class;
-               Position : Kit.Tables.Key_Cursor);
+              (Base     : Kit.Schema.Tables.Table_Type'Class;
+               Position : Kit.Schema.Tables.Key_Cursor);
 
             ----------------
             -- Create_Key --
             ----------------
 
             procedure Create_Key
-              (Base     : Kit.Tables.Table_Type'Class;
-               Position : Kit.Tables.Key_Cursor)
+              (Base     : Kit.Schema.Tables.Table_Type'Class;
+               Position : Kit.Schema.Tables.Key_Cursor)
             is
                pragma Unreferenced (Base);
                use Aquarius.Drys;
                use Aquarius.Drys.Expressions;
-               use Kit.Tables;
+               use Kit.Schema.Tables;
 
                Call_Add_Key : Function_Call_Expression :=
                                 New_Function_Call_Expression
@@ -159,25 +159,25 @@ package body Kit.Generate.Database_Package is
          ----------------
 
          procedure Open_Table
-           (Table : Kit.Tables.Table_Type'Class)
+           (Table : Kit.Schema.Tables.Table_Type'Class)
          is
             use Aquarius.Drys.Statements;
 
             procedure Open_Key
-              (Base     : Kit.Tables.Table_Type'Class;
-               Position : Kit.Tables.Key_Cursor);
+              (Base     : Kit.Schema.Tables.Table_Type'Class;
+               Position : Kit.Schema.Tables.Key_Cursor);
 
             --------------
             -- Open_Key --
             --------------
 
             procedure Open_Key
-              (Base     : Kit.Tables.Table_Type'Class;
-               Position : Kit.Tables.Key_Cursor)
+              (Base     : Kit.Schema.Tables.Table_Type'Class;
+               Position : Kit.Schema.Tables.Key_Cursor)
             is
                pragma Unreferenced (Base);
                use Aquarius.Drys.Expressions;
-               use Kit.Tables;
+               use Kit.Schema.Tables;
 
                Call_Open_Key : Function_Call_Expression :=
                                  New_Function_Call_Expression
@@ -314,21 +314,21 @@ package body Kit.Generate.Database_Package is
    -----------------------------------
 
    procedure Initialise_Database_Structure
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Seq : in out Aquarius.Drys.Statement_Sequencer'Class)
    is
 
       procedure Create_Table
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
-      procedure Create_Type (T  : Kit.Types.Kit_Type'Class);
+      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type'Class);
 
       ------------------
       -- Create_Table --
       ------------------
 
       procedure Create_Table
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
          use Aquarius.Drys;
          use Aquarius.Drys.Expressions;
@@ -341,18 +341,18 @@ package body Kit.Generate.Database_Package is
                        Literal (Natural (Table.Length)));
 
          procedure Create_Field
-           (Field       : Kit.Fields.Field_Type'Class);
+           (Field       : Kit.Schema.Fields.Field_Type'Class);
 
-         procedure Create_Base (Base  : Kit.Tables.Table_Type'Class);
+         procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type'Class);
 
          procedure Create_Key
-           (Key : Kit.Tables.Key_Cursor);
+           (Key : Kit.Schema.Tables.Key_Cursor);
 
          -----------------
          -- Create_Base --
          -----------------
 
-         procedure Create_Base (Base  : Kit.Tables.Table_Type'Class) is
+         procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type'Class) is
             New_Base : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
                             ("Kit_Record_Base.Create");
@@ -377,7 +377,7 @@ package body Kit.Generate.Database_Package is
          ------------------
 
          procedure Create_Field
-           (Field       : Kit.Fields.Field_Type'Class)
+           (Field       : Kit.Schema.Fields.Field_Type'Class)
          is
             New_Field : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
@@ -404,9 +404,9 @@ package body Kit.Generate.Database_Package is
          ----------------
 
          procedure Create_Key
-           (Key : Kit.Tables.Key_Cursor)
+           (Key : Kit.Schema.Tables.Key_Cursor)
          is
-            use Kit.Tables;
+            use Kit.Schema.Tables;
             use Aquarius.Drys.Declarations;
             New_Key : Function_Call_Expression'Class :=
                         New_Function_Call_Expression ("Kit_Key.Create");
@@ -447,7 +447,7 @@ package body Kit.Generate.Database_Package is
 
       begin
          Seq.Append (Create);
-         Seq.Append (Kit.Types.Table_Reference_Type
+         Seq.Append (Kit.Schema.Types.Table_Reference_Type
                      (Table.Standard_Name).Create_Database_Record);
          Table.Scan_Fields (Create_Field'Access);
          Table.Scan_Keys (Create_Key'Access);
@@ -458,13 +458,13 @@ package body Kit.Generate.Database_Package is
       -- Create_Type --
       -----------------
 
-      procedure Create_Type (T  : Kit.Types.Kit_Type'Class) is
+      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type'Class) is
       begin
          Seq.Append (T.Create_Database_Record);
       end Create_Type;
 
    begin
-      Kit.Types.Iterate_All_Types (Create_Type'Access);
+      Kit.Schema.Types.Iterate_All_Types (Create_Type'Access);
       Db.Iterate (Create_Table'Access);
    end Initialise_Database_Structure;
 

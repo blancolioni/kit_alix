@@ -1,4 +1,4 @@
-package body Kit.Databases is
+package body Kit.Schema.Databases is
 
    ------------
    -- Append --
@@ -6,10 +6,10 @@ package body Kit.Databases is
 
    procedure Append
      (Db   : in out Database_Type;
-      Item : in     Kit.Tables.Table_Type'Class)
+      Item : in     Kit.Schema.Tables.Table_Type'Class)
    is
    begin
-      Db.Tables.Append (new Kit.Tables.Table_Type'Class'(Item));
+      Db.Tables.Append (new Kit.Schema.Tables.Table_Type'Class'(Item));
    end Append;
 
    --------------
@@ -47,7 +47,7 @@ package body Kit.Databases is
 
    function Element
      (Position : Table_Cursor)
-      return Kit.Tables.Table_Type'Class
+      return Kit.Schema.Tables.Table_Type'Class
    is
    begin
       return Table_Vectors.Element (Table_Vectors.Cursor (Position)).all;
@@ -59,7 +59,7 @@ package body Kit.Databases is
 
    function Element (Database : Database_Type;
                      Name     : String)
-                     return Kit.Tables.Table_Type'Class
+                     return Kit.Schema.Tables.Table_Type'Class
    is
    begin
       for T of Database.Tables loop
@@ -77,7 +77,7 @@ package body Kit.Databases is
 
    function Element (Database : Database_Type;
                      Index    : Positive)
-                     return Kit.Tables.Table_Type'Class
+                     return Kit.Schema.Tables.Table_Type'Class
    is
    begin
       return Database.Tables.Element (Index).all;
@@ -111,7 +111,7 @@ package body Kit.Databases is
 
    procedure Iterate (Database : Database_Type;
                       Process  : not null access
-                        procedure (Table : Kit.Tables.Table_Type'Class))
+                        procedure (Table : Kit.Schema.Tables.Table_Type'Class))
    is
       procedure Call_Process (Position : Table_Vectors.Cursor);
 
@@ -160,4 +160,4 @@ package body Kit.Databases is
       end loop;
    end With_Database;
 
-end Kit.Databases;
+end Kit.Schema.Databases;

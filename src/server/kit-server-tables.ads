@@ -1,17 +1,19 @@
+with Kit.Databases;
+
 package Kit.Server.Tables is
 
    procedure Open_Database (Path : String);
 
-   function Active_Database return Database_Access;
+   function Active_Database return Kit.Databases.Database_Access;
 
    type Database_Type is
-     new Root_Database_Interface with private;
+     new Kit.Databases.Root_Database_Interface with private;
 
    procedure Initialise (Item : in out Database_Type;
                          Name : String);
 
    overriding
-   function Name (Db         : Database_Type) return String;
+   function Name (Db : Database_Type) return String;
 
    overriding
    function Last_Table_Index (Db         : Database_Type)
@@ -21,6 +23,11 @@ package Kit.Server.Tables is
    function To_Table_Index (Db         : Database_Type;
                             Table_Name : String)
                            return Marlowe.Table_Index;
+
+   overriding
+   function Table (Db         : Database_Type;
+                   Index      : Marlowe.Table_Index)
+                   return Kit.Databases.Root_Table_Interface'Class;
 
    function Get_Table_Name (Db    : Database_Type;
                             Index : Marlowe.Table_Index)
@@ -59,7 +66,7 @@ package Kit.Server.Tables is
 private
 
    type Database_Type is
-     new Root_Database_Interface with
+     new Kit.Databases.Root_Database_Interface with
       record
          Name : access String;
       end record;

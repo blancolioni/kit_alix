@@ -8,26 +8,32 @@ package Abydos.Environments is
 
    type Environment is new Kit.Root_Database_Interface with private;
 
+   overriding
    function Name (Db         : Environment) return String;
 
+   overriding
    function Last_Table_Index (Db         : Environment)
                               return Marlowe.Table_Index;
 
+   overriding
    function To_Table_Index (Db         : Environment;
                             Table_Name : String)
                            return Marlowe.Table_Index;
 
+   overriding
    function Get (Database     : Environment;
                  Table_Index  : Marlowe.Table_Index;
                  Record_Index : Marlowe.Database_Index)
                  return Kit.Database_Record;
 
+   overriding
    function First_By_Key
      (Tables       : Environment;
       Table_Index  : Marlowe.Table_Index;
       Key_Name     : String)
      return Kit.Database_Record;
 
+   overriding
    function First_By_Key_Value
      (Tables       : Environment;
       Table_Index  : Marlowe.Table_Index;
@@ -35,6 +41,7 @@ package Abydos.Environments is
       Key_Value    : String)
      return Kit.Database_Record;
 
+   overriding
    function Scan_By_Key_Values
      (Tables         : Environment;
       Table_Index    : Marlowe.Table_Index;

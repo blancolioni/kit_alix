@@ -21,7 +21,7 @@ private
    type Compound_Key_Type is
      new Kit.Names.Root_Named_Object with
       record
-         Compound_Field_Type : access Kit.Types.Kit_Type'Class;
+         Compound_Field_Type : access Kit.Schema.Types.Kit_Type'Class;
          Unique      : Boolean;
          Field_Count : Natural;
          Fields      : Compound_Key_Fields;

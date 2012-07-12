@@ -8,9 +8,9 @@ with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
 
-with Kit.Types.Enumerated;
+with Kit.Schema.Types.Enumerated;
 
-package body Kit.Types is
+package body Kit.Schema.Types is
 
    package Type_Maps is
      new Ada.Containers.Indefinite_Hashed_Maps
@@ -865,7 +865,7 @@ package body Kit.Types is
 
    function Standard_Record_Type return Kit_Type'Class is
    begin
-      return Result : Kit.Types.Enumerated.Record_Type_Enumeration do
+      return Result : Kit.Schema.Types.Enumerated.Record_Type_Enumeration do
          Result.Create ("record_type");
          Result.Add_Literal ("R_None");
          Kit_Type (Result).User_Defined := False;
@@ -1159,8 +1159,8 @@ package body Kit.Types is
       Name    : constant Ada.Strings.Unbounded.Unbounded_String :=
                   Ada.Strings.Unbounded.To_Unbounded_String
                     ("record_type");
-      Current : Kit.Types.Enumerated.Enumerated_Type'Class :=
-                  Kit.Types.Enumerated.Enumerated_Type'Class
+      Current : Kit.Schema.Types.Enumerated.Enumerated_Type'Class :=
+                  Kit.Schema.Types.Enumerated.Enumerated_Type'Class
                     (Type_Table.Element (Name));
    begin
       for I in 1 .. Record_Count loop
@@ -1169,4 +1169,4 @@ package body Kit.Types is
       Type_Table.Replace (Name, Current);
    end Update_Record_Type;
 
-end Kit.Types;
+end Kit.Schema.Types;

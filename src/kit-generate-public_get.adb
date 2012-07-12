@@ -4,7 +4,7 @@ with Aquarius.Drys.Statements;
 
 with Kit.Generate.Fetch;
 
-with Kit.Fields;
+with Kit.Schema.Fields;
 
 package body Kit.Generate.Public_Get is
 
@@ -13,22 +13,22 @@ package body Kit.Generate.Public_Get is
    ----------------------------------
 
    procedure Create_Default_Key_Functions
-     (Table         : in     Kit.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
-      Key           : in     Kit.Tables.Key_Cursor)
+      Key           : in     Kit.Schema.Tables.Key_Cursor)
    is
       use Aquarius.Drys.Declarations;
       Ask   : Aquarius.Drys.Expressions.Function_Call_Expression :=
                 Aquarius.Drys.Expressions.New_Function_Call_Expression
-                  ("First_By_" & Kit.Tables.Ada_Name (Key));
+                  ("First_By_" & Kit.Schema.Tables.Ada_Name (Key));
       Block : Aquarius.Drys.Blocks.Block_Type;
       Fn    : Subprogram_Declaration;
    begin
 
-      for I in 1 .. Kit.Tables.Field_Count (Key) loop
+      for I in 1 .. Kit.Schema.Tables.Field_Count (Key) loop
          declare
-            Field : Kit.Fields.Field_Type'Class renames
-                      Kit.Tables.Field (Key, I);
+            Field : Kit.Schema.Fields.Field_Type'Class renames
+                      Kit.Schema.Tables.Field (Key, I);
          begin
             Ask.Add_Actual_Argument
               (Aquarius.Drys.Object (Field.Ada_Name));
@@ -43,14 +43,14 @@ package body Kit.Generate.Public_Get is
            (Aquarius.Drys.Object ("Item.Has_Element")));
 
       Fn := New_Function
-        ("Is_" & Kit.Tables.Ada_Name (Key),
+        ("Is_" & Kit.Schema.Tables.Ada_Name (Key),
          "Boolean",
          Block);
 
-      for I in 1 .. Kit.Tables.Field_Count (Key) loop
+      for I in 1 .. Kit.Schema.Tables.Field_Count (Key) loop
          declare
-            Field : Kit.Fields.Field_Type'Class renames
-                      Kit.Tables.Field (Key, I);
+            Field : Kit.Schema.Fields.Field_Type'Class renames
+                      Kit.Schema.Tables.Field (Key, I);
          begin
             Fn.Add_Formal_Argument
               (New_Formal_Argument
@@ -71,8 +71,8 @@ package body Kit.Generate.Public_Get is
    ---------------------------------
 
    procedure Create_Generic_Get_Function
-     (Db            : in     Kit.Databases.Database_Type;
-      Table         : in     Kit.Tables.Table_Type'Class;
+     (Db            : in     Kit.Schema.Databases.Database_Type;
+      Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       First         : in     Boolean;
       Key_Value     : in     Boolean)
@@ -91,37 +91,37 @@ package body Kit.Generate.Public_Get is
                                   then "First_By"
                                   else "Last_By");
 
-      procedure Process_Key (Base  : Kit.Tables.Table_Type'Class;
-                             Key   : Kit.Tables.Key_Cursor);
+      procedure Process_Key (Base  : Kit.Schema.Tables.Table_Type'Class;
+                             Key   : Kit.Schema.Tables.Key_Cursor);
 
       -----------------
       -- Process_Key --
       -----------------
 
-      procedure Process_Key (Base  : Kit.Tables.Table_Type'Class;
-                             Key   : Kit.Tables.Key_Cursor)
+      procedure Process_Key (Base  : Kit.Schema.Tables.Table_Type'Class;
+                             Key   : Kit.Schema.Tables.Key_Cursor)
       is
          pragma Unreferenced (Base);
          use Aquarius.Drys.Expressions;
          Call : Function_Call_Expression :=
                   New_Function_Call_Expression
                     ("First_By_" &
-                     Kit.Tables.Ada_Name (Key));
+                     Kit.Schema.Tables.Ada_Name (Key));
          Seq  : Aquarius.Drys.Statements.Sequence_Of_Statements;
       begin
 
-         if not Kit.Tables.Is_Compound_Key (Key)
+         if not Kit.Schema.Tables.Is_Compound_Key (Key)
            and then Key_Value
          then
             Call.Add_Actual_Argument
-              (Kit.Tables.Key_Type (Key).Convert_From_String ("Value"));
+              (Kit.Schema.Tables.Key_Type (Key).Convert_From_String ("Value"));
          end if;
 
          Seq.Append
            (Aquarius.Drys.Statements.New_Return_Statement
               (Call));
          Key_Case.Add_Case_Option ("K_" & Table.Ada_Name & "_"
-                                   & Kit.Tables.Ada_Name (Key),
+                                   & Kit.Schema.Tables.Ada_Name (Key),
                                    Seq);
       end Process_Key;
 
@@ -156,13 +156,13 @@ package body Kit.Generate.Public_Get is
    -------------------------
 
    procedure Create_Get_Function
-     (Db            : in     Kit.Databases.Database_Type;
-      Table         : in     Kit.Tables.Table_Type'Class;
-      Key_Table     : in     Kit.Tables.Table_Type'Class;
+     (Db            : in     Kit.Schema.Databases.Database_Type;
+      Table         : in     Kit.Schema.Tables.Table_Type'Class;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Scan          : in     Boolean;
       First         : in     Boolean;
-      Key           : in     Kit.Tables.Key_Cursor;
+      Key           : in     Kit.Schema.Tables.Key_Cursor;
       Key_Value     : in     Boolean)
    is
       pragma Unreferenced (Db);
@@ -174,8 +174,8 @@ package body Kit.Generate.Public_Get is
       Invalid_Sequence : Sequence_Of_Statements;
 
       Using_Key : constant Boolean :=
-                    Kit.Tables."/="
-                      (Key, Kit.Tables.Null_Key_Cursor);
+                    Kit.Schema.Tables."/="
+                      (Key, Kit.Schema.Tables.Null_Key_Cursor);
 
       procedure Declare_Index
         (Block : in out Aquarius.Drys.Blocks.Block_Type);
@@ -264,7 +264,7 @@ package body Kit.Generate.Public_Get is
                         else "First");
       begin
          if Using_Key then
-            return Base_Name & "_By_" & Kit.Tables.Ada_Name (Key);
+            return Base_Name & "_By_" & Kit.Schema.Tables.Ada_Name (Key);
          else
             return Base_Name;
          end if;
@@ -294,7 +294,7 @@ package body Kit.Generate.Public_Get is
 
       if Using_Key then
          Return_Sequence.Append
-           (Table.Ada_Name & "_Impl." & Kit.Tables.Ada_Name (Key)
+           (Table.Ada_Name & "_Impl." & Kit.Schema.Tables.Ada_Name (Key)
             & "_Key_Mutex.Shared_Lock");
       end if;
 
@@ -316,7 +316,7 @@ package body Kit.Generate.Public_Get is
                  ("Result.Key_Value",
                   Object
                     ("(K_" & Table.Ada_Name & "_"
-                     & Tables.Ada_Name (Key)
+                     & Schema.Tables.Ada_Name (Key)
                      & ", M)")));
             Lock_Sequence.Append
               (New_Assignment_Statement
@@ -438,7 +438,7 @@ package body Kit.Generate.Public_Get is
 
       if Using_Key then
          Return_Sequence.Append
-           (Table.Ada_Name & "_Impl." & Kit.Tables.Ada_Name (Key)
+           (Table.Ada_Name & "_Impl." & Kit.Schema.Tables.Ada_Name (Key)
             & "_Key_Mutex.Shared_Unlock");
       end if;
 
@@ -464,11 +464,11 @@ package body Kit.Generate.Public_Get is
          end if;
 
          if Using_Key and then Key_Value then
-            if Kit.Tables.Is_Compound_Key (Key) then
-               for I in 1 .. Kit.Tables.Compound_Field_Count (Key) loop
+            if Kit.Schema.Tables.Is_Compound_Key (Key) then
+               for I in 1 .. Kit.Schema.Tables.Compound_Field_Count (Key) loop
                   declare
-                     Field : Kit.Fields.Field_Type'Class
-                     renames Kit.Tables.Compound_Field (Key, I);
+                     Field : Kit.Schema.Fields.Field_Type'Class
+                     renames Kit.Schema.Tables.Compound_Field (Key, I);
                   begin
                      Fn.Add_Formal_Argument
                        (New_Formal_Argument
@@ -480,9 +480,9 @@ package body Kit.Generate.Public_Get is
             else
                Fn.Add_Formal_Argument
                  (New_Formal_Argument
-                    (Kit.Tables.Ada_Name (Key),
+                    (Kit.Schema.Tables.Ada_Name (Key),
                      Named_Subtype
-                       (Kit.Tables.Key_Type
+                       (Kit.Schema.Tables.Key_Type
                           (Key).Argument_Subtype)));
             end if;
          end if;

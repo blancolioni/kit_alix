@@ -8,18 +8,18 @@ package body Kit.Generate.Fetch is
    ----------------------
 
    procedure Fetch_From_Index
-     (Table       : Kit.Tables.Table_Type'Class;
+     (Table       : Kit.Schema.Tables.Table_Type'Class;
       Object_Name : String;
       Target      : in out Aquarius.Drys.Statement_Sequencer'Class)
    is
 
-      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class);
+      procedure Get_Base (Base   : Kit.Schema.Tables.Table_Type'Class);
 
       --------------
       -- Get_Base --
       --------------
 
-      procedure Get_Base (Base   : Kit.Tables.Table_Type'Class) is
+      procedure Get_Base (Base   : Kit.Schema.Tables.Table_Type'Class) is
          use Aquarius.Drys.Expressions;
          use Aquarius.Drys.Statements;
 

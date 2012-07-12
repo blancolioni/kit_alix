@@ -4,45 +4,47 @@ with Kit.Parser.Tokens;                use Kit.Parser.Tokens;
 with Kit.Parser.Lexical;               use Kit.Parser.Lexical;
 with Kit.Paths;
 
-with Kit.Tables;
-with Kit.Fields;
-with Kit.Types;
-with Kit.Types.Enumerated;
+with Kit.Schema.Tables;
+with Kit.Schema.Fields;
+with Kit.Schema.Types;
+with Kit.Schema.Types.Enumerated;
 
 package body Kit.Parser is
 
-   System_Db : Kit.Databases.Database_Type;
+   System_Db : Kit.Schema.Databases.Database_Type;
    Got_System_Db : Boolean := False;
 
-   procedure Read_Package (Db          : in out Kit.Databases.Database_Type;
-                           With_System : Boolean := True);
+   procedure Read_Package
+     (Db          : in out Kit.Schema.Databases.Database_Type;
+      With_System : Boolean := True);
 
    function At_Declaration return Boolean;
 
-   procedure Parse_Record (Db : in out Kit.Databases.Database_Type)
+   procedure Parse_Record (Db : in out Kit.Schema.Databases.Database_Type)
      with Pre => Tok = Tok_Record;
 
-   procedure Parse_Type_Declaration (Db : in out Kit.Databases.Database_Type)
+   procedure Parse_Type_Declaration
+     (Db : in out Kit.Schema.Databases.Database_Type)
      with Pre => Tok = Tok_Type;
 
-   procedure Parse_Bases (Db    : Kit.Databases.Database_Type;
-                          Table : in out Kit.Tables.Table_Type);
+   procedure Parse_Bases (Db    : Kit.Schema.Databases.Database_Type;
+                          Table : in out Kit.Schema.Tables.Table_Type);
 
    function At_Field return Boolean;
-   procedure Parse_Field (Db    : Kit.Databases.Database_Type;
-                          Table : in out Kit.Tables.Table_Type);
+   procedure Parse_Field (Db    : Kit.Schema.Databases.Database_Type;
+                          Table : in out Kit.Schema.Tables.Table_Type);
 
    function At_Type return Boolean;
    function Parse_Type
-     (Db           : Kit.Databases.Database_Type;
+     (Db           : Kit.Schema.Databases.Database_Type;
       Table_Name   : String;
       Context_Name : String)
-      return Kit.Types.Kit_Type'Class;
+      return Kit.Schema.Types.Kit_Type'Class;
 
    function Parse_Qualified_Identifier return String;
 
    procedure Parse_Field_Options
-     (Field : in out Kit.Fields.Field_Type'Class);
+     (Field : in out Kit.Schema.Fields.Field_Type'Class);
 
    --------------------
    -- At_Declaration --
@@ -77,8 +79,8 @@ package body Kit.Parser is
    -- Parse_Bases --
    -----------------
 
-   procedure Parse_Bases (Db    : Kit.Databases.Database_Type;
-                          Table : in out Kit.Tables.Table_Type)
+   procedure Parse_Bases (Db    : Kit.Schema.Databases.Database_Type;
+                          Table : in out Kit.Schema.Tables.Table_Type)
    is
    begin
       while Tok = Tok_Identifier loop
@@ -101,8 +103,8 @@ package body Kit.Parser is
    -- Parse_Field --
    -----------------
 
-   procedure Parse_Field (Db    : Kit.Databases.Database_Type;
-                          Table : in out Kit.Tables.Table_Type)
+   procedure Parse_Field (Db    : Kit.Schema.Databases.Database_Type;
+                          Table : in out Kit.Schema.Tables.Table_Type)
    is
       Is_Key    : Boolean := False;
       Is_Unique : Boolean := False;
@@ -139,7 +141,7 @@ package body Kit.Parser is
             Scan;
 
             declare
-               Field : Kit.Fields.Compound_Field_Type;
+               Field : Kit.Schema.Fields.Compound_Field_Type;
             begin
                Field.Create_Field (Field_Name);
                loop
@@ -170,10 +172,10 @@ package body Kit.Parser is
             then
 
                declare
-                  Field_Type : constant Kit.Types.Kit_Type'Class :=
-                                 Kit.Types.Table_Reference_Type
+                  Field_Type : constant Kit.Schema.Types.Kit_Type'Class :=
+                                 Kit.Schema.Types.Table_Reference_Type
                                    (Field_Name);
-                  Field      : Kit.Fields.Field_Type;
+                  Field      : Kit.Schema.Fields.Field_Type;
                begin
                   Field.Create_Field (Field_Name, Field_Type);
 
@@ -203,9 +205,9 @@ package body Kit.Parser is
             end if;
 
             declare
-               Field_Type : constant Kit.Types.Kit_Type'Class :=
+               Field_Type : constant Kit.Schema.Types.Kit_Type'Class :=
                               Parse_Type (Db, Table.Name, Field_Name);
-               Field      : Kit.Fields.Field_Type;
+               Field      : Kit.Schema.Fields.Field_Type;
             begin
                Field.Create_Field (Field_Name, Field_Type);
 
@@ -235,7 +237,7 @@ package body Kit.Parser is
    -------------------------
 
    procedure Parse_Field_Options
-     (Field : in out Kit.Fields.Field_Type'Class)
+     (Field : in out Kit.Schema.Fields.Field_Type'Class)
    is
       Readable  : Boolean := False;
       Writeable : Boolean := False;
@@ -288,7 +290,7 @@ package body Kit.Parser is
    -- Parse_Record --
    ------------------
 
-   procedure Parse_Record (Db : in out Kit.Databases.Database_Type) is
+   procedure Parse_Record (Db : in out Kit.Schema.Databases.Database_Type) is
    begin
       Scan;   --  Tok_Record
 
@@ -298,7 +300,7 @@ package body Kit.Parser is
       else
          declare
             Record_Name : constant String := Tok_Text;
-            Table       : Kit.Tables.Table_Type;
+            Table       : Kit.Schema.Tables.Table_Type;
          begin
             Table.Create (Record_Name);
             Scan;
@@ -351,10 +353,10 @@ package body Kit.Parser is
    ----------------
 
    function Parse_Type
-     (Db           : Kit.Databases.Database_Type;
+     (Db           : Kit.Schema.Databases.Database_Type;
       Table_Name   : String;
       Context_Name : String)
-      return Kit.Types.Kit_Type'Class
+      return Kit.Schema.Types.Kit_Type'Class
    is
       Location : constant GCS.Positions.File_Position :=
                    Get_Current_Position;
@@ -368,8 +370,8 @@ package body Kit.Parser is
          begin
             Scan;
 
-            if Kit.Types.Is_Type_Name (Name) then
-               return Kit.Types.Get_Type (Name);
+            if Kit.Schema.Types.Is_Type_Name (Name) then
+               return Kit.Schema.Types.Get_Type (Name);
             elsif Name = "string" then
                if Tok /= Tok_Left_Paren
                  or else Next_Tok /= Tok_Integer_Constant
@@ -377,7 +379,7 @@ package body Kit.Parser is
                then
                   Error ("missing constraint");
                   Skip_To (Tok_Semi, Tok_End);
-                  return Kit.Types.Standard_String (32);
+                  return Kit.Schema.Types.Standard_String (32);
                end if;
                Scan;
                declare
@@ -385,18 +387,18 @@ package body Kit.Parser is
                begin
                   Scan;
                   Scan;
-                  return Kit.Types.Standard_String (Length);
+                  return Kit.Schema.Types.Standard_String (Length);
                end;
             elsif Name = Table_Name or else Db.Contains (Name) then
-               return Kit.Types.Table_Reference_Type (Name);
+               return Kit.Schema.Types.Table_Reference_Type (Name);
             else
                Error (Location, Raw_Name & ": no such type or record name");
-               return Kit.Types.Standard_Integer;
+               return Kit.Schema.Types.Standard_Integer;
             end if;
          end;
       elsif Tok = Tok_Left_Paren then
          declare
-            Result : Kit.Types.Enumerated.Enumerated_Type;
+            Result : Kit.Schema.Types.Enumerated.Enumerated_Type;
          begin
             Result.Create (Context_Name);
             Scan;
@@ -432,7 +434,7 @@ package body Kit.Parser is
    ----------------------------
 
    procedure Parse_Type_Declaration
-     (Db : in out Kit.Databases.Database_Type)
+     (Db : in out Kit.Schema.Databases.Database_Type)
    is
    begin
       Scan;  --  Tok_Type
@@ -458,10 +460,10 @@ package body Kit.Parser is
          Scan;
 
          declare
-            New_Type : constant Kit.Types.Kit_Type'Class :=
+            New_Type : constant Kit.Schema.Types.Kit_Type'Class :=
                          Parse_Type (Db, "", Name);
          begin
-            Kit.Types.New_Type (New_Type);
+            Kit.Schema.Types.New_Type (New_Type);
          end;
 
          if Tok = Tok_Semi then
@@ -480,7 +482,7 @@ package body Kit.Parser is
 
    procedure Read_Kit_File
      (Path : String;
-      Db   : out Kit.Databases.Database_Type)
+      Db   : out Kit.Schema.Databases.Database_Type)
    is
    begin
 
@@ -495,8 +497,9 @@ package body Kit.Parser is
    -- Read_Package --
    ------------------
 
-   procedure Read_Package (Db          : in out Kit.Databases.Database_Type;
-                           With_System : Boolean := True)
+   procedure Read_Package
+     (Db          : in out Kit.Schema.Databases.Database_Type;
+      With_System : Boolean := True)
    is
    begin
       if Tok /= Tok_Package then

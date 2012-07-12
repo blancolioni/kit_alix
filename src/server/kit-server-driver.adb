@@ -16,7 +16,7 @@ with Leander.Modules;
 with Leander.Shell;
 with Leander.Target;
 
---  with Leander.Debug;
+with Leander.Debug;
 
 procedure Kit.Server.Driver is
 
@@ -35,7 +35,12 @@ begin
    Kit.Server.Tables.Open_Database (Argument (1));
    Handle := Kit.Db.Marlowe_Keys.Handle;
 
-   --  Leander.Debug.Enable (Leander.Debug.Case_Values);
+   if False then
+      --     Leander.Debug.Enable (Leander.Debug.Constraints);
+      --     Leander.Debug.Enable (Leander.Debug.Case_Values);
+      Leander.Debug.Enable (Leander.Debug.Values);
+      Leander.Debug.Enable (Leander.Debug.Target);
+   end if;
 
    Leander.Initialise (Target);
 

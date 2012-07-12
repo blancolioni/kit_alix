@@ -15,7 +15,10 @@ package body Abydos.Values is
    type Null_Value_Record is
      new Numeric_Value_Record with null record;
 
+   overriding
    function To_Boolean (X : Null_Value_Record) return Boolean;
+
+   overriding
    function To_Integer (X : Null_Value_Record) return Integer;
    function To_Float (X : Null_Value_Record) return Float;
    function To_String (X : Null_Value_Record) return String;

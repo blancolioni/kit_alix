@@ -4,7 +4,7 @@ with Aquarius.Drys;
 
 with Kit.Names;
 
-package Kit.Types is
+package Kit.Schema.Types is
 
    type Kit_Type is
      abstract new Kit.Names.Root_Named_Object with private;
@@ -80,7 +80,7 @@ package Kit.Types is
      (Table_Name : String)
       return Kit_Type'Class;
 
-   procedure New_Type (New_Type : Kit.Types.Kit_Type'Class);
+   procedure New_Type (New_Type : Kit.Schema.Types.Kit_Type'Class);
 
    function Is_Type_Name (Name : String) return Boolean;
    function Get_Type (Name : String) return Kit_Type'Class;
@@ -115,4 +115,4 @@ private
       Proc_Name     : String)
       return Aquarius.Drys.Statement'Class;
 
-end Kit.Types;
+end Kit.Schema.Types;

@@ -3,7 +3,7 @@ with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
 
-package body Kit.Types.Enumerated is
+package body Kit.Schema.Types.Enumerated is
 
    -----------------
    -- Add_Literal --
@@ -189,4 +189,4 @@ package body Kit.Types.Enumerated is
          Literal (Size (Kit_Type'Class (Item))));
    end To_Storage_Array;
 
-end Kit.Types.Enumerated;
+end Kit.Schema.Types.Enumerated;

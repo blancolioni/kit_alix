@@ -26,6 +26,7 @@ package body Abydos.Environments is
          V : Values.Value;
       end record;
 
+   overriding
    function Evaluate (Item : Single_Value;
                       Args : Argument_List'Class;
                       Env  : Environment'Class)
@@ -130,6 +131,7 @@ package body Abydos.Environments is
    -- Evaluate --
    --------------
 
+   overriding
    function Evaluate (Item : Single_Value;
                       Args : Argument_List'Class;
                       Env  : Environment'Class)
@@ -145,6 +147,7 @@ package body Abydos.Environments is
    -- First_By_Key --
    ------------------
 
+   overriding
    function First_By_Key
      (Tables       : Environment;
       Table_Index  : Marlowe.Table_Index;
@@ -159,6 +162,7 @@ package body Abydos.Environments is
    -- First_By_Key_Value --
    ------------------------
 
+   overriding
    function First_By_Key_Value
      (Tables       : Environment;
       Table_Index  : Marlowe.Table_Index;
@@ -201,6 +205,7 @@ package body Abydos.Environments is
    -- Get --
    ---------
 
+   overriding
    function Get
      (Database     : Environment;
       Table_Index  : Marlowe.Table_Index;
@@ -293,6 +298,7 @@ package body Abydos.Environments is
    -- Last_Table_Index --
    ----------------------
 
+   overriding
    function Last_Table_Index
      (Db         : Environment)
       return Marlowe.Table_Index
@@ -305,6 +311,7 @@ package body Abydos.Environments is
    -- Name --
    ----------
 
+   overriding
    function Name (Db         : Environment) return String is
    begin
       return Db.Env.Db.Name;
@@ -357,6 +364,7 @@ package body Abydos.Environments is
    -- Scan_By_Key_Values --
    ------------------------
 
+   overriding
    function Scan_By_Key_Values
      (Tables         : Environment;
       Table_Index    : Marlowe.Table_Index;
@@ -376,6 +384,7 @@ package body Abydos.Environments is
    -- To_Table_Index --
    --------------------
 
+   overriding
    function To_Table_Index
      (Db         : Environment;
       Table_Name : String)
