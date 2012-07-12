@@ -45,6 +45,30 @@ package body Kit.Server.Export is
                end;
             end loop;
             Exporter.End_Table;
+
+            declare
+               Rec : Database_Record :=
+                       Db.First (Marlowe.Table_Index (Table_Index));
+            begin
+               if Rec /= null then
+                  while Rec.Has_Element loop
+
+                     Exporter.Start_Record (Rec.Index);
+
+                     for F in 1 .. Rec.Field_Count loop
+                        Exporter.Record_Field
+                          (Rec.Field_Name (F), Rec.Get (Rec.Field_Name (F)));
+                     end loop;
+
+                     Exporter.End_Record;
+
+                     Rec.Next;
+                  end loop;
+
+                  Close (Rec);
+               end if;
+            end;
+
          end;
       end loop;
 

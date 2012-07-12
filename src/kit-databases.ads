@@ -81,25 +81,16 @@ package Kit.Databases is
                    return Root_Field_Interface'Class
                    is abstract;
 
---     function Is_Key (Field : Root_Field_Interface) return Boolean
---                      is abstract;
---
---     function Is_Unique (Field : Root_Field_Interface) return Boolean
---                      is abstract;
---
---     function Sub_Field_Count (Field : Root_Field_Interface)
---                               return Natural
---                               is abstract;
---
---     function Sub_Field (Field : Root_Field_Interface;
---                         Index : Positive)
---                         return Root_Field_Interface'Class
---                         is abstract;
-
    function Get (Database     : Root_Database_Interface;
                  Table_Index  : Marlowe.Table_Index;
                  Record_Index : Marlowe.Database_Index)
                 return Database_Record
+      is abstract;
+
+   function First
+     (Tables       : Root_Database_Interface;
+      Table_Index  : Marlowe.Table_Index)
+      return Database_Record
       is abstract;
 
    function First_By_Key
