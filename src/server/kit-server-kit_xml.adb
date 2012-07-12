@@ -49,16 +49,15 @@ package body Kit.Server.Kit_XML is
    overriding procedure Key_Field (Exporter : in out XML_Export_Type;
                         Field_Name : in String);
 
-   overriding procedure Start_Record (Exporter    : in out XML_Export_Type)
-   is null;
+   overriding procedure Start_Record
+     (Exporter    : in out XML_Export_Type;
+      Reference   : in     Marlowe.Database_Index);
 
    overriding procedure Record_Field (Exporter    : in out XML_Export_Type;
                                       Field_Name  : in     String;
-                                      Field_Value : in     String)
-   is null;
+                                      Field_Value : in     String);
 
-   overriding procedure End_Record (Exporter    : in out XML_Export_Type)
-   is null;
+   overriding procedure End_Record (Exporter    : in out XML_Export_Type);
 
    ----------------
    -- Base_Table --
@@ -90,6 +89,15 @@ package body Kit.Server.Kit_XML is
    begin
       Ada.Text_IO.Put_Line (Exporter.File, "</key>");
    end End_Key;
+
+   ----------------
+   -- End_Record --
+   ----------------
+
+   overriding procedure End_Record (Exporter : in out XML_Export_Type) is
+   begin
+      Ada.Text_IO.Put_Line (Exporter.File, "</row>");
+   end End_Record;
 
    ---------------
    -- End_Table --
@@ -154,6 +162,21 @@ package body Kit.Server.Kit_XML is
    end Key_Field;
 
    ------------------
+   -- Record_Field --
+   ------------------
+
+   overriding procedure Record_Field (Exporter    : in out XML_Export_Type;
+                                      Field_Name  : in     String;
+                                      Field_Value : in     String)
+   is
+   begin
+      Ada.Text_IO.Put (Exporter.File,
+                       "<" & Field_Name & ">"
+                       & Field_Value
+                       & "</" & Field_Name & ">");
+   end Record_Field;
+
+   ------------------
    -- Start_Export --
    ------------------
 
@@ -188,6 +211,23 @@ package body Kit.Server.Kit_XML is
          & (if Unique then "true" else "false")
          & """>");
    end Start_Key;
+
+   ------------------
+   -- Start_Record --
+   ------------------
+
+   overriding procedure Start_Record
+     (Exporter : in out XML_Export_Type;
+      Reference   : in     Marlowe.Database_Index)
+   is
+      use Ada.Strings, Ada.Strings.Fixed;
+   begin
+      Ada.Text_IO.Put (Exporter.File,
+                       "<row marlowe_id="""
+        & Trim (Marlowe.Database_Index'Image (Reference),
+          Left)
+        & """> ");
+   end Start_Record;
 
    -----------------
    -- Start_Table --

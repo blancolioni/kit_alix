@@ -47,6 +47,12 @@ package Kit.Server.Tables is
      return Database_Record;
 
    overriding
+   function First
+     (Tables       : Database_Type;
+      Table_Index  : Marlowe.Table_Index)
+     return Database_Record;
+
+   overriding
    function First_By_Key_Value
      (Tables       : Database_Type;
       Table_Index  : Marlowe.Table_Index;

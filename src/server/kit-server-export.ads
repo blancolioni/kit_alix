@@ -47,7 +47,8 @@ package Kit.Server.Export is
                         Field_Name : in String)
    is abstract;
 
-   procedure Start_Record (Exporter    : in out Root_Exporter)
+   procedure Start_Record (Exporter    : in out Root_Exporter;
+                           Reference   : in     Marlowe.Database_Index)
    is abstract;
 
    procedure Record_Field (Exporter    : in out Root_Exporter;

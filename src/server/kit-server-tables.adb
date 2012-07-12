@@ -265,36 +265,6 @@ package body Kit.Server.Tables is
          end loop;
       end;
 
-      declare
-         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                  Kit.Db.Kit_Record_Base.First_By_Derived
-                    (Rec.Reference);
-      begin
-         while Base.Has_Element loop
-            declare
-               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-                            Kit.Db.Kit_Record.Get (Base.Base);
-               pragma Assert (Base_Rec.Has_Element);
-               F        : Kit.Db.Kit_Field.Kit_Field_Type :=
-                            Kit.Db.Kit_Field.First_By_Kit_Record
-                              (Base_Rec.Reference);
-            begin
-               while F.Has_Element loop
-                  Result := Result + 1;
-                  if Result = Index then
-                     return Table_Field_Type'(Table.Db, Table.Index,
-                                              F.Reference);
-                  end if;
-                  F.Next;
-               end loop;
-            end;
-
-            Base.Next;
-
-         end loop;
-
-      end;
-
       raise Constraint_Error
         with "asked for illegal field number" & Positive'Image (Index)
         & " in table " & Rec.Name;
@@ -413,32 +383,6 @@ package body Kit.Server.Tables is
             Result := Result + 1;
             F.Next;
          end loop;
-      end;
-
-      declare
-         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                  Kit.Db.Kit_Record_Base.First_By_Derived
-                    (Rec.Reference);
-      begin
-         while Base.Has_Element loop
-            declare
-               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-                            Kit.Db.Kit_Record.Get (Base.Base);
-               pragma Assert (Base_Rec.Has_Element);
-               F        : Kit.Db.Kit_Field.Kit_Field_Type :=
-                            Kit.Db.Kit_Field.First_By_Kit_Record
-                              (Base_Rec.Reference);
-            begin
-               while F.Has_Element loop
-                  Result := Result + 1;
-                  F.Next;
-               end loop;
-            end;
-
-            Base.Next;
-
-         end loop;
-
       end;
 
       return Result;
@@ -565,6 +509,47 @@ package body Kit.Server.Tables is
    begin
       null;
    end Finalize;
+
+   -----------
+   -- First --
+   -----------
+
+   overriding
+   function First
+     (Tables       : Database_Type;
+      Table_Index  : Marlowe.Table_Index)
+      return Database_Record
+   is
+      pragma Unreferenced (Tables);
+      use type Marlowe.Database_Index;
+      use Marlowe.Btree_Handles;
+      Record_Index : Marlowe.Database_Index := 1;
+   begin
+      while Valid_Index (Handle, Table_Index, Record_Index)
+        and then Deleted_Record (Handle, Table_Index, Record_Index)
+      loop
+         Record_Index := Record_Index + 1;
+      end loop;
+
+      if Valid_Index (Handle, Table_Index, Record_Index) then
+         declare
+            Result : constant Kit_Db_Record_Access :=
+                       new Kit_Db_Record
+                         (Record_Length (Handle, Table_Index));
+         begin
+            Result.Table_Index  := Table_Index;
+            Result.Record_Index := Record_Index;
+            Result.Read;
+            Result.Exists := True;
+            Result.Scanning := True;
+            Result.Using_Key := False;
+            Result.Using_Key_Value := False;
+            return Database_Record (Result);
+         end;
+      else
+         return null;
+      end if;
+   end First;
 
    ------------------
    -- First_By_Key --
@@ -839,35 +824,6 @@ package body Kit.Server.Tables is
          end loop;
       end;
 
-      declare
-         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                  Kit.Db.Kit_Record_Base.First_By_Derived
-                    (Rec.Reference);
-      begin
-         while Base.Has_Element loop
-            declare
-               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-                            Kit.Db.Kit_Record.Get (Base.Base);
-               pragma Assert (Base_Rec.Has_Element);
-               K        : Kit.Db.Kit_Key.Kit_Key_Type :=
-                            Kit.Db.Kit_Key.First_By_Kit_Record
-                              (Base_Rec.Reference);
-            begin
-               while K.Has_Element loop
-                  Result := Result + 1;
-                  if Result = Index then
-                     return Table_Key_Type'(Table.Db, Table.Index,
-                                            K.Reference);
-                  end if;
-                  K.Next;
-               end loop;
-            end;
-
-            Base.Next;
-
-         end loop;
-
-      end;
       raise Constraint_Error
         with "asked for illegal key number" & Positive'Image (Index)
         & " in table " & Rec.Name;
@@ -897,32 +853,6 @@ package body Kit.Server.Tables is
             Result := Result + 1;
             K.Next;
          end loop;
-      end;
-
-      declare
-         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                  Kit.Db.Kit_Record_Base.First_By_Derived
-                    (Rec.Reference);
-      begin
-         while Base.Has_Element loop
-            declare
-               Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-                            Kit.Db.Kit_Record.Get (Base.Base);
-               pragma Assert (Base_Rec.Has_Element);
-               K        : Kit.Db.Kit_Key.Kit_Key_Type :=
-                            Kit.Db.Kit_Key.First_By_Kit_Record
-                              (Base_Rec.Reference);
-            begin
-               while K.Has_Element loop
-                  Result := Result + 1;
-                  K.Next;
-               end loop;
-            end;
-
-            Base.Next;
-
-         end loop;
-
       end;
 
       return Result;
