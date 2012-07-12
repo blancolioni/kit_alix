@@ -9,30 +9,30 @@ with Aquarius.Drys.Types;
 
 with Marlowe;
 
-with Kit.Fields;
+with Kit.Schema.Fields;
 
 package body Kit.Generate.Private_Interface is
 
    procedure Create_Compound_Key_To_Storage_Functions
-     (Db    : in     Kit.Databases.Database_Type;
-      Table : in     Kit.Tables.Table_Type'Class;
+     (Db    : in     Kit.Schema.Databases.Database_Type;
+      Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Database_Record
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Memory_Record
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
    pragma Unreferenced (Create_Memory_Record);
 
    procedure Create_Read_Write_Procedures
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Key_Mutexes
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    ----------------------------------------------
@@ -40,15 +40,15 @@ package body Kit.Generate.Private_Interface is
    ----------------------------------------------
 
    procedure Create_Compound_Key_To_Storage_Functions
-     (Db    : in     Kit.Databases.Database_Type;
-      Table : in     Kit.Tables.Table_Type'Class;
+     (Db    : in     Kit.Schema.Databases.Database_Type;
+      Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
 
-      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor);
+      procedure Create_Key_To_Storage (Key : Kit.Schema.Tables.Key_Cursor);
       function To_Storage_Expression
-        (Key   : Kit.Tables.Key_Cursor;
+        (Key   : Kit.Schema.Tables.Key_Cursor;
          Index : Positive)
          return Aquarius.Drys.Expression'Class;
 
@@ -56,8 +56,8 @@ package body Kit.Generate.Private_Interface is
       -- Create_Key_To_Storage --
       ---------------------------
 
-      procedure Create_Key_To_Storage (Key : Kit.Tables.Key_Cursor) is
-         use Kit.Tables;
+      procedure Create_Key_To_Storage (Key : Kit.Schema.Tables.Key_Cursor) is
+         use Kit.Schema.Tables;
       begin
          if Is_Compound_Key (Key) then
             declare
@@ -86,13 +86,13 @@ package body Kit.Generate.Private_Interface is
       ---------------------------
 
       function To_Storage_Expression
-        (Key   : Kit.Tables.Key_Cursor;
+        (Key   : Kit.Schema.Tables.Key_Cursor;
          Index : Positive)
          return Aquarius.Drys.Expression'Class
       is
          use Aquarius.Drys.Expressions;
-         Field : constant Kit.Fields.Field_Type'Class :=
-                   Kit.Tables.Compound_Field (Key, Index);
+         Field : constant Kit.Schema.Fields.Field_Type'Class :=
+                   Kit.Schema.Tables.Compound_Field (Key, Index);
          This  : constant Aquarius.Drys.Expression'Class :=
                    Field.Get_Field_Type.To_Storage_Array
                      (Field.Ada_Name);
@@ -114,7 +114,7 @@ package body Kit.Generate.Private_Interface is
    ----------------------------
 
    procedure Create_Database_Record
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -122,14 +122,14 @@ package body Kit.Generate.Private_Interface is
 
       Record_Defn : Aquarius.Drys.Types.Record_Type_Definition;
 
-      procedure Add_Component (Field : Kit.Fields.Field_Type'Class);
-      procedure Add_Base_Index (Base : Kit.Tables.Table_Type'Class);
+      procedure Add_Component (Field : Kit.Schema.Fields.Field_Type'Class);
+      procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type'Class);
 
       --------------------
       -- Add_Base_Index --
       --------------------
 
-      procedure Add_Base_Index (Base : Kit.Tables.Table_Type'Class) is
+      procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type'Class) is
       begin
          Record_Defn.Add_Component ("T" & Base.Index_Image & "_Idx",
                                     "Marlowe.Database_Index");
@@ -139,8 +139,8 @@ package body Kit.Generate.Private_Interface is
       -- Add_Component --
       -------------------
 
-      procedure Add_Component (Field : Kit.Fields.Field_Type'Class) is
-         use Kit.Tables;
+      procedure Add_Component (Field : Kit.Schema.Fields.Field_Type'Class) is
+         use Kit.Schema.Tables;
       begin
          if Field.Get_Field_Type.Has_Default_Value then
             Aquarius.Drys.Types.Add_Component
@@ -193,25 +193,25 @@ package body Kit.Generate.Private_Interface is
    ------------------------
 
    procedure Create_Key_Mutexes
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
-      procedure Add_Mutex (Base : Kit.Tables.Table_Type'Class;
-                           Key  : Kit.Tables.Key_Cursor);
+      procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type'Class;
+                           Key  : Kit.Schema.Tables.Key_Cursor);
 
       ---------------
       -- Add_Mutex --
       ---------------
 
-      procedure Add_Mutex (Base : Kit.Tables.Table_Type'Class;
-                           Key  : Kit.Tables.Key_Cursor)
+      procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type'Class;
+                           Key  : Kit.Schema.Tables.Key_Cursor)
       is
          pragma Unreferenced (Base);
       begin
          Impl.Append
            (Aquarius.Drys.Declarations.New_Object_Declaration
-              (Kit.Tables.Ada_Name (Key) & "_Key_Mutex",
+              (Kit.Schema.Tables.Ada_Name (Key) & "_Key_Mutex",
                "Kit.Mutex.Mutex_Type"));
       end Add_Mutex;
 
@@ -230,7 +230,7 @@ package body Kit.Generate.Private_Interface is
    --------------------------
 
    procedure Create_Memory_Record
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -265,7 +265,7 @@ package body Kit.Generate.Private_Interface is
    ----------------------------------
 
    procedure Create_Read_Write_Procedures
-     (Table : in     Kit.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -306,15 +306,15 @@ package body Kit.Generate.Private_Interface is
 
          Block : Aquarius.Drys.Blocks.Block_Type;
 
-         procedure Handle_Storage (Field : Kit.Fields.Field_Type'Class);
-         procedure Handle_Base (Base : Kit.Tables.Table_Type'Class);
+         procedure Handle_Storage (Field : Kit.Schema.Fields.Field_Type'Class);
+         procedure Handle_Base (Base : Kit.Schema.Tables.Table_Type'Class);
 
          -----------------
          -- Handle_Base --
          -----------------
 
          procedure Handle_Base
-           (Base : Kit.Tables.Table_Type'Class)
+           (Base : Kit.Schema.Tables.Table_Type'Class)
          is
             use Ada.Strings, Ada.Strings.Fixed;
             use Aquarius.Drys, Aquarius.Drys.Statements;
@@ -345,7 +345,7 @@ package body Kit.Generate.Private_Interface is
          --------------------
 
          procedure Handle_Storage
-           (Field : Kit.Fields.Field_Type'Class)
+           (Field : Kit.Schema.Fields.Field_Type'Class)
          is
             Start  : constant Storage_Offset := Table.Field_Start (Field);
             Finish : constant Storage_Offset :=
@@ -415,8 +415,8 @@ package body Kit.Generate.Private_Interface is
    --------------------------------
 
    function Generate_Private_Interface
-     (Db    : in out Kit.Databases.Database_Type;
-      Table : in     Kit.Tables.Table_Type'Class;
+     (Db    : in out Kit.Schema.Databases.Database_Type;
+      Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in     Aquarius.Drys.Declarations.Package_Type'Class)
       return Aquarius.Drys.Declarations.Package_Type'Class
    is

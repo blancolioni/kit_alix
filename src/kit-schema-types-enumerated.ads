@@ -1,9 +1,9 @@
 with Ada.Containers.Indefinite_Vectors;
 
-package Kit.Types.Enumerated is
+package Kit.Schema.Types.Enumerated is
 
    type Enumerated_Type is
-     new Kit.Types.Kit_Type with private;
+     new Kit.Schema.Types.Kit_Type with private;
 
    procedure Add_Literal (To      : in out Enumerated_Type;
                           Literal : String);
@@ -17,7 +17,7 @@ private
      new Ada.Containers.Indefinite_Vectors (Positive, String);
 
    type Enumerated_Type is
-     new Kit.Types.Kit_Type with
+     new Kit.Schema.Types.Kit_Type with
       record
          Literals : String_Vectors.Vector;
       end record;
@@ -60,4 +60,4 @@ private
 
    function Size (Item : Record_Type_Enumeration) return Natural;
 
-end Kit.Types.Enumerated;
+end Kit.Schema.Types.Enumerated;

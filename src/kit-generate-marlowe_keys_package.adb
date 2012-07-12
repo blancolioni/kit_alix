@@ -1,4 +1,4 @@
-with Kit.Tables;
+with Kit.Schema.Tables;
 
 package body Kit.Generate.Marlowe_Keys_Package is
 
@@ -7,7 +7,7 @@ package body Kit.Generate.Marlowe_Keys_Package is
    ----------------------
 
    function Generate_Package
-     (Db : in out Kit.Databases.Database_Type)
+     (Db : in out Kit.Schema.Databases.Database_Type)
       return Aquarius.Drys.Declarations.Package_Type
    is
       Result : Aquarius.Drys.Declarations.Package_Type :=
@@ -15,27 +15,27 @@ package body Kit.Generate.Marlowe_Keys_Package is
                    (Db.Ada_Name & ".Marlowe_Keys");
 
       procedure Generate_Table_Keys
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
       -------------------------
       -- Generate_Table_Keys --
       -------------------------
 
       procedure Generate_Table_Keys
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
-         procedure Generate_Key (Base   : Kit.Tables.Table_Type'Class;
-                                 Cursor : Kit.Tables.Key_Cursor);
+         procedure Generate_Key (Base   : Kit.Schema.Tables.Table_Type'Class;
+                                 Cursor : Kit.Schema.Tables.Key_Cursor);
 
          ------------------
          -- Generate_Key --
          ------------------
 
-         procedure Generate_Key (Base   : Kit.Tables.Table_Type'Class;
-                                 Cursor : Kit.Tables.Key_Cursor)
+         procedure Generate_Key (Base   : Kit.Schema.Tables.Table_Type'Class;
+                                 Cursor : Kit.Schema.Tables.Key_Cursor)
          is
             pragma Unreferenced (Base);
-            use Kit.Tables;
+            use Kit.Schema.Tables;
             Dec : constant Aquarius.Drys.Declaration'Class :=
                     Aquarius.Drys.Declarations.New_Object_Declaration
                       (Table.Key_Reference_Name (Cursor),

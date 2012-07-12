@@ -1,9 +1,9 @@
 private with Ada.Containers.Vectors;
 
 with Kit.Names;
-with Kit.Tables;
+with Kit.Schema.Tables;
 
-package Kit.Databases is
+package Kit.Schema.Databases is
 
    type Database_Type is
      new Kit.Names.Root_Named_Object with private;
@@ -18,25 +18,26 @@ package Kit.Databases is
                      return Boolean;
    function Element (Database : Database_Type;
                      Name     : String)
-                     return Kit.Tables.Table_Type'Class;
+                     return Kit.Schema.Tables.Table_Type'Class;
    function Element (Database : Database_Type;
                      Index    : Positive)
-                     return Kit.Tables.Table_Type'Class;
+                     return Kit.Schema.Tables.Table_Type'Class;
 
    procedure Next (Position : in out Table_Cursor);
 
    function Element (Position : Table_Cursor)
-                    return Kit.Tables.Table_Type'Class;
+                    return Kit.Schema.Tables.Table_Type'Class;
    function Has_Element (Position : Table_Cursor)
                         return Boolean;
 
    procedure Iterate (Database : Database_Type;
                       Process  : not null access
-                        procedure (Table : Kit.Tables.Table_Type'Class));
+                        procedure
+                          (Table : Kit.Schema.Tables.Table_Type'Class));
 
    procedure Append
      (Db   : in out Database_Type;
-      Item : in     Kit.Tables.Table_Type'Class);
+      Item : in     Kit.Schema.Tables.Table_Type'Class);
 
    procedure Create_Database (Db   : in out Database_Type;
                               Name : in     String);
@@ -46,7 +47,7 @@ package Kit.Databases is
 
 private
 
-   type Database_Table is access all Kit.Tables.Table_Type'Class;
+   type Database_Table is access all Kit.Schema.Tables.Table_Type'Class;
    package Table_Vectors is
       new Ada.Containers.Vectors (Positive, Database_Table);
 
@@ -58,4 +59,4 @@ private
 
    type Table_Cursor is new Table_Vectors.Cursor;
 
-end Kit.Databases;
+end Kit.Schema.Databases;

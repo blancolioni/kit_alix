@@ -1,5 +1,7 @@
 with Ada.Containers.Vectors;
 
+with Kit.Server.Export;
+with Kit.Server.Kit_XML;
 with Kit.Server.Tables;
 
 with Kit.Db.Kit_Record;
@@ -37,6 +39,11 @@ package body Kit.Server.SK_Bindings is
       return SK.Object;
 
    function Evaluate_Close_Record
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
+   function Evaluate_Export_Database_XML
      (Context   : SK.Cells.Managed_Cells;
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
@@ -91,6 +98,7 @@ package body Kit.Server.SK_Bindings is
       Bind_Function ("#tableName", 1, Evaluate_Table_Name'Access);
       Bind_Function ("#getRecord", 2, Evaluate_Get_Record'Access);
       Bind_Function ("#closeRecord", 1, Evaluate_Close_Record'Access);
+      Bind_Function ("#exportxml", 1, Evaluate_Export_Database_XML'Access);
       Bind_Function ("#getFieldCount", 1, Evaluate_Get_Field_Count'Access);
       Bind_Function ("#getFieldName", 2, Evaluate_Get_Field_Name'Access);
       Bind_Function ("#getFieldValue", 2, Evaluate_Get_Field_Value'Access);
@@ -124,6 +132,29 @@ package body Kit.Server.SK_Bindings is
       Deactivate (Handle);
       return SK.To_Object (Integer'(0));
    end Evaluate_Close_Record;
+
+   ----------------------------------
+   -- Evaluate_Export_Database_XML --
+   ----------------------------------
+
+   function Evaluate_Export_Database_XML
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+      Path : constant String :=
+               Leander.Builtin.Object_To_String
+                 (Context,
+                  Arguments (Arguments'First));
+      Exporter : Kit.Server.Export.Root_Exporter'Class :=
+                   Kit.Server.Kit_XML.XML_Exporter
+                     (Path);
+   begin
+      Kit.Server.Export.Export
+        (Db       => Kit.Server.Tables.Active_Database.all,
+         Exporter => Exporter);
+      return SK.To_Object (Integer'(1));
+   end Evaluate_Export_Database_XML;
 
    ------------------------------
    -- Evaluate_Get_Field_Count --

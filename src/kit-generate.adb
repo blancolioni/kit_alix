@@ -3,8 +3,8 @@ with Aquarius.Drys.Types;
 
 with Kit.String_Maps;
 
-with Kit.Tables;
-with Kit.Types;
+with Kit.Schema.Tables;
+with Kit.Schema.Types;
 
 with Kit.Generate.Database_Package;
 with Kit.Generate.Get_From_Cache;
@@ -15,41 +15,41 @@ with Kit.Generate.Private_Interface;
 package body Kit.Generate is
 
    procedure Create_Handle_Function
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    pragma Unreferenced (Create_Handle_Function);
 
    procedure Create_Table_Type
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_Field_Type
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_Key_Type
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_Reference_Types
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_User_Defined_Types
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_Record_Interface
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_Search_Interface
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    procedure Create_Locking_Interface
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
 
    -----------------------
@@ -57,7 +57,7 @@ package body Kit.Generate is
    -----------------------
 
    procedure Create_Field_Type
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
 
@@ -65,27 +65,27 @@ package body Kit.Generate is
       Field_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
 
       procedure Add_Table_Fields
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
       procedure Add_Table_Fields
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
 
          procedure Add_Field_Type_Literal
-           (Base : Kit.Tables.Table_Type'Class;
-            Item : Kit.Tables.Field_Cursor);
+           (Base : Kit.Schema.Tables.Table_Type'Class;
+            Item : Kit.Schema.Tables.Field_Cursor);
 
          --------------------------
          -- Add_Key_Type_Literal --
          --------------------------
 
          procedure Add_Field_Type_Literal
-           (Base : Kit.Tables.Table_Type'Class;
-            Item : Kit.Tables.Field_Cursor)
+           (Base : Kit.Schema.Tables.Table_Type'Class;
+            Item : Kit.Schema.Tables.Field_Cursor)
          is
             pragma Unreferenced (Base);
             Name : constant String :=
-                     Kit.Tables.Element (Item).Ada_Name;
+                     Kit.Schema.Tables.Element (Item).Ada_Name;
          begin
             if not Found.Contains (Name) then
                Field_Type_Definition.New_Literal ("F_" & Name);
@@ -113,7 +113,7 @@ package body Kit.Generate is
    ----------------------------
 
    procedure Create_Handle_Function
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
       pragma Unreferenced (Db);
@@ -139,39 +139,39 @@ package body Kit.Generate is
    ---------------------
 
    procedure Create_Key_Type
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
       procedure Add_Table_Keys
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
       --------------------
       -- Add_Table_Keys --
       --------------------
 
       procedure Add_Table_Keys
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
 
          Key_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
 
          procedure Add_Key_Type_Literal
-           (Base : Kit.Tables.Table_Type'Class;
-            Item : Kit.Tables.Key_Cursor);
+           (Base : Kit.Schema.Tables.Table_Type'Class;
+            Item : Kit.Schema.Tables.Key_Cursor);
 
          --------------------------
          -- Add_Key_Type_Literal --
          --------------------------
 
          procedure Add_Key_Type_Literal
-           (Base : Kit.Tables.Table_Type'Class;
-            Item : Kit.Tables.Key_Cursor)
+           (Base : Kit.Schema.Tables.Table_Type'Class;
+            Item : Kit.Schema.Tables.Key_Cursor)
          is
             pragma Unreferenced (Base);
          begin
             Key_Type_Definition.New_Literal
               ("K_" & Table.Name & "_"
-               & Kit.Tables.Name (Item));
+               & Kit.Schema.Tables.Name (Item));
          end Add_Key_Type_Literal;
 
       begin
@@ -192,7 +192,7 @@ package body Kit.Generate is
    ------------------------------
 
    procedure Create_Locking_Interface
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
       pragma Unreferenced (Db);
@@ -260,7 +260,7 @@ package body Kit.Generate is
    -----------------------------
 
    procedure Create_Record_Interface
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
       use Aquarius.Drys, Aquarius.Drys.Declarations;
@@ -315,19 +315,19 @@ package body Kit.Generate is
    ----------------------------
 
    procedure Create_Reference_Types
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
 
       procedure Add_Reference_Type
-        (Item : Kit.Tables.Table_Type'Class);
+        (Item : Kit.Schema.Tables.Table_Type'Class);
 
       ------------------------
       -- Add_Reference_Type --
       ------------------------
 
       procedure Add_Reference_Type
-        (Item : Kit.Tables.Table_Type'Class)
+        (Item : Kit.Schema.Tables.Table_Type'Class)
       is
          use Aquarius.Drys, Aquarius.Drys.Declarations;
          Reference_Name : constant String :=
@@ -367,7 +367,7 @@ package body Kit.Generate is
    -----------------------------
 
    procedure Create_Search_Interface
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
       use Aquarius.Drys, Aquarius.Drys.Declarations;
@@ -402,20 +402,20 @@ package body Kit.Generate is
    -----------------------
 
    procedure Create_Table_Type
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
       Table_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
 
       procedure Add_Table_Type_Literal
-        (Item : Kit.Tables.Table_Type'Class);
+        (Item : Kit.Schema.Tables.Table_Type'Class);
 
       ----------------------------
       -- Add_Table_Type_Literal --
       ----------------------------
 
       procedure Add_Table_Type_Literal
-        (Item : Kit.Tables.Table_Type'Class)
+        (Item : Kit.Schema.Tables.Table_Type'Class)
       is
       begin
          Table_Type_Definition.New_Literal ("R_" & Item.Name);
@@ -436,25 +436,25 @@ package body Kit.Generate is
    -------------------------------
 
    procedure Create_User_Defined_Types
-     (Db  : Kit.Databases.Database_Type;
+     (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
 
       pragma Unreferenced (Db);
 
-      procedure Create_Type (User_Type : Kit.Types.Kit_Type'Class);
+      procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type'Class);
 
       -----------------
       -- Create_Type --
       -----------------
 
-      procedure Create_Type (User_Type : Kit.Types.Kit_Type'Class) is
+      procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type'Class) is
       begin
          Top.Append (User_Type.To_Declaration);
       end Create_Type;
 
    begin
-      Kit.Types.Iterate_User_Defined_Types (Create_Type'Access);
+      Kit.Schema.Types.Iterate_User_Defined_Types (Create_Type'Access);
    end Create_User_Defined_Types;
 
 
@@ -464,7 +464,7 @@ package body Kit.Generate is
    -----------------------
 
    function Generate_Database
-     (Db : in out Kit.Databases.Database_Type)
+     (Db : in out Kit.Schema.Databases.Database_Type)
       return Aquarius.Drys.Projects.Project
    is
       Top_Package : Aquarius.Drys.Declarations.Package_Type :=
@@ -475,20 +475,20 @@ package body Kit.Generate is
       function Get_Record_Literal_Name (Index : Positive) return String;
 
       procedure Get_From_Cache
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
       procedure Public_Interface
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
       procedure Private_Interface
-        (Table : Kit.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type'Class);
 
       --------------------
       -- Get_From_Cache --
       --------------------
 
       procedure Get_From_Cache
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
       begin
          Project.Add_Package
@@ -510,7 +510,7 @@ package body Kit.Generate is
       -----------------------
 
       procedure Private_Interface
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
       begin
          Project.Add_Package
@@ -523,7 +523,7 @@ package body Kit.Generate is
       ----------------------
 
       procedure Public_Interface
-        (Table : Kit.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type'Class)
       is
       begin
          Project.Add_Package
@@ -533,7 +533,7 @@ package body Kit.Generate is
 
    begin
 
-      Kit.Types.Update_Record_Type (Db.Table_Count,
+      Kit.Schema.Types.Update_Record_Type (Db.Table_Count,
                                     Get_Record_Literal_Name'Access);
 
       Top_Package.With_Package ("Marlowe", Private_With => True);

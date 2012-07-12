@@ -1,9 +1,9 @@
 private with Ada.Containers.Vectors;
 
 with Kit.Names;
-with Kit.Types;
+with Kit.Schema.Types;
 
-package Kit.Fields is
+package Kit.Schema.Fields is
 
    type Root_Field_Type is
      new Kit.Names.Root_Named_Object with private;
@@ -20,12 +20,13 @@ package Kit.Fields is
 
    type Field_Type is new Root_Field_Type with private;
 
-   procedure Create_Field (Item       : in out Field_Type;
-                           Name       : in     String;
-                           Field_Type : in     Kit.Types.Kit_Type'Class);
+   procedure Create_Field
+     (Item       : in out Field_Type;
+      Name       : in     String;
+      Field_Type : in     Kit.Schema.Types.Kit_Type'Class);
 
    function Get_Field_Type (Item : Field_Type)
-                           return Kit.Types.Kit_Type'Class;
+                           return Kit.Schema.Types.Kit_Type'Class;
 
    function Created (Field : Field_Type) return Boolean;
    --  return True if Field should be part of the Create subprograms
@@ -69,7 +70,7 @@ private
 
    type Field_Type is new Root_Field_Type with
       record
-         Field_Type : access Kit.Types.Kit_Type'Class;
+         Field_Type : access Kit.Schema.Types.Kit_Type'Class;
       end record;
 
    type Field_Access is access all Root_Field_Type'Class;
@@ -84,4 +85,4 @@ private
          Fields : Field_Vectors.Vector;
       end record;
 
-end Kit.Fields;
+end Kit.Schema.Fields;
