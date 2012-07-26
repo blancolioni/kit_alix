@@ -1277,6 +1277,8 @@ package body Kit.Schema.Tables is
       Object_Component : constant String :=
                            (if Object_Name = ""
                             then ""
+                            elsif Object_Name (Object_Name'Last) = '_'
+                            then Object_Name
                             else Object_Name & ".");
    begin
       if F.Is_Compound then

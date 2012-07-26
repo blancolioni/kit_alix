@@ -13,3 +13,4 @@ tests/*.marlowe
 tests/generated/*
 src/server/generated
 src/server/leander
+*.orig

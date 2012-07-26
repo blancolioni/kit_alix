@@ -11,7 +11,17 @@ package Kit.Generate.Public_Get is
       Scan          : in     Boolean;
       First         : in     Boolean;
       Key           : in     Kit.Schema.Tables.Key_Cursor;
-      Key_Value     : in     Boolean);
+      Key_Value     : in     Boolean;
+      Bounds        : in     Boolean);
+
+   --  Generate a function which gets a single (iterable) record from
+   --  the given Table.  If Key is True, the key found in the Key_Value
+   --  cursor is used, and Key_Table should be the table which originally
+   --  declared the key.  If First is True, the iterator starts from the
+   --  first result and continues forward; otherwise it starts from the
+   --  last result and continues backwards.  If Bounds is true, a function
+   --  with both upper and lower bounds is generated.
+
 
    procedure Create_Default_Key_Functions
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;

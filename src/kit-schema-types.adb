@@ -55,6 +55,12 @@ package body Kit.Schema.Types is
    function Default_Value (Item : Float_Type)
                            return Aquarius.Drys.Expression'Class;
 
+   overriding
+   function To_Storage_Array
+     (Item        : Float_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class;
+
    type Boolean_Type is new Kit_Type with null record;
 
    overriding
@@ -1102,6 +1108,23 @@ package body Kit.Schema.Types is
          New_Function_Call_Expression
            ("Marlowe.Database_Index",
             Object_Name));
+   end To_Storage_Array;
+
+   ----------------------
+   -- To_Storage_Array --
+   ----------------------
+
+   function To_Storage_Array
+     (Item        : Float_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+      use Aquarius.Drys, Aquarius.Drys.Expressions;
+   begin
+      return New_Function_Call_Expression
+        ("Marlowe.Key_Storage.To_Storage_Array",
+         Object_Name);
    end To_Storage_Array;
 
    ----------------------
