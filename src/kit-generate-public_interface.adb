@@ -1741,16 +1741,30 @@ package body Kit.Generate.Public_Interface is
                                 Key   : Kit.Schema.Tables.Key_Cursor)
       is
       begin
-         for Use_Key_Value in Boolean loop
+         for First in reverse Boolean loop
+            for Use_Key_Value in Boolean loop
+               Public_Get.Create_Get_Function
+                 (Db            => Db,
+                  Table         => Table,
+                  Key_Table     => Base,
+                  Table_Package => Table_Package,
+                  Scan          => True,
+                  First         => First,
+                  Key           => Key,
+                  Key_Value     => Use_Key_Value,
+                  Bounds        => False);
+            end loop;
+
             Public_Get.Create_Get_Function
               (Db            => Db,
                Table         => Table,
                Key_Table     => Base,
                Table_Package => Table_Package,
                Scan          => True,
-               First         => True,
+               First         => First,
                Key           => Key,
-               Key_Value     => Use_Key_Value);
+               Key_Value     => True,
+               Bounds        => True);
          end loop;
 
          if Base.Ada_Name = Table.Ada_Name
@@ -1901,7 +1915,8 @@ package body Kit.Generate.Public_Interface is
          Scan          => False,
          First         => True,
          Key           => Kit.Schema.Tables.Null_Key_Cursor,
-         Key_Value     => False);
+         Key_Value     => False,
+         Bounds        => False);
 
       Public_Get.Create_Get_Function
         (Db            => Db,
@@ -1911,7 +1926,8 @@ package body Kit.Generate.Public_Interface is
          Scan          => True,
          First         => True,
          Key           => Kit.Schema.Tables.Null_Key_Cursor,
-         Key_Value     => False);
+         Key_Value     => False,
+         Bounds        => False);
 
       Table.Scan_Keys (Create_Key_Get'Access);
 

@@ -163,7 +163,8 @@ package body Kit.Generate.Public_Get is
       Scan          : in     Boolean;
       First         : in     Boolean;
       Key           : in     Kit.Schema.Tables.Key_Cursor;
-      Key_Value     : in     Boolean)
+      Key_Value     : in     Boolean;
+      Bounds        : in     Boolean)
    is
       pragma Unreferenced (Db);
       use Aquarius.Drys;
@@ -367,6 +368,16 @@ package body Kit.Generate.Public_Get is
                                      Table.To_Storage
                                        (Table, Key_Table, "", Key,
                                         With_Index => False);
+                  First_To_Storage : constant Expression'Class :=
+                                       Table.To_Storage
+                                         (Table, Key_Table,
+                                          "Start_", Key,
+                                          With_Index => False);
+                  Last_To_Storage  : constant Expression'Class :=
+                                       Table.To_Storage
+                                         (Table, Key_Table,
+                                          "Finish_", Key,
+                                          With_Index => False);
                   Start_Storage  : constant Expression'Class :=
                                      New_Function_Call_Expression
                                        ("Marlowe.Key_Storage.To_Storage_Array",
@@ -385,10 +396,19 @@ package body Kit.Generate.Public_Get is
                     (Object
                        ("Marlowe_Keys."
                         & Table.Key_Reference_Name (Key)));
-                  Initialiser.Add_Actual_Argument
-                    (Operator ("&", Key_To_Storage, Start_Storage));
-                  Initialiser.Add_Actual_Argument
-                    (Operator ("&", Key_To_Storage, Last_Storage));
+
+                  if Bounds then
+                     Initialiser.Add_Actual_Argument
+                       (Operator ("&", First_To_Storage, Start_Storage));
+                     Initialiser.Add_Actual_Argument
+                       (Operator ("&", Last_To_Storage, Last_Storage));
+                  else
+                     Initialiser.Add_Actual_Argument
+                       (Operator ("&", Key_To_Storage, Start_Storage));
+                     Initialiser.Add_Actual_Argument
+                       (Operator ("&", Key_To_Storage, Last_Storage));
+                  end if;
+
                   Initialiser.Add_Actual_Argument
                     (Object ("Marlowe.Closed"));
                   Initialiser.Add_Actual_Argument
@@ -465,25 +485,68 @@ package body Kit.Generate.Public_Get is
 
          if Using_Key and then Key_Value then
             if Kit.Schema.Tables.Is_Compound_Key (Key) then
-               for I in 1 .. Kit.Schema.Tables.Compound_Field_Count (Key) loop
-                  declare
-                     Field : Kit.Schema.Fields.Field_Type'Class
-                     renames Kit.Schema.Tables.Compound_Field (Key, I);
-                  begin
-                     Fn.Add_Formal_Argument
-                       (New_Formal_Argument
-                          (Field.Ada_Name,
-                           Named_Subtype
-                             (Field.Get_Field_Type.Argument_Subtype)));
-                  end;
-               end loop;
+               if Bounds then
+                  for I in 1 .. Schema.Tables.Compound_Field_Count (Key) loop
+                     declare
+                        Field : Kit.Schema.Fields.Field_Type'Class
+                        renames Kit.Schema.Tables.Compound_Field (Key, I);
+                     begin
+                        Fn.Add_Formal_Argument
+                          (New_Formal_Argument
+                             ("Start_" & Field.Ada_Name,
+                              Named_Subtype
+                                (Field.Get_Field_Type.Argument_Subtype)));
+                     end;
+                  end loop;
+                  for I in 1 .. Schema.Tables.Compound_Field_Count (Key) loop
+                     declare
+                        Field : Kit.Schema.Fields.Field_Type'Class
+                        renames Kit.Schema.Tables.Compound_Field (Key, I);
+                     begin
+                        Fn.Add_Formal_Argument
+                          (New_Formal_Argument
+                             ("Finish_" & Field.Ada_Name,
+                              Named_Subtype
+                                (Field.Get_Field_Type.Argument_Subtype)));
+                     end;
+                  end loop;
+               else
+                  for I in 1 .. Schema.Tables.Compound_Field_Count (Key) loop
+                     declare
+                        Field : Kit.Schema.Fields.Field_Type'Class
+                        renames Kit.Schema.Tables.Compound_Field (Key, I);
+                     begin
+                        Fn.Add_Formal_Argument
+                          (New_Formal_Argument
+                             (Field.Ada_Name,
+                              Named_Subtype
+                                (Field.Get_Field_Type.Argument_Subtype)));
+                     end;
+                  end loop;
+               end if;
+
             else
-               Fn.Add_Formal_Argument
-                 (New_Formal_Argument
-                    (Kit.Schema.Tables.Ada_Name (Key),
-                     Named_Subtype
-                       (Kit.Schema.Tables.Key_Type
-                          (Key).Argument_Subtype)));
+               if Bounds then
+                  Fn.Add_Formal_Argument
+                    (New_Formal_Argument
+                       ("Start_" & Kit.Schema.Tables.Ada_Name (Key),
+                        Named_Subtype
+                          (Kit.Schema.Tables.Key_Type
+                             (Key).Argument_Subtype)));
+                  Fn.Add_Formal_Argument
+                    (New_Formal_Argument
+                       ("Finish_" & Kit.Schema.Tables.Ada_Name (Key),
+                        Named_Subtype
+                          (Kit.Schema.Tables.Key_Type
+                             (Key).Argument_Subtype)));
+               else
+                  Fn.Add_Formal_Argument
+                    (New_Formal_Argument
+                       (Kit.Schema.Tables.Ada_Name (Key),
+                        Named_Subtype
+                          (Kit.Schema.Tables.Key_Type
+                             (Key).Argument_Subtype)));
+               end if;
             end if;
          end if;
 
