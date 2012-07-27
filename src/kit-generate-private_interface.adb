@@ -67,7 +67,7 @@ package body Kit.Generate.Private_Interface is
                         (Ada_Name (Key) & "_To_Storage",
                          "System.Storage_Elements.Storage_Array",
                          To_Storage_Expression
-                           (Key, Compound_Field_Count (Key)));
+                           (Key, 1));
             begin
                for I in 1 .. Compound_Field_Count (Key) loop
                   Fn.Add_Formal_Argument
@@ -97,11 +97,11 @@ package body Kit.Generate.Private_Interface is
                    Field.Get_Field_Type.To_Storage_Array
                      (Field.Ada_Name);
       begin
-         if Index = 1 then
+         if Index = Kit.Schema.Tables.Compound_Field_Count (Key) then
             return This;
          else
             return Operator ("&", This,
-                             To_Storage_Expression (Key, Index - 1));
+                             To_Storage_Expression (Key, Index + 1));
          end if;
       end To_Storage_Expression;
 

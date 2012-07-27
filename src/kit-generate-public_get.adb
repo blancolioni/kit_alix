@@ -491,11 +491,22 @@ package body Kit.Generate.Public_Get is
                         Field : Kit.Schema.Fields.Field_Type'Class
                         renames Kit.Schema.Tables.Compound_Field (Key, I);
                      begin
-                        Fn.Add_Formal_Argument
-                          (New_Formal_Argument
-                             ("Start_" & Field.Ada_Name,
-                              Named_Subtype
-                                (Field.Get_Field_Type.Argument_Subtype)));
+                        if I = 1
+                          or else Field.Get_Field_Type.Is_Table_Reference
+                        then
+                           Fn.Add_Formal_Argument
+                             (New_Formal_Argument
+                                ("Start_" & Field.Ada_Name,
+                                 Named_Subtype
+                                   (Field.Get_Field_Type.Argument_Subtype)));
+                        else
+                           Fn.Add_Formal_Argument
+                             (New_Formal_Argument
+                                ("Start_" & Field.Ada_Name,
+                                 Named_Subtype
+                                   (Field.Get_Field_Type.Argument_Subtype),
+                                 Field.Get_Field_Type.First_Value));
+                        end if;
                      end;
                   end loop;
                   for I in 1 .. Schema.Tables.Compound_Field_Count (Key) loop
@@ -503,11 +514,22 @@ package body Kit.Generate.Public_Get is
                         Field : Kit.Schema.Fields.Field_Type'Class
                         renames Kit.Schema.Tables.Compound_Field (Key, I);
                      begin
-                        Fn.Add_Formal_Argument
-                          (New_Formal_Argument
-                             ("Finish_" & Field.Ada_Name,
-                              Named_Subtype
-                                (Field.Get_Field_Type.Argument_Subtype)));
+                        if I = 1
+                          or else Field.Get_Field_Type.Is_Table_Reference
+                        then
+                           Fn.Add_Formal_Argument
+                             (New_Formal_Argument
+                                ("Finish_" & Field.Ada_Name,
+                                 Named_Subtype
+                                   (Field.Get_Field_Type.Argument_Subtype)));
+                        else
+                           Fn.Add_Formal_Argument
+                             (New_Formal_Argument
+                                ("Finish_" & Field.Ada_Name,
+                                 Named_Subtype
+                                   (Field.Get_Field_Type.Argument_Subtype),
+                                 Field.Get_Field_Type.Last_Value));
+                        end if;
                      end;
                   end loop;
                else
