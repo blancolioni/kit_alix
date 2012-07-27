@@ -26,6 +26,7 @@ package Kit.Schema.Types is
                            is abstract;
 
    function Is_String (Item : Kit_Type) return Boolean;
+   function Is_Table_Reference (Item : Kit_Type) return Boolean;
 
    function Size (Item : Kit_Type) return Natural;
 
@@ -65,6 +66,12 @@ package Kit.Schema.Types is
      (For_Type : Kit_Type)
       return Aquarius.Drys.Statement'Class
       is abstract;
+
+   function First_Value (Of_Type : Kit_Type)
+                         return Aquarius.Drys.Expression'Class;
+
+   function Last_Value (Of_Type : Kit_Type)
+                        return Aquarius.Drys.Expression'Class;
 
    function Standard_Integer     return Kit_Type'Class;
    function Standard_Positive    return Kit_Type'Class;

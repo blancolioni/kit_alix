@@ -661,6 +661,18 @@ package body Aquarius.Drys.Declarations is
          In_Argument);
    end New_Formal_Argument;
 
+   function New_Formal_Argument
+     (Name             : String;
+      Argument_Type    : Subtype_Indication'Class;
+      Argument_Default : Expression'Class)
+     return Formal_Argument'Class
+   is
+   begin
+      return New_Formal_Argument
+        (New_Object_Declaration (Name, Argument_Type, Argument_Default),
+         In_Argument);
+   end New_Formal_Argument;
+
    -------------------------------
    -- New_Full_Type_Declaration --
    -------------------------------
@@ -764,6 +776,26 @@ package body Aquarius.Drys.Declarations is
          Is_Constant => False,
          Is_Deferred => False,
          Object_Type => Object_Type);
+   end New_Object_Declaration;
+
+   ----------------------------
+   -- New_Object_Declaration --
+   ----------------------------
+
+   function New_Object_Declaration
+     (Name        : String;
+      Object_Type : Subtype_Indication'Class;
+      Initialiser : Expression'Class)
+     return Object_Declaration'Class
+   is
+   begin
+      return New_Object_Declaration
+        (Identifiers => Identifier (Name),
+         Is_Aliased  => False,
+         Is_Constant => False,
+         Is_Deferred => False,
+         Object_Type => Object_Type,
+         Initialiser => Initialiser);
    end New_Object_Declaration;
 
    ----------------------------

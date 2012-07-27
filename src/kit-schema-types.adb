@@ -99,6 +99,14 @@ package body Kit.Schema.Types is
       return Aquarius.Drys.Statement'Class;
 
    overriding
+   function First_Value (Item : Table_Reference_Type_Record)
+                         return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Last_Value (Item : Table_Reference_Type_Record)
+                        return Aquarius.Drys.Expression'Class;
+
+   overriding
    function Convert_To_String (Item   : Table_Reference_Type_Record;
                                Object_Name : String)
                                return Aquarius.Drys.Expression'Class;
@@ -164,6 +172,19 @@ package body Kit.Schema.Types is
 
    overriding
    function Is_String (Item : String_Type) return Boolean;
+
+   overriding
+   function Is_Table_Reference
+     (Item : Table_Reference_Type_Record)
+      return Boolean;
+
+   overriding
+   function First_Value (Item : String_Type)
+                         return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Last_Value (Item : String_Type)
+                        return Aquarius.Drys.Expression'Class;
 
    overriding
    function Create_Database_Record
@@ -492,6 +513,45 @@ package body Kit.Schema.Types is
       return Aquarius.Drys.Object ("((others => Character'Val (0)), 0)");
    end Default_Value;
 
+   -----------------
+   -- First_Value --
+   -----------------
+
+   function First_Value (Of_Type : Kit_Type)
+                         return Aquarius.Drys.Expression'Class
+   is
+   begin
+      return Aquarius.Drys.Object
+        (Kit_Type'Class (Of_Type).Ada_Name
+         & "'First");
+   end First_Value;
+
+   -----------------
+   -- First_Value --
+   -----------------
+
+   overriding
+   function First_Value (Item : String_Type)
+                         return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object ("(1 => Character'First)");
+   end First_Value;
+
+   -----------------
+   -- First_Value --
+   -----------------
+
+   overriding
+   function First_Value (Item : Table_Reference_Type_Record)
+                         return Aquarius.Drys.Expression'Class
+   is
+   begin
+      return Aquarius.Drys.Object
+        (Kit_Type'Class (Item).Ada_Name & "_Reference'First");
+   end First_Value;
+
    --------------
    -- Get_Type --
    --------------
@@ -547,6 +607,30 @@ package body Kit.Schema.Types is
       return True;
    end Is_String;
 
+   ------------------------
+   -- Is_Table_Reference --
+   ------------------------
+
+   function Is_Table_Reference (Item : Kit_Type) return Boolean is
+      pragma Unreferenced (Item);
+   begin
+      return False;
+   end Is_Table_Reference;
+
+   ------------------------
+   -- Is_Table_Reference --
+   ------------------------
+
+   overriding
+   function Is_Table_Reference
+     (Item : Table_Reference_Type_Record)
+      return Boolean
+   is
+      pragma Unreferenced (Item);
+   begin
+      return True;
+   end Is_Table_Reference;
+
    ------------------
    -- Is_Type_Name --
    ------------------
@@ -590,6 +674,45 @@ package body Kit.Schema.Types is
          Next (It);
       end loop;
    end Iterate_User_Defined_Types;
+
+   ----------------
+   -- Last_Value --
+   ----------------
+
+   function Last_Value (Of_Type : Kit_Type)
+                         return Aquarius.Drys.Expression'Class
+   is
+   begin
+      return Aquarius.Drys.Object
+        (Kit_Type'Class (Of_Type).Ada_Name
+         & "'Last");
+   end Last_Value;
+
+   ----------------
+   -- Last_Value --
+   ----------------
+
+   overriding
+   function Last_Value (Item : String_Type)
+                        return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object ("(1 => Character'Last)");
+   end Last_Value;
+
+   ----------------
+   -- Last_Value --
+   ----------------
+
+   overriding
+   function Last_Value (Item : Table_Reference_Type_Record)
+                        return Aquarius.Drys.Expression'Class
+   is
+   begin
+      return Aquarius.Drys.Object
+        (Kit_Type'Class (Item).Ada_Name & "_Reference'Last");
+   end Last_Value;
 
    --------------
    -- New_Type --

@@ -80,9 +80,14 @@ package Aquarius.Drys.Declarations is
 
    function New_Object_Declaration
      (Name        : String;
-      Object_Type : Subtype_Indication'Class)
+      Object_Type : Subtype_Indication'Class;
+      Initialiser : Expression'Class)
      return Object_Declaration'Class;
 
+   function New_Object_Declaration
+     (Name        : String;
+      Object_Type : Subtype_Indication'Class)
+     return Object_Declaration'Class;
    function New_Object_Declaration
      (Name        : String;
       Object_Type : String)
@@ -175,6 +180,12 @@ package Aquarius.Drys.Declarations is
      (Name          : String;
       Argument_Type : Subtype_Indication'Class)
      return Formal_Argument'Class;
+
+   function New_Formal_Argument
+     (Name             : String;
+      Argument_Type    : Subtype_Indication'Class;
+      Argument_Default : Expression'Class)
+      return Formal_Argument'Class;
 
    function New_In_Argument
      (Name          : String;
