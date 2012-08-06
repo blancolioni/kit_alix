@@ -7,8 +7,9 @@ with Aquarius.Drys;
 with Marlowe;
 
 with Kit.Schema.Fields;
+with Kit.Schema.Keys;
+
 with Kit.Names;
-with Kit.Schema.Types;
 
 package Kit.Schema.Tables is
 
@@ -54,28 +55,11 @@ package Kit.Schema.Tables is
    function Has_Key_Field (Item : Table_Type) return Boolean;
    function Has_Compound_Key_Field (Item : Table_Type) return Boolean;
 
-   function Is_Key_Field (Item : Table_Type;
-                          Field : Kit.Schema.Fields.Field_Type'Class)
-                          return Boolean;
-
    procedure Scan_Fields
      (Table    : Table_Type;
       Process : not null access procedure
         (Field : Kit.Schema.Fields.Field_Type'Class));
 
---     procedure Scan_Fields
---       (Table    : Table_Type;
---        Process : not null access procedure
---          (Field       : Kit.Schema.Fields.Field_Type'Class;
---           Field_Start : System.Storage_Elements.Storage_Offset));
-
-   type Field_Cursor is private;
-   type Base_Cursor is private;
-   type Key_Cursor is private;
-
-   Null_Key_Cursor : constant Key_Cursor;
-
-   function First_Field (Table : Table_Type) return Field_Cursor;
    function Contains_Field (Table : Table_Type;
                             Name     : String)
                            return Boolean;
@@ -84,18 +68,9 @@ package Kit.Schema.Tables is
                              Field : Kit.Schema.Fields.Field_Type'Class)
                              return Boolean;
 
-   function First_Base (Table : Table_Type) return Base_Cursor;
    function Contains_Base (Table : Table_Type;
-                           Name     : String)
+                           Name  : String)
                           return Boolean;
-
-   procedure Next (Position : in out Field_Cursor);
-   procedure Next (Position : in out Base_Cursor);
-
-   function Element (Position : Field_Cursor)
-                    return Kit.Schema.Fields.Field_Type'Class;
-   function Has_Element (Position : Field_Cursor)
-                        return Boolean;
 
    function Field_Start (Table : Table_Type;
                          Field : Kit.Schema.Fields.Field_Type'Class)
@@ -107,13 +82,13 @@ package Kit.Schema.Tables is
 
    procedure Scan_Keys (Table : Table_Type;
                         Process  : not null access
-                          procedure (Item : Key_Cursor));
+                          procedure (Item : Kit.Schema.Keys.Key_Type'Class));
 
    procedure Scan_Keys
      (Table : Table_Type;
       Process          : not null access procedure
         (Base   : Table_Type'Class;
-         Key    : Key_Cursor));
+         Key    : Kit.Schema.Keys.Key_Type'Class));
 
    procedure Scan_Keys
      (Table    : Table_Type;
@@ -121,11 +96,12 @@ package Kit.Schema.Tables is
       Process          : not null access procedure
         (Table  : Table_Type'Class;
          Base   : Table_Type'Class;
-         Key    : Key_Cursor));
+         Key    : Kit.Schema.Keys.Key_Type'Class));
 
-   procedure Iterate (Table : Table_Type;
-                      Process  : not null access
-                        procedure (Item : Kit.Schema.Fields.Field_Type'Class));
+   procedure Iterate
+     (Table : Table_Type;
+      Process  : not null access
+        procedure (Item : Kit.Schema.Fields.Field_Type'Class));
 
    procedure Iterate_All
      (Table : Table_Type'Class;
@@ -133,50 +109,18 @@ package Kit.Schema.Tables is
         procedure (Table : Table_Type'Class;
                    Field : Kit.Schema.Fields.Field_Type'Class));
 
-   procedure Iterate_All (Table : Table_Type'Class;
-                          Process  : not null access
-                            procedure (Table : Table_Type'Class;
-                                       Field : Field_Cursor));
-
-   function Is_Compound_Key (Position : Key_Cursor)
-                             return Boolean;
-   function Is_Unique (Position : Key_Cursor)
-                       return Boolean;
-   function Name (Position : Key_Cursor)
-                  return String;
-   function Ada_Name (Position : Key_Cursor)
-                      return String;
-   function Standard_Name (Position : Key_Cursor)
-                      return String;
-   function Key_Size (Position : Key_Cursor)
-                      return Positive;
-   function Key_Type (Position : Key_Cursor)
-                      return Kit.Schema.Types.Kit_Type'Class;
-   function Has_Element (Position : Key_Cursor)
-                         return Boolean;
-
-   function Field_Count (Position : Key_Cursor) return Natural;
-   function Field (Position : Key_Cursor;
-                   Index    : Positive)
-                   return Kit.Schema.Fields.Field_Type'Class;
-
    function To_Storage (Table       : Table_Type'Class;
                         Base_Table  : Table_Type'Class;
                         Key_Table   : Table_Type'Class;
                         Object_Name : String;
-                        Key         : Key_Cursor;
+                        Key         : Kit.Schema.Keys.Key_Type'Class;
                         With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class;
 
    function To_Storage (Key_Value_Name   : String;
                         Index_Value_Name : String;
-                        Key              : Key_Cursor)
+                        Key         : Kit.Schema.Keys.Key_Type'Class)
                         return Aquarius.Drys.Expression'Class;
-
-   function Element (Position : Base_Cursor)
-                    return Table_Type'Class;
-   function Has_Element (Position : Base_Cursor)
-                        return Boolean;
 
    procedure Iterate (Table     : Table_Type;
                       Process   : not null access
@@ -184,31 +128,23 @@ package Kit.Schema.Tables is
                       Inclusive : Boolean;
                       Table_First : Boolean := False);
 
-   procedure Add_Compound_Key_Field
-     (Table        : in out Table_Type;
-      Compound_Key : in out Kit.Schema.Fields.Compound_Field_Type;
-      Field_Name   : String)
-   with Pre => Table.Contains_Field (Field_Name);
-
-   function Compound_Field_Count
-     (Key : Key_Cursor)
-      return Natural;
-
-   function Compound_Field
-     (Key : Key_Cursor;
-      Index : Positive)
-      return Kit.Schema.Fields.Field_Type'Class;
-
    procedure Append
      (Table     : in out Table_Type;
-      Item      : in     Kit.Schema.Fields.Field_Type'Class;
-      Is_Key    : in     Boolean;
-      Is_Unique : in     Boolean   := False);
+      Item      : in     Kit.Schema.Fields.Field_Type'Class);
 
-   procedure Append
+   procedure Add_Key
      (Table     : in out Table_Type;
-      Item      : in     Kit.Schema.Fields.Compound_Field_Type'Class;
-      Is_Unique : in     Boolean);
+      Key       : in     Kit.Schema.Keys.Key_Type'Class);
+
+   procedure Add_Key_Field
+     (Table      : in out Table_Type'Class;
+      Key        : in out Kit.Schema.Keys.Key_Type'Class;
+      Field_Name : in String);
+
+   function Key
+     (Table : Table_Type;
+      Name  : String)
+     return Kit.Schema.Keys.Key_Type'Class;
 
    procedure Add_Base
      (Table     : in out Table_Type;
@@ -248,33 +184,29 @@ package Kit.Schema.Tables is
 
    function Key_Reference_Name
      (Table : Table_Type'Class;
-      Key   : Key_Cursor)
+      Key   : Kit.Schema.Keys.Key_Type'Class)
+      return String;
+
+   function Key_Reference_Name
+     (Table    : Table_Type'Class;
+      Key_Name : String)
       return String;
 
    function Key_To_Storage
      (Table       : Table_Type'Class;
-      Key         : Key_Cursor;
+      Key         : Kit.Schema.Keys.Key_Type'Class;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class;
 
 private
 
    type Field_Access is access all Kit.Schema.Fields.Field_Type'Class;
-   type Compound_Field_Access is
-     access all Kit.Schema.Fields.Compound_Field_Type'Class;
 
-   type Table_Field (Is_Compound : Boolean := False) is
+   type Table_Field is
       record
-         Is_Key        : Boolean;
-         Is_Unique_Key : Boolean;
-         case Is_Compound is
-            when False =>
-               Start    : System.Storage_Elements.Storage_Offset;
-               Length   : System.Storage_Elements.Storage_Count;
-               Field    : Field_Access;
-            when True =>
-               Compound_Field : Compound_Field_Access;
-         end case;
+         Start    : System.Storage_Elements.Storage_Offset;
+         Length   : System.Storage_Elements.Storage_Count;
+         Field    : Field_Access;
       end record;
 
    type Table_Field_Access is access Table_Field;
@@ -285,11 +217,13 @@ private
      new Ada.Containers.Vectors (Positive, Table_Field_Access,
                                  Same_Field);
 
-   type Field_Cursor is new Field_Vectors.Cursor;
-   type Key_Cursor is new Field_Vectors.Cursor;
+   type Table_Key_Access is access all Kit.Schema.Keys.Key_Type'Class;
 
-   Null_Key_Cursor : constant Key_Cursor :=
-                       Key_Cursor (Field_Vectors.No_Element);
+   function Same_Key (Left, Right : Table_Key_Access) return Boolean;
+
+   package Key_Vectors is
+     new Ada.Containers.Vectors (Positive, Table_Key_Access,
+                                 Same_Key);
 
    type Table_Access is access all Table_Type'Class;
 
@@ -314,10 +248,18 @@ private
          Bases                  : Table_Vectors.Vector;
          Base_Layout            : Base_Layout_Vectors.Vector;
          Fields                 : Field_Vectors.Vector;
+         Keys                   : Key_Vectors.Vector;
          Magic                  : Natural;
          Has_String_Type        : Boolean := False;
          Has_Key_Field          : Boolean := False;
          Has_Compound_Key_Field : Boolean := False;
       end record;
+
+   function Find_Key
+     (Table : Table_Type'Class;
+      Property : not null access
+        function (K : Kit.Schema.Keys.Key_Type'Class)
+      return Boolean)
+      return Kit.Schema.Keys.Key_Type'Class;
 
 end Kit.Schema.Tables;

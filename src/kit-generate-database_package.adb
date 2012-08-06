@@ -1,4 +1,5 @@
 with Kit.Schema.Fields;
+with Kit.Schema.Keys;
 with Kit.Schema.Tables;
 with Kit.Schema.Types;
 
@@ -101,16 +102,16 @@ package body Kit.Generate.Database_Package is
             use Aquarius.Drys.Statements;
 
             procedure Create_Key
-              (Base     : Kit.Schema.Tables.Table_Type'Class;
-               Position : Kit.Schema.Tables.Key_Cursor);
+              (Base : Kit.Schema.Tables.Table_Type'Class;
+               Key  : Kit.Schema.Keys.Key_Type'Class);
 
             ----------------
             -- Create_Key --
             ----------------
 
             procedure Create_Key
-              (Base     : Kit.Schema.Tables.Table_Type'Class;
-               Position : Kit.Schema.Tables.Key_Cursor)
+              (Base : Kit.Schema.Tables.Table_Type'Class;
+               Key  : Kit.Schema.Keys.Key_Type'Class)
             is
                pragma Unreferenced (Base);
                use Aquarius.Drys;
@@ -125,16 +126,16 @@ package body Kit.Generate.Database_Package is
                Call_Add_Key.Add_Actual_Argument
                  (Object ("Marlowe_Keys.Handle"));
                Call_Add_Key.Add_Actual_Argument
-                 (Literal (Table.Name & "_" & Name (Position)));
+                 (Literal (Table.Name & "_" & Key.Name));
                Call_Add_Key.Add_Actual_Argument
                  (Object (Table.Ada_Name & "_Table_Index"));
                Call_Add_Key.Add_Actual_Argument
-                 (Literal (Key_Size (Position)));
+                 (Literal (Key.Size));
 
                Block.Add_Statement
                  (New_Assignment_Statement
                     ("Marlowe_Keys."
-                     & Table.Key_Reference_Name (Position),
+                     & Table.Key_Reference_Name (Key),
                      Call_Add_Key));
             end Create_Key;
 
@@ -164,16 +165,16 @@ package body Kit.Generate.Database_Package is
             use Aquarius.Drys.Statements;
 
             procedure Open_Key
-              (Base     : Kit.Schema.Tables.Table_Type'Class;
-               Position : Kit.Schema.Tables.Key_Cursor);
+              (Base : Kit.Schema.Tables.Table_Type'Class;
+               Key  : Kit.Schema.Keys.Key_Type'Class);
 
             --------------
             -- Open_Key --
             --------------
 
             procedure Open_Key
-              (Base     : Kit.Schema.Tables.Table_Type'Class;
-               Position : Kit.Schema.Tables.Key_Cursor)
+              (Base : Kit.Schema.Tables.Table_Type'Class;
+               Key  : Kit.Schema.Keys.Key_Type'Class)
             is
                pragma Unreferenced (Base);
                use Aquarius.Drys.Expressions;
@@ -187,12 +188,12 @@ package body Kit.Generate.Database_Package is
                Call_Open_Key.Add_Actual_Argument
                  (Aquarius.Drys.Object ("Marlowe_Keys.Handle"));
                Call_Open_Key.Add_Actual_Argument
-                 (Aquarius.Drys.Literal (Table.Name & "_" & Name (Position)));
+                 (Aquarius.Drys.Literal (Table.Name & "_" & Key.Name));
 
                Block.Add_Statement
                  (New_Assignment_Statement
                     ("Marlowe_Keys."
-                     & Table.Key_Reference_Name (Position),
+                     & Table.Key_Reference_Name (Key),
                      Call_Open_Key));
             end Open_Key;
 
@@ -346,7 +347,7 @@ package body Kit.Generate.Database_Package is
          procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type'Class);
 
          procedure Create_Key
-           (Key : Kit.Schema.Tables.Key_Cursor);
+           (Key : Kit.Schema.Keys.Key_Type'Class);
 
          -----------------
          -- Create_Base --
@@ -404,7 +405,7 @@ package body Kit.Generate.Database_Package is
          ----------------
 
          procedure Create_Key
-           (Key : Kit.Schema.Tables.Key_Cursor)
+           (Key : Kit.Schema.Keys.Key_Type'Class)
          is
             use Kit.Schema.Tables;
             use Aquarius.Drys.Declarations;
@@ -412,21 +413,20 @@ package body Kit.Generate.Database_Package is
                         New_Function_Call_Expression ("Kit_Key.Create");
             Block   : Aquarius.Drys.Blocks.Block_Type;
          begin
-            New_Key.Add_Actual_Argument (Literal (Standard_Name (Key)));
+            New_Key.Add_Actual_Argument (Literal (Key.Standard_Name));
             New_Key.Add_Actual_Argument
               (Object
                  ("Kit_Record.First_By_Name ("""
                   & Table.Standard_Name
                   & """).Reference"));
             New_Key.Add_Actual_Argument
-              (Object ((if Is_Unique (Key) then "True" else "False")));
-            New_Key.Add_Actual_Argument
-              (Literal (Key_Size (Key)));
+              (Object ((if Key.Unique then "True" else "False")));
+            New_Key.Add_Actual_Argument (Literal (Key.Size));
             Block.Add_Declaration
               (New_Constant_Declaration
                  ("Ref", "Kit_Key_Reference",
                   New_Key));
-            for I in 1 .. Field_Count (Key) loop
+            for I in 1 .. Key.Field_Count loop
                declare
                   Key_Field : Procedure_Call_Statement'Class :=
                                 New_Procedure_Call_Statement
@@ -436,7 +436,7 @@ package body Kit.Generate.Database_Package is
                   Key_Field.Add_Actual_Argument
                     (Object
                        ("Kit_Field.First_By_Name ("""
-                        & Field (Key, I).Standard_Name
+                        & Key.Field (I).Standard_Name
                         & """).Reference"));
                   Block.Append (Key_Field);
                end;

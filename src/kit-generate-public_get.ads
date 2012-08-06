@@ -1,4 +1,5 @@
 with Aquarius.Drys.Declarations;
+with Kit.Schema.Keys;
 with Kit.Schema.Tables;
 
 package Kit.Generate.Public_Get is
@@ -10,7 +11,7 @@ package Kit.Generate.Public_Get is
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Scan          : in     Boolean;
       First         : in     Boolean;
-      Key           : in     Kit.Schema.Tables.Key_Cursor;
+      Key_Name      : in     String;
       Key_Value     : in     Boolean;
       Bounds        : in     Boolean);
 
@@ -26,7 +27,7 @@ package Kit.Generate.Public_Get is
    procedure Create_Default_Key_Functions
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
-      Key           : in     Kit.Schema.Tables.Key_Cursor);
+      Key           : in     Kit.Schema.Keys.Key_Type'Class);
 
    procedure Create_Generic_Get_Function
      (Db            : in     Kit.Schema.Databases.Database_Type;
