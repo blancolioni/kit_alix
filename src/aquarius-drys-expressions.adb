@@ -283,6 +283,7 @@ package body Aquarius.Drys.Expressions is
          else
             Writer.Put (" ");
          end if;
+         Writer.Optional_New_Line;
          Writer.Put (Item.Operator_Name.all & " ");
          if Paren_Right then
             Writer.Put ("(");
