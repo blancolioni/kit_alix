@@ -120,7 +120,7 @@ package body Kit.Generate is
       pragma Unreferenced (Db);
       use Aquarius.Drys.Declarations;
 
-      Handle : constant Subprogram_Declaration :=
+      Handle : constant Subprogram_Declaration'Class :=
                  New_Function ("Handle",
                                "Kit.Access_Control.Access_Handle",
                                Aquarius.Drys.Object ("Local_Handle"));
@@ -175,7 +175,6 @@ package body Kit.Generate is
          end Add_Key_Type_Literal;
 
       begin
-         Key_Type_Definition.New_Literal ("K_None");
          Table.Scan_Keys (Add_Key_Type_Literal'Access);
          Top.Append
            (Aquarius.Drys.Declarations.New_Full_Type_Declaration

@@ -73,7 +73,7 @@ package body Kit.Parser is
 
    function At_Type return Boolean is
    begin
-      return Tok = Tok_Identifier;
+      return Tok = Tok_Identifier or else Tok = Tok_Left_Paren;
    end At_Type;
 
    -----------------

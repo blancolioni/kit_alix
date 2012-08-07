@@ -391,7 +391,7 @@ package body Kit.Generate.Private_Interface is
          end if;
 
          declare
-            P     : Aquarius.Drys.Declarations.Subprogram_Declaration :=
+            P     : Aquarius.Drys.Declarations.Subprogram_Declaration'Class :=
                       Aquarius.Drys.Declarations.New_Procedure
                         (Name  => (if Write then "Write" else "Read"),
                          Block => Block);
