@@ -48,6 +48,10 @@ package Kit.Schema.Tables is
       return System.Storage_Elements.Storage_Count;
 
    function Reference_Type (Item : Table_Type) return String;
+   function References_Table (Item    : Table_Type;
+                              Other   : Table_Type'Class)
+                              return Boolean;
+
    function Implementation_Record_Type (Item : Table_Type) return String;
 
    function Has_String_Type (Item : Table_Type) return Boolean;
