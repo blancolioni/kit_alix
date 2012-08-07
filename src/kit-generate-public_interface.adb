@@ -978,30 +978,30 @@ package body Kit.Generate.Public_Interface is
 
    begin
 
-      Unlock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
+      --  Unlock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
       Table.Iterate (Unlock'Access,
                      Inclusive => True,
-                     Table_First => False);
-      Unlock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
+                     Table_First => True);
+      --  Unlock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
       Unlock_Block.Add_Statement ("Item.S_Locked := False");
       Unlock_Block.Add_Statement ("Item.X_Locked := False");
 
       Add_Locker ("Unlock", Unlock_Block);
 
-      S_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
+      --  S_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
       Table.Iterate (S_Lock'Access,
                      Inclusive => True,
-                     Table_First => False);
-      S_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
+                     Table_First => True);
+      --  S_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
       S_Lock_Block.Add_Statement ("Item.S_Locked := True");
 
       Add_Locker ("S_Lock", S_Lock_Block);
 
-      X_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
+      --  X_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
       Table.Iterate (X_Lock'Access,
                      Inclusive => True,
-                     Table_First => False);
-      X_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
+                     Table_First => True);
+      --  X_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
       X_Lock_Block.Add_Statement ("Item.X_Locked := True");
 
       Add_Locker ("X_Lock", X_Lock_Block);
@@ -1596,7 +1596,7 @@ package body Kit.Generate.Public_Interface is
             declare
                Fetch : constant Subprogram_Declaration :=
                          New_Abstract_Function
-                           (Field.Ada_Name,
+                           (Field.Safe_Ada_Name ("Get_"),
                             New_Formal_Argument ("Item",
                               Named_Subtype
                                 (Table.Ada_Name & "_Interface")),
