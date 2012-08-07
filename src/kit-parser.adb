@@ -4,8 +4,9 @@ with Kit.Parser.Tokens;                use Kit.Parser.Tokens;
 with Kit.Parser.Lexical;               use Kit.Parser.Lexical;
 with Kit.Paths;
 
-with Kit.Schema.Tables;
 with Kit.Schema.Fields;
+with Kit.Schema.Keys;
+with Kit.Schema.Tables;
 with Kit.Schema.Types;
 with Kit.Schema.Types.Enumerated;
 
@@ -72,7 +73,7 @@ package body Kit.Parser is
 
    function At_Type return Boolean is
    begin
-      return Tok = Tok_Identifier;
+      return Tok = Tok_Identifier or else Tok = Tok_Left_Paren;
    end At_Type;
 
    -----------------
@@ -141,13 +142,15 @@ package body Kit.Parser is
             Scan;
 
             declare
-               Field : Kit.Schema.Fields.Compound_Field_Type;
+               Key : Kit.Schema.Keys.Key_Type;
             begin
-               Field.Create_Field (Field_Name);
+               Key.Create_Key (Field_Name, Is_Unique);
+
                loop
                   if Table.Contains_Field (Tok_Text) then
-                     Table.Add_Compound_Key_Field
-                       (Field, Tok_Text);
+
+                     Table.Add_Key_Field
+                       (Key, Tok_Text);
                   else
                      Error ("table " & Table.Ada_Name
                             & " does not contain field "
@@ -162,7 +165,7 @@ package body Kit.Parser is
                   end if;
                end loop;
 
-               Table.Append (Field, Is_Unique);
+               Table.Add_Key (Key);
             end;
 
          elsif Tok /= Tok_Colon then
@@ -184,9 +187,18 @@ package body Kit.Parser is
                      Parse_Field_Options (Field);
                   end if;
 
-                  Table.Append (Item      => Field,
-                                Is_Key    => Is_Key,
-                                Is_Unique => Is_Unique);
+                  Table.Append (Field);
+
+                  if Is_Key then
+                     declare
+                        Key : Kit.Schema.Keys.Key_Type;
+                     begin
+                        Key.Create_Key (Field_Name, Unique => Is_Unique);
+                        Table.Add_Key_Field (Key, Field_Name);
+                        Table.Add_Key (Key);
+                     end;
+                  end if;
+
                end;
             else
                Error ("unknown table");
@@ -216,10 +228,19 @@ package body Kit.Parser is
                   Parse_Field_Options (Field);
                end if;
 
-               Table.Append (Item      => Field,
-                             Is_Key    => Is_Key,
-                             Is_Unique => Is_Unique);
+               Table.Append (Item      => Field);
             end;
+
+            if Is_Key then
+               declare
+                  Key : Kit.Schema.Keys.Key_Type;
+               begin
+                  Key.Create_Key (Field_Name, Unique => Is_Unique);
+                  Table.Add_Key_Field (Key, Field_Name);
+                  Table.Add_Key (Key);
+               end;
+            end if;
+
          end if;
 
       end;

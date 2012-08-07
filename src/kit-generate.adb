@@ -3,6 +3,8 @@ with Aquarius.Drys.Types;
 
 with Kit.String_Maps;
 
+with Kit.Schema.Fields;
+with Kit.Schema.Keys;
 with Kit.Schema.Tables;
 with Kit.Schema.Types;
 
@@ -73,7 +75,7 @@ package body Kit.Generate is
 
          procedure Add_Field_Type_Literal
            (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Tables.Field_Cursor);
+            Item : Kit.Schema.Fields.Field_Type'Class);
 
          --------------------------
          -- Add_Key_Type_Literal --
@@ -81,11 +83,10 @@ package body Kit.Generate is
 
          procedure Add_Field_Type_Literal
            (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Tables.Field_Cursor)
+            Item : Kit.Schema.Fields.Field_Type'Class)
          is
             pragma Unreferenced (Base);
-            Name : constant String :=
-                     Kit.Schema.Tables.Element (Item).Ada_Name;
+            Name : constant String := Item.Ada_Name;
          begin
             if not Found.Contains (Name) then
                Field_Type_Definition.New_Literal ("F_" & Name);
@@ -119,7 +120,7 @@ package body Kit.Generate is
       pragma Unreferenced (Db);
       use Aquarius.Drys.Declarations;
 
-      Handle : constant Subprogram_Declaration :=
+      Handle : constant Subprogram_Declaration'Class :=
                  New_Function ("Handle",
                                "Kit.Access_Control.Access_Handle",
                                Aquarius.Drys.Object ("Local_Handle"));
@@ -157,7 +158,7 @@ package body Kit.Generate is
 
          procedure Add_Key_Type_Literal
            (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Tables.Key_Cursor);
+            Item : Kit.Schema.Keys.Key_Type'Class);
 
          --------------------------
          -- Add_Key_Type_Literal --
@@ -165,17 +166,15 @@ package body Kit.Generate is
 
          procedure Add_Key_Type_Literal
            (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Tables.Key_Cursor)
+            Item : Kit.Schema.Keys.Key_Type'Class)
          is
             pragma Unreferenced (Base);
          begin
             Key_Type_Definition.New_Literal
-              ("K_" & Table.Name & "_"
-               & Kit.Schema.Tables.Name (Item));
+              ("K_" & Table.Name & "_" & Item.Ada_Name);
          end Add_Key_Type_Literal;
 
       begin
-         Key_Type_Definition.New_Literal ("K_None");
          Table.Scan_Keys (Add_Key_Type_Literal'Access);
          Top.Append
            (Aquarius.Drys.Declarations.New_Full_Type_Declaration

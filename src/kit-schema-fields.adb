@@ -1,47 +1,6 @@
 package body Kit.Schema.Fields is
 
 
-   --------------
-   -- Ada_Name --
-   --------------
-
-   function Ada_Name (Item  : Compound_Field_Type;
-                      Index : Positive)
-                      return String
-   is
-   begin
-      return Item.Fields.Element (Index).Ada_Name;
-   end Ada_Name;
-
-   ---------------
-   -- Add_Field --
-   ---------------
-
-   procedure Add_Field (Item  : in out Compound_Field_Type;
-                        Field : not null access Field_Type'Class)
-   is
-   begin
-      Item.Fields.Append (Field_Access (Field));
-      Item.Size := Item.Size + Field.Size;
-   end Add_Field;
-
-   --------------
-   -- Contains --
-   --------------
-
-   function Contains (Item  : Compound_Field_Type;
-                      Field : Field_Type'Class)
-                      return Boolean
-   is
-   begin
-      for F of Item.Fields loop
-         if F.Ada_Name = Field.Ada_Name then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Contains;
-
    ------------------
    -- Create_Field --
    ------------------
@@ -57,21 +16,6 @@ package body Kit.Schema.Fields is
       Item.Size := Item.Field_Type.Size;
    end Create_Field;
 
-   ------------------
-   -- Create_Field --
-   ------------------
-
-   procedure Create_Field (Item       : in out Compound_Field_Type;
-                           Name       : in     String)
-   is
-   begin
-      Item.Create (Name);
-      Item.Size := 0;
-      Item.Created := False;
-      Item.Readable := False;
-      Item.Writeable := False;
-   end Create_Field;
-
    -------------
    -- Created --
    -------------
@@ -80,36 +24,6 @@ package body Kit.Schema.Fields is
    begin
       return Field.Created;
    end Created;
-
-   ------------------
-   -- Equal_Fields --
-   ------------------
-
-   function Equal_Fields (Left, Right : Field_Access) return Boolean is
-   begin
-      return Left.Ada_Name = Right.Ada_Name;
-   end Equal_Fields;
-
-   -----------
-   -- Field --
-   -----------
-
-   function Field (Item : Compound_Field_Type;
-                   Index : Positive)
-                   return Field_Type'Class
-   is
-   begin
-      return Field_Type'Class (Item.Fields.Element (Index).all);
-   end Field;
-
-   -----------------
-   -- Field_Count --
-   -----------------
-
-   function Field_Count (Item : Compound_Field_Type) return Natural is
-   begin
-      return Item.Fields.Last_Index;
-   end Field_Count;
 
    --------------------
    -- Get_Field_Type --
@@ -136,7 +50,7 @@ package body Kit.Schema.Fields is
    -----------------------
 
    procedure Set_Field_Options
-     (Field    : in out Root_Field_Type'Class;
+     (Field    : in out Field_Type'Class;
       Created  : Boolean := False;
       Readable : Boolean := False;
       Writable : Boolean := False)
@@ -151,7 +65,7 @@ package body Kit.Schema.Fields is
    -- Size --
    ----------
 
-   function Size (Item : Root_Field_Type) return Natural is
+   function Size (Item : Field_Type) return Natural is
    begin
       return Item.Size;
    end Size;

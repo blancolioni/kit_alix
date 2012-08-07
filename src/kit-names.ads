@@ -16,7 +16,14 @@ package Kit.Names is
                      Name : String);
 
    function Ada_Name (Raw_Name : String) return String;
+   --  Applies standard Ada identifier rules to Raw_Name.
+   --  First letter and letter following unscores is
+   --  upper case; all others are lower case.
+   --  Currently no exceptions supported for identifiers
+   --  such as Text_IO
+
    function Standard_Name (Raw_Name : String) return String;
+   --  Equivalent to "To_Lower"
 
 private
 

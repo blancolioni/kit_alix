@@ -13,23 +13,6 @@ package body Kit.Schema.Tables is
       return Natural;
 
    --------------
-   -- Ada_Name --
-   --------------
-
-   function Ada_Name (Position : Key_Cursor)
-                      return String
-   is
-      use Field_Vectors;
-      Item : constant Table_Field_Access := Element (Cursor (Position));
-   begin
-      if Item.Is_Compound then
-         return Item.Compound_Field.Ada_Name;
-      else
-         return Item.Field.Ada_Name;
-      end if;
-   end Ada_Name;
-
-   --------------
    -- Add_Base --
    --------------
 
@@ -69,62 +52,60 @@ package body Kit.Schema.Tables is
       Table.Bases.Append (new Table_Type'Class'(Item));
 
       if Recursively_Add_Bases then
-         declare
-            It : Base_Cursor := Item.First_Base;
-         begin
-            while Has_Element (It) loop
-               if not Table.Contains_Base (Element (It).Name) then
-                  Table.Add_Base (Element (It));
-               end if;
-               Next (It);
-            end loop;
-         end;
+         for Base of Item.Bases loop
+            if not Table.Contains_Base (Base.Name) then
+               Table.Add_Base (Base.all);
+            end if;
+         end loop;
       end if;
    end Add_Base;
 
-   ----------------------------
-   -- Add_Compound_Key_Field --
-   ----------------------------
+   -------------
+   -- Add_Key --
+   -------------
 
-   procedure Add_Compound_Key_Field
-     (Table        : in out Table_Type;
-      Compound_Key : in out Kit.Schema.Fields.Compound_Field_Type;
-      Field_Name   : String)
+   procedure Add_Key
+     (Table     : in out Table_Type;
+      Key       : in     Kit.Schema.Keys.Key_Type'Class)
    is
+      K : constant Table_Key_Access :=
+            new Kit.Schema.Keys.Key_Type'Class'(Key);
+   begin
+      Table.Keys.Append (K);
+      Table.Has_Key_Field := True;
+   end Add_Key;
 
-      Found : Boolean := False;
+   -------------------
+   -- Add_Key_Field --
+   -------------------
 
-      procedure Add_Field (Base : Table_Type'Class);
-
-      ---------------
-      -- Add_Field --
-      ---------------
-
-      procedure Add_Field (Base : Table_Type'Class) is
-      begin
+   procedure Add_Key_Field
+     (Table      : in out Table_Type'Class;
+      Key        : in out Kit.Schema.Keys.Key_Type'Class;
+      Field_Name : in String)
+   is
+      Standard_Field_Name : constant String :=
+                              Kit.Names.Standard_Name (Field_Name);
+   begin
+      for F of Table.Fields loop
+         if F.Field.Standard_Name = Standard_Field_Name then
+            Key.Add_Field (F.Field);
+            return;
+         end if;
+      end loop;
+      for Base of Table.Bases loop
          for F of Base.Fields loop
-            if not F.Is_Compound
-              and then F.Field.Name = Field_Name
-            then
-               Compound_Key.Add_Field (F.Field);
-               Found := True;
+            if F.Field.Standard_Name = Standard_Field_Name then
+               Key.Add_Field (F.Field);
                return;
             end if;
          end loop;
-      end Add_Field;
+      end loop;
 
-   begin
-      Table.Iterate (Add_Field'Access,
-                     Inclusive   => True,
-                     Table_First => True);
-
-      if not Found then
-         raise Constraint_Error with
-           "table " & Table.Ada_Name & " does not contain a field "
-             & Field_Name & " for compound key "
-           & Compound_Key.Ada_Name;
-      end if;
-   end Add_Compound_Key_Field;
+      raise Constraint_Error with
+        "key field " & Field_Name
+        & " does not exist in table " & Table.Ada_Name;
+   end Add_Key_Field;
 
    ------------
    -- Append --
@@ -132,15 +113,11 @@ package body Kit.Schema.Tables is
 
    procedure Append
      (Table     : in out Table_Type;
-      Item      : in     Kit.Schema.Fields.Field_Type'Class;
-      Is_Key    : in     Boolean;
-      Is_Unique : in     Boolean   := False)
+      Item      : in     Kit.Schema.Fields.Field_Type'Class)
    is
       use type System.Storage_Elements.Storage_Offset;
-      Field : constant Table_Field_Access := new Table_Field (False);
+      Field : constant Table_Field_Access := new Table_Field;
    begin
-      Field.Is_Key := Is_Key;
-      Field.Is_Unique_Key := Is_Unique;
       Field.Field := new Kit.Schema.Fields.Field_Type'Class'(Item);
       Field.Start := Table.Fields_Length;
       Field.Length :=
@@ -149,32 +126,6 @@ package body Kit.Schema.Tables is
       if Item.Get_Field_Type.Is_String then
          Table.Has_String_Type := True;
       end if;
-
-      if Is_Key then
-         Table.Has_Key_Field := True;
-      end if;
-
-      Table.Fields.Append (Field);
-   end Append;
-
-   ------------
-   -- Append --
-   ------------
-
-   procedure Append
-     (Table     : in out Table_Type;
-      Item      : in     Kit.Schema.Fields.Compound_Field_Type'Class;
-      Is_Unique : in     Boolean)
-   is
-      Field : constant Table_Field_Access := new Table_Field (True);
-   begin
-      Field.Is_Key := True;
-      Field.Is_Unique_Key := Is_Unique;
-      Field.Compound_Field :=
-        new Kit.Schema.Fields.Compound_Field_Type'Class'(Item);
-
-      Table.Has_Key_Field := True;
-      Table.Has_Compound_Key_Field := True;
 
       Table.Fields.Append (Field);
    end Append;
@@ -243,39 +194,6 @@ package body Kit.Schema.Tables is
           & Base.Ada_Name;
    end Base_Start;
 
-   --------------------
-   -- Compound_Field --
-   --------------------
-
-   function Compound_Field
-     (Key : Key_Cursor;
-      Index : Positive)
-      return Kit.Schema.Fields.Field_Type'Class
-   is
-      It    : constant Field_Vectors.Cursor :=
-                Field_Vectors.Cursor (Key);
-      Field : Kit.Schema.Fields.Compound_Field_Type'Class
-      renames Field_Vectors.Element (It).Compound_Field.all;
-   begin
-      return Field.Field (Index);
-   end Compound_Field;
-
-   --------------------------
-   -- Compound_Field_Count --
-   --------------------------
-
-   function Compound_Field_Count
-     (Key : Key_Cursor)
-      return Natural
-   is
-      It    : constant Field_Vectors.Cursor :=
-                Field_Vectors.Cursor (Key);
-      Field : Kit.Schema.Fields.Compound_Field_Type'Class
-      renames Field_Vectors.Element (It).Compound_Field.all;
-   begin
-      return Field.Field_Count;
-   end Compound_Field_Count;
-
    -------------------
    -- Contains_Base --
    -------------------
@@ -305,9 +223,7 @@ package body Kit.Schema.Tables is
    is
    begin
       for F of Table.Fields loop
-         if not F.Is_Compound
-           and then F.Field.Name = Name
-         then
+         if F.Field.Name = Name then
             return True;
          end if;
       end loop;
@@ -384,67 +300,6 @@ package body Kit.Schema.Tables is
         & Base_2.Base_Index_Name;
    end Database_Index_Component;
 
-   -------------
-   -- Element --
-   -------------
-
-   function Element
-     (Position : Base_Cursor)
-      return Table_Type'Class
-   is
-   begin
-      return Table_Vectors.Element (Table_Vectors.Cursor (Position)).all;
-   end Element;
-
-   -------------
-   -- Element --
-   -------------
-
-   function Element
-     (Position : Field_Cursor)
-      return Kit.Schema.Fields.Field_Type'Class
-   is
-   begin
-      return Field_Vectors.Element
-        (Field_Vectors.Cursor (Position)).Field.all;
-   end Element;
-
-   -----------
-   -- Field --
-   -----------
-
-   function Field (Position : Key_Cursor;
-                   Index    : Positive)
-                   return Kit.Schema.Fields.Field_Type'Class
-   is
-      F : constant Table_Field_Access :=
-            Field_Vectors.Element
-              (Field_Vectors.Cursor (Position));
-   begin
-      if F.Is_Compound then
-         return F.Compound_Field.Field (Index);
-      else
-         pragma Assert (Index = 1);
-         return F.Field.all;
-      end if;
-   end Field;
-
-   -----------------
-   -- Field_Count --
-   -----------------
-
-   function Field_Count (Position : Key_Cursor) return Natural is
-      F : constant Table_Field_Access :=
-            Field_Vectors.Element
-              (Field_Vectors.Cursor (Position));
-   begin
-      if F.Is_Compound then
-         return F.Compound_Field.Field_Count;
-      else
-         return 1;
-      end if;
-   end Field_Count;
-
    -----------------
    -- Field_Start --
    -----------------
@@ -459,9 +314,7 @@ package body Kit.Schema.Tables is
             use type System.Storage_Elements.Storage_Offset;
             F : constant Table_Field_Access := Table.Fields.Element (I);
          begin
-            if not F.Is_Compound
-              and then F.Field.Name = Field.Name
-            then
+            if F.Field.Name = Field.Name then
                return Table.Header_Length + F.Start;
             end if;
          end;
@@ -470,23 +323,67 @@ package body Kit.Schema.Tables is
         "table " & Table.Ada_Name & ": no such field " & Field.Ada_Name;
    end Field_Start;
 
-   ----------------
-   -- First_Base --
-   ----------------
+   function Find_Key
+     (Table : Table_Type'Class;
+      Property : not null access
+        function (K : Kit.Schema.Keys.Key_Type'Class)
+      return Boolean)
+      return Kit.Schema.Keys.Key_Type'Class
+   is
 
-   function First_Base (Table : Table_Type) return Base_Cursor is
+      Visited : Table_Vectors.Vector;
+      Result  : Table_Key_Access := null;
+
+      procedure Process (Base : Table_Type'Class);
+
+      procedure Recurse (Base : Table_Access);
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Base : Table_Type'Class) is
+      begin
+         Result := null;
+         for K of Base.Keys loop
+            if Property (K.all) then
+               Result := K;
+               exit;
+            end if;
+         end loop;
+      end Process;
+
+      -------------
+      -- Recurse --
+      -------------
+
+      procedure Recurse (Base : Table_Access) is
+      begin
+         if not Visited.Contains (Base) then
+            Visited.Append (Base);
+            for B of Base.Bases loop
+               Recurse (B);
+               exit when Result /= null;
+            end loop;
+            if Result = null then
+               Process (Base.all);
+            end if;
+         end if;
+      end Recurse;
+
    begin
-      return Base_Cursor (Table.Bases.First);
-   end First_Base;
 
-   -----------------
-   -- First_Field --
-   -----------------
+      Process (Table);
 
-   function First_Field (Table : Table_Type) return Field_Cursor is
-   begin
-      return Field_Cursor (Table.Fields.First);
-   end First_Field;
+      if Result = null then
+         for B of Table.Bases loop
+            Recurse (B);
+         end loop;
+      end if;
+
+      return Result.all;
+
+   end Find_Key;
 
    ----------------------
    -- Get_Magic_Number --
@@ -515,44 +412,9 @@ package body Kit.Schema.Tables is
       return Item.Has_Compound_Key_Field;
    end Has_Compound_Key_Field;
 
-   -----------------
-   -- Has_Element --
-   -----------------
-
-   overriding
-   function Has_Element
-     (Position : Base_Cursor)
-      return Boolean
-   is
-   begin
-      return Table_Vectors.Has_Element (Table_Vectors.Cursor (Position));
-   end Has_Element;
-
-   -----------------
-   -- Has_Element --
-   -----------------
-
-   overriding
-   function Has_Element
-     (Position : Field_Cursor)
-      return Boolean
-   is
-   begin
-      return Field_Vectors.Has_Element (Field_Vectors.Cursor (Position));
-   end Has_Element;
-
-   -----------------
-   -- Has_Element --
-   -----------------
-
-   overriding
-   function Has_Element
-     (Position : Key_Cursor)
-      return Boolean
-   is
-   begin
-      return Field_Vectors.Has_Element (Field_Vectors.Cursor (Position));
-   end Has_Element;
+   -------------------
+   -- Has_Key_Field --
+   -------------------
 
    function Has_Key_Field (Item : Table_Type) return Boolean is
    begin
@@ -613,9 +475,7 @@ package body Kit.Schema.Tables is
    is
    begin
       for F of Table.Fields loop
-         if not F.Is_Compound
-           and then F.Field.Ada_Name = Field.Ada_Name
-         then
+         if F.Field.Ada_Name = Field.Ada_Name then
             return False;
          end if;
       end loop;
@@ -634,56 +494,6 @@ package body Kit.Schema.Tables is
       return Item.Ada_Name & "_Interface";
    end Interface_Name;
 
-   ---------------------
-   -- Is_Compound_Key --
-   ---------------------
-
-   function Is_Compound_Key (Position : Key_Cursor)
-                             return Boolean
-   is
-      use Field_Vectors;
-      Item : constant Table_Field_Access := Element (Cursor (Position));
-   begin
-      return Item.Is_Compound;
-   end Is_Compound_Key;
-
-   ------------------
-   -- Is_Key_Field --
-   ------------------
-
-   function Is_Key_Field (Item : Table_Type;
-                          Field : Kit.Schema.Fields.Field_Type'Class)
-                          return Boolean
-   is
-   begin
-      for F of Item.Fields loop
-         if not F.Is_Compound then
-            if F.Field.Name = Field.Name
-              and then F.Is_Key
-            then
-               return True;
-            end if;
-         else
-            if F.Compound_Field.Contains (Field) then
-               return True;
-            end if;
-         end if;
-      end loop;
-      return False;
-   end Is_Key_Field;
-
-   ---------------
-   -- Is_Unique --
-   ---------------
-
-   function Is_Unique (Position : Key_Cursor)
-                       return Boolean
-   is
-      use Field_Vectors;
-   begin
-      return Element (Cursor (Position)).Is_Unique_Key;
-   end Is_Unique;
-
    -------------
    -- Iterate --
    -------------
@@ -696,7 +506,6 @@ package body Kit.Schema.Tables is
    is
 
       Visited : Table_Vectors.Vector;
-      --  Queue   : Table_Vectors.Vector;
 
       procedure Recurse (Base : Table_Access);
 
@@ -722,24 +531,7 @@ package body Kit.Schema.Tables is
 
       for B of Table.Bases loop
          Recurse (B);
-         --  Queue.Append (B);
       end loop;
-
---        while not Queue.Is_Empty loop
---           declare
---              Item : constant Table_Access := Queue.Last_Element;
---           begin
---              Queue.Delete_Last;
---              if not Visited.Contains (Item) then
---                 Visited.Append (Item);
---                 for B of Item.Bases loop
---                    Queue.Append (B);
---                 end loop;
---              end if;
---
---              Process (Item.all);
---           end;
---        end loop;
 
       if Inclusive and not Table_First then
          Process (Table);
@@ -764,9 +556,7 @@ package body Kit.Schema.Tables is
 
       procedure Call_Process (Position : Field_Vectors.Cursor) is
       begin
-         if not Field_Vectors.Element (Position).Is_Compound then
-            Process (Field_Vectors.Element (Position).Field.all);
-         end if;
+         Process (Field_Vectors.Element (Position).Field.all);
       end Call_Process;
 
    begin
@@ -783,35 +573,6 @@ package body Kit.Schema.Tables is
         procedure (Table : Table_Type'Class;
                    Field : Kit.Schema.Fields.Field_Type'Class))
    is
-      procedure Call_Process (Base   : Table_Type'Class;
-                              Field  : Field_Cursor);
-
-      ------------------
-      -- Call_Process --
-      ------------------
-
-      procedure Call_Process (Base   : Table_Type'Class;
-                              Field  : Field_Cursor)
-      is
-      begin
-         Process
-           (Base,
-            Field_Vectors.Element (Field_Vectors.Cursor (Field)).Field.all);
-      end Call_Process;
-
-   begin
-      Iterate_All (Table, Call_Process'Access);
-   end Iterate_All;
-
-   -----------------
-   -- Iterate_All --
-   -----------------
-
-   procedure Iterate_All (Table : Table_Type'Class;
-                          Process  : not null access
-                            procedure (Table : Table_Type'Class;
-                                       Field : Field_Cursor))
-   is
       Visited        : Table_Vectors.Vector;
       Visited_Fields : Field_Vectors.Vector;
       Queue          : Table_Vectors.Vector;
@@ -823,21 +584,12 @@ package body Kit.Schema.Tables is
       --------------------
 
       procedure Iterate_Fields (T : Table_Type'Class) is
-         It : Field_Vectors.Cursor := T.Fields.First;
       begin
-         while Field_Vectors.Has_Element (It) loop
-            declare
-               F : constant Table_Field_Access :=
-                     Field_Vectors.Element (It);
-            begin
-               if not Visited_Fields.Contains (F) then
-                  Visited_Fields.Append (F);
-                  if not F.Is_Compound then
-                     Process (T, Field_Cursor (It));
-                  end if;
-               end if;
-            end;
-            Field_Vectors.Next (It);
+         for F of T.Fields loop
+            if not Visited_Fields.Contains (F) then
+               Visited_Fields.Append (F);
+               Process (T, F.Field.all);
+            end if;
          end loop;
       end Iterate_Fields;
 
@@ -865,36 +617,69 @@ package body Kit.Schema.Tables is
 
    end Iterate_All;
 
+   ---------
+   -- Key --
+   ---------
+
+   function Key
+     (Table : Table_Type;
+      Name  : String)
+      return Kit.Schema.Keys.Key_Type'Class
+   is
+
+      function Same_Name (K : Kit.Schema.Keys.Key_Type'Class)
+                          return Boolean
+      is (K.Standard_Name = Name);
+
+   begin
+      return Table.Find_Key (Same_Name'Access);
+
+--        for K of Table.Keys loop
+--           Ada.Text_IO.Put_Line ("    key: " & K.Standard_Name);
+--           if K.Standard_Name = Name then
+--              return K.all;
+--           end if;
+--        end loop;
+--        for Base of Table.Bases loop
+--           Ada.Text_IO.Put_Line ("  base: " & Base.Ada_Name);
+--           for K of Base.Keys loop
+--              Ada.Text_IO.Put_Line ("   key: " & K.Standard_Name);
+--              if K.Standard_Name = Name then
+--                 return K.all;
+--              end if;
+--           end loop;
+--        end loop;
+--        raise Constraint_Error with
+--          "no such key " & Name & " in table " & Table.Ada_Name;
+   end Key;
+
    ------------------------
    -- Key_Reference_Name --
    ------------------------
 
    function Key_Reference_Name
      (Table : Table_Type'Class;
-      Key   : Key_Cursor)
+      Key   : Kit.Schema.Keys.Key_Type'Class)
+      return String
+   is
+   begin
+      return Table.Key_Reference_Name (Key.Ada_Name);
+   end Key_Reference_Name;
+
+   ------------------------
+   -- Key_Reference_Name --
+   ------------------------
+
+   function Key_Reference_Name
+     (Table    : Table_Type'Class;
+      Key_Name : String)
       return String
    is
    begin
       return "T" & Table.Index_Image & "_"
-        & Ada_Name (Key)
+        & Kit.Names.Ada_Name (Key_Name)
         & "_Ref";
    end Key_Reference_Name;
-
-   --------------
-   -- Key_Size --
-   --------------
-
-   function Key_Size (Position : Key_Cursor)
-                      return Positive
-   is
-      use Field_Vectors;
-      Item : constant Table_Field_Access := Element (Cursor (Position));
-   begin
-      return Marlowe.Database_Index'Size / 8
-        + (if Item.Is_Compound
-           then Item.Compound_Field.Size
-           else Item.Field.Size);
-   end Key_Size;
 
    --------------------
    -- Key_To_Storage --
@@ -902,55 +687,34 @@ package body Kit.Schema.Tables is
 
    function Key_To_Storage
      (Table       : Table_Type'Class;
-      Key         : Key_Cursor;
+      Key         : Kit.Schema.Keys.Key_Type'Class;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Table);
-      F : constant Table_Field_Access :=
-            Field_Vectors.Element (Field_Vectors.Cursor (Key));
       Prefix : constant String :=
                  (if Object_Name = "" then "" else Object_Name & ".");
    begin
-      if F.Is_Compound then
+      if Key.Field_Count > 1 then
          declare
             use Aquarius.Drys;
             use Aquarius.Drys.Expressions;
             Result : Function_Call_Expression :=
                        New_Function_Call_Expression
-                         (Ada_Name (Key) & "_To_Storage");
+                         (Key.Ada_Name & "_To_Storage");
          begin
-            for I in 1 .. Field_Count (Key) loop
+            for I in 1 .. Key.Field_Count loop
                Result.Add_Actual_Argument
-                 (Object (Prefix  & Field (Key, I).Ada_Name));
+                 (Object (Prefix  & Key.Field (I).Ada_Name));
             end loop;
 
---              for I in 1 .. F.Compound_Field.Field_Count loop
---                 Result.Add_Actual_Argument
---                   (Object (Prefix & F.Compound_Field.all.Ada_Name (I)));
---              end loop;
             return Result;
          end;
       else
-         return Key_Type (Key).To_Storage_Array
-           (Prefix & Ada_Name (Key));
+         return Key.Field (1).Get_Field_Type.To_Storage_Array
+           (Prefix & Key.Ada_Name);
       end if;
    end Key_To_Storage;
-
-   --------------
-   -- Key_Type --
-   --------------
-
-   function Key_Type (Position : Key_Cursor)
-                      return Kit.Schema.Types.Kit_Type'Class
-   is
-      use Field_Vectors;
-      Item : constant Table_Field_Access := Element (Cursor (Position));
-      pragma Assert (not Item.Is_Compound);
-      pragma Assert (Item.Is_Key);
-   begin
-      return Item.Field.Get_Field_Type;
-   end Key_Type;
 
    ------------
    -- Length --
@@ -977,43 +741,6 @@ package body Kit.Schema.Tables is
    begin
       return Item.Magic;
    end Magic_Number;
-
-   ----------
-   -- Name --
-   ----------
-
-   function Name (Position : Key_Cursor)
-                       return String
-   is
-      use Field_Vectors;
-      Item : constant Table_Field_Access := Element (Cursor (Position));
-   begin
-      if Item.Is_Compound then
-         return Item.Compound_Field.Name;
-      else
-         return Item.Field.Name;
-      end if;
-   end Name;
-
-   ----------
-   -- Next --
-   ----------
-
-   overriding
-   procedure Next (Position : in out Base_Cursor) is
-   begin
-      Table_Vectors.Next (Table_Vectors.Cursor (Position));
-   end Next;
-
-   ----------
-   -- Next --
-   ----------
-
-   overriding
-   procedure Next (Position : in out Field_Cursor) is
-   begin
-      Field_Vectors.Next (Field_Vectors.Cursor (Position));
-   end Next;
 
    ------------------
    -- Package_Name --
@@ -1083,15 +810,17 @@ package body Kit.Schema.Tables is
 
    function Same_Field (Left, Right : Table_Field_Access) return Boolean is
    begin
-      if Left.Is_Compound then
-         return Right.Is_Compound
-           and then Left.Compound_Field.Ada_Name
-             = Right.Compound_Field.Ada_Name;
-      else
-         return not Right.Is_Compound
-           and then Left.Field.Ada_Name = Right.Field.Ada_Name;
-      end if;
+      return Left.Field.Ada_Name = Right.Field.Ada_Name;
    end Same_Field;
+
+   --------------
+   -- Same_Key --
+   --------------
+
+   function Same_Key (Left, Right : Table_Key_Access) return Boolean is
+   begin
+      return Left.Standard_Name = Right.Standard_Name;
+   end Same_Key;
 
    ----------------
    -- Same_Table --
@@ -1119,42 +848,12 @@ package body Kit.Schema.Tables is
 
       procedure Call_Process (Position : Field_Vectors.Cursor) is
       begin
-         if not Field_Vectors.Element (Position).Is_Compound then
-            Process (Field_Vectors.Element (Position).Field.all);
-         end if;
+         Process (Field_Vectors.Element (Position).Field.all);
       end Call_Process;
 
    begin
       Table.Fields.Iterate (Call_Process'Access);
    end Scan_Fields;
-
---     -----------------
---     -- Scan_Fields --
---     -----------------
---
---     procedure Scan_Fields
---       (Table    : Table_Type;
---        Process : not null access procedure
---          (Field       : Kit.Schema.Fields.Field_Type'Class;
---           Field_Start : System.Storage_Elements.Storage_Offset))
---     is
---        procedure Call_Process (Position : Field_Vectors.Cursor);
---
---        ------------------
---        -- Call_Process --
---        ------------------
---
---        procedure Call_Process (Position : Field_Vectors.Cursor) is
---        begin
---           if not Field_Vectors.Element (Position).Is_Compound then
---              Process (Field_Vectors.Element (Position).Field.all,
---                       Field_Vectors.Element (Position).Start);
---           end if;
---        end Call_Process;
---
---     begin
---        Table.Fields.Iterate (Call_Process'Access);
---     end Scan_Fields;
 
    ---------------
    -- Scan_Keys --
@@ -1163,33 +862,12 @@ package body Kit.Schema.Tables is
    procedure Scan_Keys
      (Table : Table_Type;
       Process  : not null access
-                        procedure (Item : Key_Cursor))
+        procedure (Item : Kit.Schema.Keys.Key_Type'Class))
    is
---        procedure Call_Process (Key_Table : Table_Type'Class;
---                                Key       : Key_Cursor);
---
---        ------------------
---        -- Call_Process --
---        ------------------
---
---        procedure Call_Process (Key_Table : Table_Type'Class;
---                                Key       : Key_Cursor)
---        is
---           pragma Unreferenced (Key_Table);
---        begin
---           Process (Key);
---        end Call_Process;
-
-      It : Field_Vectors.Cursor := Table.Fields.First;
    begin
-      --        Table.Scan_Keys (Call_Process'Access);
-      while Field_Vectors.Has_Element (It) loop
-         if Field_Vectors.Element (It).Is_Key then
-            Process (Key_Cursor (It));
-         end if;
-         Field_Vectors.Next (It);
+      for K of Table.Keys loop
+         Process (K.all);
       end loop;
-
    end Scan_Keys;
 
    ---------------
@@ -1200,7 +878,7 @@ package body Kit.Schema.Tables is
      (Table : Table_Type;
       Process          : not null access procedure
         (Base   : Table_Type'Class;
-         Key    : Key_Cursor))
+         Key    : Kit.Schema.Keys.Key_Type'Class))
    is
 
       procedure Scan_Base (Base : Table_Type'Class);
@@ -1210,22 +888,10 @@ package body Kit.Schema.Tables is
       ---------------
 
       procedure Scan_Base (Base : Table_Type'Class) is
-
-         procedure Call_Process (Position : Field_Vectors.Cursor);
-
-         ------------------
-         -- Call_Process --
-         ------------------
-
-         procedure Call_Process (Position : Field_Vectors.Cursor) is
-         begin
-            if Field_Vectors.Element (Position).Is_Key then
-               Process (Base, Key_Cursor (Position));
-            end if;
-         end Call_Process;
-
       begin
-         Base.Fields.Iterate (Call_Process'Access);
+         for K of Base.Keys loop
+            Process (Base, K.all);
+         end loop;
       end Scan_Base;
 
    begin
@@ -1242,27 +908,21 @@ package body Kit.Schema.Tables is
       Process          : not null access procedure
         (Table  : Table_Type'Class;
          Base   : Table_Type'Class;
-         Key    : Key_Cursor))
+         Key    : Kit.Schema.Keys.Key_Type'Class))
    is
 
-      procedure Call_Process (Base  : Table_Type'Class;
-                              Key   : Key_Cursor);
+      procedure Call_Process (Base : Table_Type'Class;
+                              Key  : Kit.Schema.Keys.Key_Type'Class);
 
       ------------------
       -- Call_Process --
       ------------------
 
-      procedure Call_Process (Base  : Table_Type'Class;
-                              Key   : Key_Cursor)
+      procedure Call_Process (Base : Table_Type'Class;
+                              Key  : Kit.Schema.Keys.Key_Type'Class)
       is
-         F : constant Table_Field_Access :=
-               Field_Vectors.Element (Field_Vectors.Cursor (Key));
       begin
-         if F.Is_Compound then
-            if F.Compound_Field.Contains (Containing_Field) then
-               Process (Table, Base, Key);
-            end if;
-         elsif F.Field.Ada_Name = Containing_Field.Ada_Name then
+         if Key.Contains (Containing_Field) then
             Process (Table, Base, Key);
          end if;
       end Call_Process;
@@ -1270,23 +930,6 @@ package body Kit.Schema.Tables is
    begin
       Table.Scan_Keys (Call_Process'Access);
    end Scan_Keys;
-
-   -------------------
-   -- Standard_Name --
-   -------------------
-
-   function Standard_Name (Position : Key_Cursor)
-                           return String
-   is
-      use Field_Vectors;
-      Item : constant Table_Field_Access := Element (Cursor (Position));
-   begin
-      if Item.Is_Compound then
-         return Item.Compound_Field.Standard_Name;
-      else
-         return Item.Field.Standard_Name;
-      end if;
-   end Standard_Name;
 
    ----------------
    -- To_Storage --
@@ -1296,15 +939,12 @@ package body Kit.Schema.Tables is
                         Base_Table  : Table_Type'Class;
                         Key_Table   : Table_Type'Class;
                         Object_Name : String;
-                        Key         : Key_Cursor;
+                        Key         : Kit.Schema.Keys.Key_Type'Class;
                         With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class
    is
       use Aquarius.Drys;
       use Aquarius.Drys.Expressions;
-      F : constant Table_Field_Access :=
-            Field_Vectors.Element (Field_Vectors.Cursor (Key));
-
       Key_Index : constant String :=
                     Table.Database_Index_Component
                       (Object_Name, Base_Table);
@@ -1319,19 +959,19 @@ package body Kit.Schema.Tables is
                             then Object_Name
                             else Object_Name & ".");
    begin
-      if F.Is_Compound then
+      if Key.Field_Count > 1 then
          declare
             Result : Function_Call_Expression :=
                        New_Function_Call_Expression
                          (Ada_Name (Key_Table)
                           & "_Impl."
-                          & Ada_Name (Key) & "_To_Storage");
+                          & Key.Ada_Name & "_To_Storage");
          begin
-            for I in 1 .. F.Compound_Field.Field_Count loop
+            for I in 1 .. Key.Field_Count loop
                Result.Add_Actual_Argument
                  (Object
                     (Object_Component
-                     & F.Compound_Field.Field (I).Ada_Name));
+                     & Key.Field (I).Ada_Name));
             end loop;
             if With_Index then
                return Long_Operator ("&", Result, Index_Part);
@@ -1342,8 +982,8 @@ package body Kit.Schema.Tables is
       else
          declare
             Key_Part : constant Expression'Class :=
-                         F.Field.Get_Field_Type.To_Storage_Array
-                           (Object_Component & Ada_Name (Key));
+                         Key.Field (1).Get_Field_Type.To_Storage_Array
+                           (Object_Component & Key.Ada_Name);
          begin
             if With_Index then
                return Long_Operator ("&", Key_Part, Index_Part);
@@ -1360,19 +1000,17 @@ package body Kit.Schema.Tables is
 
    function To_Storage (Key_Value_Name   : String;
                         Index_Value_Name : String;
-                        Key              : Key_Cursor)
+                        Key              : Kit.Schema.Keys.Key_Type'Class)
                         return Aquarius.Drys.Expression'Class
    is
       use Aquarius.Drys;
       use Aquarius.Drys.Expressions;
-      F : constant Table_Field_Access :=
-            Field_Vectors.Element (Field_Vectors.Cursor (Key));
    begin
-      if F.Is_Compound then
+      if Key.Field_Count > 1 then
          declare
             Result : Function_Call_Expression :=
                        New_Function_Call_Expression
-                         (Ada_Name (Key) & "_To_Storage");
+                         (Key.Ada_Name & "_To_Storage");
          begin
             Result.Add_Actual_Argument
               (Aquarius.Drys.Object (Key_Value_Name));
@@ -1381,7 +1019,7 @@ package body Kit.Schema.Tables is
       else
          declare
             Key_Part : constant Expression'Class :=
-                         F.Field.Get_Field_Type.To_Storage_Array
+                         Key.Field (1).Get_Field_Type.To_Storage_Array
                            (Key_Value_Name);
             Index_Part : constant Expression'Class :=
                            New_Function_Call_Expression

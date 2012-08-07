@@ -209,6 +209,8 @@ package Aquarius.Drys.Declarations is
 
    type Subprogram_Declaration is new Declaration with private;
 
+   overriding procedure Check (Item : Subprogram_Declaration);
+
    overriding
    function Has_Private_Part
      (Item : Subprogram_Declaration)
@@ -239,70 +241,75 @@ package Aquarius.Drys.Declarations is
      (Name        : String;
       Argument    : Formal_Argument'Class;
       Result_Type : Subtype_Indication'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Abstract_Function
      (Name        : String;
       Argument_1  : Formal_Argument'Class;
       Argument_2  : Formal_Argument'Class;
       Result_Type : Subtype_Indication'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Abstract_Procedure
      (Name        : String;
       Argument    : Formal_Argument'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Abstract_Procedure
      (Name        : String;
       Argument_1  : Formal_Argument'Class;
       Argument_2  : Formal_Argument'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Abstract_Procedure
      (Name        : String;
       Argument_1  : Formal_Argument'Class;
       Argument_2  : Formal_Argument'Class;
       Argument_3  : Formal_Argument'Class)
-      return Subprogram_Declaration;
+      return Subprogram_Declaration'Class;
 
    function New_Abstract_Function
      (Name        : String;
       Result_Type : Subtype_Indication'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Abstract_Procedure
      (Name        : String)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Function
      (Name        : String;
       Result_Type : Subtype_Indication'Class;
       Block       : Blocks.Block_Type'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Function
      (Name        : String;
       Result_Type : String;
       Block       : Blocks.Block_Type'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Function
      (Name        : String;
       Result_Type : String;
       Result      : Expression'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Procedure
      (Name        : String;
       Argument    : Formal_Argument'Class;
       Block       : Blocks.Block_Type'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
 
    function New_Procedure
      (Name        : String;
       Block       : Blocks.Block_Type'Class)
-     return Subprogram_Declaration;
+     return Subprogram_Declaration'Class;
+
+   function Instantiate_Generic_Procedure
+     (Instantiated_Name : String;
+      Generic_Name      : String)
+     return Subprogram_Declaration'Class;
 
    procedure Add_Formal_Argument
      (Subprogram : in out Subprogram_Declaration'Class;
@@ -328,7 +335,19 @@ package Aquarius.Drys.Declarations is
    procedure Set_Overriding
      (Item : in out Subprogram_Declaration);
 
-   type Package_Type is new Declaration with private;
+   procedure Set_Generic_Instantion
+     (Item                    : in out Subprogram_Declaration'Class;
+      Instantiated_Subprogram : in     String);
+
+   procedure Add_Generic_Actual_Argument
+     (Item  : in out Subprogram_Declaration'Class;
+      Value : in     String);
+
+   procedure Add_Generic_Actual_Argument
+     (Item  : in out Subprogram_Declaration'Class;
+      Value : in     Integer);
+
+   type Package_Type is new Subprogram_Declaration with private;
 
    overriding
    procedure Write (Item        : Package_Type;
@@ -351,20 +370,8 @@ package Aquarius.Drys.Declarations is
       Private_With : Boolean := False;
       Body_With    : Boolean := False);
 
-   procedure Set_Generic_Instantion
-     (Item                 : in out Package_Type;
-      Instantiated_Package : in     String);
-
    procedure Set_Private
      (Item : in out Package_Type);
-
-   procedure Add_Generic_Actual_Argument
-     (Item  : in out Package_Type;
-      Value : in     String);
-
-   procedure Add_Generic_Actual_Argument
-     (Item  : in out Package_Type;
-      Value : in     Integer);
 
    procedure Append
      (To_Package : in out Package_Type;
@@ -431,15 +438,19 @@ private
 
    type Subprogram_Declaration is new Declaration with
       record
-         Name           : String_Access;
-         Arguments      : Formal_Argument_Vectors.Vector;
-         Result_Type    : access Subtype_Indication'Class;
-         Sub_Body       : access Blocks.Block_Type'Class;
-         Is_Function    : Boolean := False;
-         Is_Abstract    : Boolean := False;
-         Is_Private     : Boolean := False;
-         Is_Overriding  : Boolean := False;
-         Arg_Name_Width : Natural := 0;
+         Name              : String_Access;
+         Generic_Name      : String_Access;
+         Arguments         : Formal_Argument_Vectors.Vector;
+         Generic_Arguments : String_Vector.Vector;
+         Result_Type       : access Subtype_Indication'Class;
+         Sub_Body          : access Blocks.Block_Type'Class;
+         Is_Function       : Boolean := False;
+         Is_Abstract       : Boolean := False;
+         Is_Private        : Boolean := False;
+         Is_Overriding     : Boolean := False;
+         Is_Instantiation  : Boolean := False;
+         Arg_Name_Width    : Natural := 0;
+         Has_Body          : Boolean := False;
       end record;
 
    type With_Context_Clause is
@@ -453,19 +464,13 @@ private
    package Context_Clause_Vectors is
       new Ada.Containers.Vectors (Positive, With_Context_Clause);
 
-   type Package_Type is new Declaration with
+   type Package_Type is new Subprogram_Declaration with
       record
-         Name                 : String_Access;
-         Instantiated_Package : String_Access;
          Withed_Packages      : Context_Clause_Vectors.Vector;
          Declarations         : Declaration_Vector.Vector;
          Formal_Arguments     : Declaration_Vector.Vector;
-         Actual_Arguments     : String_Vector.Vector;
          Is_Generic           : Boolean                    := False;
-         Is_Instantiation     : Boolean                    := False;
-         Is_Private           : Boolean                    := False;
          Has_Private          : Boolean                    := False;
-         Has_Body             : Boolean                    := False;
       end record;
 
 end Aquarius.Drys.Declarations;
