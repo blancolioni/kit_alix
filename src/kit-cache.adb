@@ -7,6 +7,8 @@ with Kit.Mutex;
 
 package body Kit.Cache is
 
+   Debug_Locking : constant Boolean := False;
+
    Max_Table_Index : constant := 256;
 
    type Cache_Entry_Key is
@@ -31,8 +33,6 @@ package body Kit.Cache is
    --  Maximum number of objects in the cache
    --  Should, of course, be settable and tunable.
 
-   Debug_Locking : constant Boolean := False;
-
    procedure Free is
       new Ada.Unchecked_Deallocation (Cache_Entry_Record'Class,
                                       Cache_Entry);
@@ -46,6 +46,7 @@ package body Kit.Cache is
                            return Marlowe.Database_Index;
 
    Cache_Mutex : Mutex.Mutex_Type;
+   LRU_Mutex   : Mutex.Mutex_Type;
 
    Global_Tick : Tick := 0;
    Tick_Mutex  : Mutex.Mutex_Type;
@@ -164,6 +165,15 @@ package body Kit.Cache is
    procedure Insert   (New_Entry : in Cache_Entry) is
    begin
 
+      if Debug_Locking then
+         Ada.Text_IO.Put_Line
+           ("Insert into cache: table"
+            & Marlowe.Table_Index'Image (New_Entry.Rec)
+            & " index"
+            & Marlowe.Database_Index'Image (New_Entry.Index));
+         Ada.Text_IO.Flush;
+      end if;
+
       while Current_Cache_Size >= Max_Cache_Size loop
          declare
             use List_Of_Cache_Entries;
@@ -174,6 +184,16 @@ package body Kit.Cache is
               or else E.S_Locked
               or else E.Dirty
               or else E.References > 0;
+
+            if Debug_Locking then
+               Ada.Text_IO.Put_Line
+                 ("Dropping from cache: table"
+                  & Marlowe.Table_Index'Image (E.Rec)
+                  & " index"
+                  & Marlowe.Database_Index'Image (E.Index));
+               Ada.Text_IO.Flush;
+            end if;
+
             Local_Cache.Delete ((E.Rec, E.Index));
             LRU.Delete (Item);
             Free (E);
@@ -185,8 +205,10 @@ package body Kit.Cache is
                           New_Item => New_Entry);
       New_Entry.Cached     := True;
       New_Entry.References := 0;
+      LRU_Mutex.Lock;
       LRU.Prepend (New_Entry);
       New_Entry.LRU := LRU.First;
+      LRU_Mutex.Unlock;
       Current_Cache_Size := Current_Cache_Size + 1;
 
    end Insert;
@@ -233,6 +255,15 @@ package body Kit.Cache is
 
       if Local_Cache.Contains ((Rec, Index))  then
 
+         if Debug_Locking then
+            Ada.Text_IO.Put_Line
+              ("Retrieve from cache: table"
+               & Marlowe.Table_Index'Image (Rec)
+               & " index"
+               & Marlowe.Database_Index'Image (Index));
+            Ada.Text_IO.Flush;
+         end if;
+
          Result := Local_Cache.Element ((Rec, Index));
          Update_LRU (Result);
 
@@ -264,8 +295,11 @@ package body Kit.Cache is
                                  (Item.Get_Table_Index)
                                & " index"
                                & Marlowe.Database_Index'Image
-                                 (Item.Index));
+                                 (Item.Index)
+                               & " s = " & Boolean'Image (Item.S_Locked)
+                               & " x = " & Boolean'Image (Item.X_Locked));
          Ada.Text_IO.Flush;
+
       end if;
 
       Locking.Root_Lockable_Type (Item.all).S_Lock;
@@ -325,7 +359,9 @@ package body Kit.Cache is
                                  (Item.Get_Table_Index)
                                & " index"
                                & Marlowe.Database_Index'Image
-                                 (Item.Index));
+                                 (Item.Index)
+                               & " s = " & Boolean'Image (Item.S_Locked)
+                               & " x = " & Boolean'Image (Item.X_Locked));
          Ada.Text_IO.Flush;
       end if;
       if Item.X_Locked then
@@ -365,9 +401,21 @@ package body Kit.Cache is
    procedure Update_LRU (Item : not null access Cache_Entry_Record'Class) is
    begin
       if Item.Cached then
+         if Debug_Locking then
+            Ada.Text_IO.Put_Line
+              ("Update_LRU: table"
+               & Marlowe.Table_Index'Image (Item.Rec)
+               & " index"
+               & Marlowe.Database_Index'Image (Item.Index));
+            Ada.Text_IO.Flush;
+         end if;
+
+         LRU_Mutex.Lock;
          LRU.Delete (Item.LRU);
          LRU.Prepend (Cache_Entry (Item));
          Item.LRU := LRU.First;
+         LRU_Mutex.Unlock;
+
       end if;
    end Update_LRU;
 
@@ -383,20 +431,16 @@ package body Kit.Cache is
             use type Marlowe.Table_Index;
             use type Marlowe.Database_Index;
          begin
-            if Item.Get_Table_Index = 53
-              and then Item.Index = 4
-            then
-               Ada.Text_IO.Put_Line ("x lock tricky bit");
-            end if;
+            Ada.Text_IO.Put_Line ("X_Lock: table"
+                                  & Marlowe.Table_Index'Image
+                                    (Item.Get_Table_Index)
+                                  & " index"
+                                  & Marlowe.Database_Index'Image
+                                    (Item.Index)
+                                  & " s = " & Boolean'Image (Item.S_Locked)
+                                  & " x = " & Boolean'Image (Item.X_Locked));
+            Ada.Text_IO.Flush;
          end;
-
-         Ada.Text_IO.Put_Line ("X_Lock: table"
-                               & Marlowe.Table_Index'Image
-                                 (Item.Get_Table_Index)
-                               & " index"
-                               & Marlowe.Database_Index'Image
-                                 (Item.Index));
-         Ada.Text_IO.Flush;
       end if;
       Locking.Root_Lockable_Type (Item.all).X_Lock;
       Item.Dirty := True;
