@@ -97,6 +97,8 @@ package Aquarius.Drys is
 
    type Declaration is abstract new Syntax_Root with private;
 
+   procedure Check (D : Declaration) is null;
+
    procedure Set_Private_Spec (D : in out Declaration'Class);
 
    function Has_Private_Part

@@ -122,12 +122,12 @@ package body Aquarius.Drys.Declarations is
    ---------------------------------
 
    procedure Add_Generic_Actual_Argument
-     (Item  : in out Package_Type;
+     (Item  : in out Subprogram_Declaration'Class;
       Value : in     String)
    is
       pragma Assert (Item.Is_Instantiation);
    begin
-      Item.Actual_Arguments.Append (Value);
+      Item.Generic_Arguments.Append (Value);
    end Add_Generic_Actual_Argument;
 
    ---------------------------------
@@ -135,7 +135,7 @@ package body Aquarius.Drys.Declarations is
    ---------------------------------
 
    procedure Add_Generic_Actual_Argument
-     (Item  : in out Package_Type;
+     (Item  : in out Subprogram_Declaration'Class;
       Value : in     Integer)
    is
       pragma Assert (Item.Is_Instantiation);
@@ -177,6 +177,7 @@ package body Aquarius.Drys.Declarations is
       Item       : in     Declaration'Class)
    is
    begin
+      Item.Check;
       To_Package.Declarations.Append (Item);
       To_Package.Has_Private :=
         To_Package.Has_Private or else Item.Has_Private_Part;
@@ -194,10 +195,20 @@ package body Aquarius.Drys.Declarations is
    is
       Copy : Declaration'Class := Item;
    begin
+      Copy.Check;
       Copy.Body_Only := True;
       To_Package.Declarations.Append (Copy);
       To_Package.Has_Body := True;
    end Append_To_Body;
+
+   -----------
+   -- Check --
+   -----------
+
+   overriding procedure Check (Item : Subprogram_Declaration) is
+   begin
+      pragma Assert (Item.Name /= null);
+   end Check;
 
    ---------------------------------
    -- Defining_Identifiers_Length --
@@ -283,7 +294,7 @@ package body Aquarius.Drys.Declarations is
      return Boolean
    is
    begin
-      return not Item.Is_Abstract;
+      return not Item.Is_Abstract and then not Item.Is_Instantiation;
    end Has_Body;
 
    -------------------
@@ -404,6 +415,24 @@ package body Aquarius.Drys.Declarations is
       end return;
    end Identifier;
 
+   -----------------------------------
+   -- Instantiate_Generic_Procedure --
+   -----------------------------------
+
+   function Instantiate_Generic_Procedure
+     (Instantiated_Name : String;
+      Generic_Name      : String)
+      return Subprogram_Declaration'Class
+   is
+   begin
+      return Result : Subprogram_Declaration do
+         Result.Name := new String'(Instantiated_Name);
+         Result.Generic_Name := new String'(Generic_Name);
+         Result.Has_Body    := False;
+         Result.Is_Instantiation := True;
+      end return;
+   end Instantiate_Generic_Procedure;
+
    ---------------------------
    -- New_Abstract_Function --
    ---------------------------
@@ -411,14 +440,15 @@ package body Aquarius.Drys.Declarations is
    function New_Abstract_Function
      (Name        : String;
       Result_Type : Subtype_Indication'Class)
-     return Subprogram_Declaration
+     return Subprogram_Declaration'Class
    is
    begin
       return Result : Subprogram_Declaration do
-        Result.Name := new String'(Name);
-        Result.Result_Type := new Subtype_Indication'Class'(Result_Type);
-        Result.Is_Function := True;
-        Result.Is_Abstract := True;
+         Result.Name := new String'(Name);
+         Result.Result_Type := new Subtype_Indication'Class'(Result_Type);
+         Result.Is_Function := True;
+         Result.Is_Abstract := True;
+         Result.Has_Body    := False;
       end return;
    end New_Abstract_Function;
 
@@ -430,9 +460,9 @@ package body Aquarius.Drys.Declarations is
      (Name        : String;
       Argument    : Formal_Argument'Class;
       Result_Type : Subtype_Indication'Class)
-     return Subprogram_Declaration
+     return Subprogram_Declaration'Class
    is
-      Result : Subprogram_Declaration :=
+      Result : Subprogram_Declaration'Class :=
         New_Abstract_Function (Name, Result_Type);
    begin
       Result.Add_Formal_Argument (Argument);
@@ -448,9 +478,9 @@ package body Aquarius.Drys.Declarations is
       Argument_1  : Formal_Argument'Class;
       Argument_2  : Formal_Argument'Class;
       Result_Type : Subtype_Indication'Class)
-     return Subprogram_Declaration
+     return Subprogram_Declaration'Class
    is
-      Result : Subprogram_Declaration :=
+      Result : Subprogram_Declaration'Class :=
         New_Abstract_Function (Name, Result_Type);
    begin
       Result.Add_Formal_Argument (Argument_1);
@@ -464,12 +494,13 @@ package body Aquarius.Drys.Declarations is
 
    function New_Abstract_Procedure
      (Name        : String)
-     return Subprogram_Declaration
+     return Subprogram_Declaration'Class
    is
    begin
       return Result : Subprogram_Declaration do
-        Result.Name := new String'(Name);
-        Result.Is_Abstract := True;
+         Result.Name := new String'(Name);
+         Result.Is_Abstract := True;
+         Result.Has_Body    := False;
       end return;
    end New_Abstract_Procedure;
 
@@ -480,9 +511,9 @@ package body Aquarius.Drys.Declarations is
    function New_Abstract_Procedure
      (Name        : String;
       Argument    : Formal_Argument'Class)
-     return Subprogram_Declaration
+     return Subprogram_Declaration'Class
    is
-      Result : Subprogram_Declaration :=
+      Result : Subprogram_Declaration'Class :=
         New_Abstract_Procedure (Name);
    begin
       Result.Add_Formal_Argument (Argument);
@@ -497,9 +528,9 @@ package body Aquarius.Drys.Declarations is
      (Name        : String;
       Argument_1  : Formal_Argument'Class;
       Argument_2  : Formal_Argument'Class)
-     return Subprogram_Declaration
+     return Subprogram_Declaration'Class
    is
-      Result : Subprogram_Declaration :=
+      Result : Subprogram_Declaration'Class :=
         New_Abstract_Procedure (Name);
    begin
       Result.Add_Formal_Argument (Argument_1);
@@ -516,9 +547,9 @@ package body Aquarius.Drys.Declarations is
       Argument_1  : Formal_Argument'Class;
       Argument_2  : Formal_Argument'Class;
       Argument_3  : Formal_Argument'Class)
-     return Subprogram_Declaration
+     return Subprogram_Declaration'Class
    is
-      Result : Subprogram_Declaration :=
+      Result : Subprogram_Declaration'Class :=
         New_Abstract_Procedure (Name);
    begin
       Result.Add_Formal_Argument (Argument_1);
@@ -661,6 +692,10 @@ package body Aquarius.Drys.Declarations is
          In_Argument);
    end New_Formal_Argument;
 
+   -------------------------
+   -- New_Formal_Argument --
+   -------------------------
+
    function New_Formal_Argument
      (Name             : String;
       Argument_Type    : Subtype_Indication'Class;
@@ -698,15 +733,16 @@ package body Aquarius.Drys.Declarations is
      (Name        : String;
       Result_Type : Subtype_Indication'Class;
       Block       : Blocks.Block_Type'Class)
-      return Subprogram_Declaration
+      return Subprogram_Declaration'Class
    is
    begin
       return Result : Subprogram_Declaration do
          Result.Name := new String'(Name);
          Result.Result_Type := new Subtype_Indication'Class'(Result_Type);
          Result.Sub_Body    := new Blocks.Block_Type'Class'(Block);
-        Result.Is_Function := True;
-        Result.Is_Abstract := False;
+         Result.Is_Function := True;
+         Result.Is_Abstract := False;
+         Result.Has_Body    := True;
       end return;
    end New_Function;
 
@@ -718,7 +754,7 @@ package body Aquarius.Drys.Declarations is
      (Name        : String;
       Result_Type : String;
       Block       : Blocks.Block_Type'Class)
-      return Subprogram_Declaration
+      return Subprogram_Declaration'Class
    is
    begin
       return New_Function (Name,
@@ -734,7 +770,7 @@ package body Aquarius.Drys.Declarations is
      (Name        : String;
       Result_Type : String;
       Result      : Expression'Class)
-      return Subprogram_Declaration
+      return Subprogram_Declaration'Class
    is
       Block : Aquarius.Drys.Blocks.Block_Type;
    begin
@@ -946,7 +982,7 @@ package body Aquarius.Drys.Declarations is
    function New_Procedure
      (Name        : String;
       Block       : Blocks.Block_Type'Class)
-      return Subprogram_Declaration
+      return Subprogram_Declaration'Class
    is
    begin
       return Result : Subprogram_Declaration do
@@ -954,6 +990,7 @@ package body Aquarius.Drys.Declarations is
          Result.Sub_Body    := new Blocks.Block_Type'Class'(Block);
          Result.Is_Function := False;
          Result.Is_Abstract := False;
+         Result.Has_Body    := True;
       end return;
    end New_Procedure;
 
@@ -965,7 +1002,7 @@ package body Aquarius.Drys.Declarations is
      (Name        : String;
       Argument    : Formal_Argument'Class;
       Block       : Blocks.Block_Type'Class)
-      return Subprogram_Declaration
+      return Subprogram_Declaration'Class
    is
    begin
       return Result : Subprogram_Declaration do
@@ -974,6 +1011,7 @@ package body Aquarius.Drys.Declarations is
          Result.Sub_Body    := new Blocks.Block_Type'Class'(Block);
          Result.Is_Function := False;
          Result.Is_Abstract := False;
+         Result.Has_Body    := True;
       end return;
    end New_Procedure;
 
@@ -1034,13 +1072,13 @@ package body Aquarius.Drys.Declarations is
    ----------------------------
 
    procedure Set_Generic_Instantion
-     (Item                 : in out Package_Type;
-      Instantiated_Package : in     String)
+     (Item                    : in out Subprogram_Declaration'Class;
+      Instantiated_Subprogram : in     String)
    is
    begin
       Item.Is_Instantiation := True;
       Item.Has_Body := False;
-      Item.Instantiated_Package := new String'(Instantiated_Package);
+      Item.Generic_Name := new String'(Instantiated_Subprogram);
    end Set_Generic_Instantion;
 
    --------------------
@@ -1204,13 +1242,13 @@ package body Aquarius.Drys.Declarations is
          if Item.Is_Instantiation then
             Writer.Indent (2);
             Writer.New_Line;
-            Writer.Put ("new " & Item.Instantiated_Package.all);
+            Writer.Put ("new " & Item.Generic_Name.all);
             Writer.Indent (4);
             Writer.New_Line;
             declare
                First : Boolean := True;
             begin
-               for S of Item.Actual_Arguments loop
+               for S of Item.Generic_Arguments loop
                   if First then
                      Writer.Put (" (");
                      First := False;
@@ -1480,7 +1518,9 @@ package body Aquarius.Drys.Declarations is
       if Item.Is_Abstract then
          Writer.New_Line;
          Writer.Put ("   is abstract");
-      elsif Writer.Context = Package_Body then
+      elsif Writer.Context = Package_Body
+        or else Item.Is_Instantiation
+      then
          if Item.Arguments.Last_Index > 1 then
             Writer.New_Line;
             Writer.Put_Line ("is");
@@ -1488,9 +1528,33 @@ package body Aquarius.Drys.Declarations is
             Writer.Put_Line (" is");
          end if;
 
-         Item.Sub_Body.Write (Writer);
-         Writer.Put (" ");
-         Writer.Put (Item.Name.all);
+         if Item.Is_Instantiation then
+            Writer.Indent (Writer.Indent + 2);
+            Writer.Put ("new " & Item.Generic_Name.all);
+            Writer.Indent (4);
+            Writer.New_Line;
+            declare
+               First : Boolean := True;
+            begin
+               for S of Item.Generic_Arguments loop
+                  if First then
+                     Writer.Put (" (");
+                     First := False;
+                  else
+                     Writer.Put_Line (",");
+                  end if;
+                  Writer.Put (S);
+               end loop;
+               if not First then
+                  Writer.Put (")");
+               end if;
+               Writer.Indent (Writer.Indent - 2);
+            end;
+         else
+            Item.Sub_Body.Write (Writer);
+            Writer.Put (" ");
+            Writer.Put (Item.Name.all);
+         end if;
       end if;
 
    end Write;

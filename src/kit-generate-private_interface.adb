@@ -10,6 +10,7 @@ with Aquarius.Drys.Types;
 with Marlowe;
 
 with Kit.Schema.Fields;
+with Kit.Schema.Keys;
 
 package body Kit.Generate.Private_Interface is
 
@@ -46,9 +47,11 @@ package body Kit.Generate.Private_Interface is
    is
       pragma Unreferenced (Db);
 
-      procedure Create_Key_To_Storage (Key : Kit.Schema.Tables.Key_Cursor);
+      procedure Create_Key_To_Storage
+        (Key   : Kit.Schema.Keys.Key_Type'Class);
+
       function To_Storage_Expression
-        (Key   : Kit.Schema.Tables.Key_Cursor;
+        (Key   : Kit.Schema.Keys.Key_Type'Class;
          Index : Positive)
          return Aquarius.Drys.Expression'Class;
 
@@ -56,23 +59,25 @@ package body Kit.Generate.Private_Interface is
       -- Create_Key_To_Storage --
       ---------------------------
 
-      procedure Create_Key_To_Storage (Key : Kit.Schema.Tables.Key_Cursor) is
+      procedure Create_Key_To_Storage
+        (Key   : Kit.Schema.Keys.Key_Type'Class)
+      is
          use Kit.Schema.Tables;
       begin
-         if Is_Compound_Key (Key) then
+         if Key.Field_Count > 1 then
             declare
                use Aquarius.Drys, Aquarius.Drys.Declarations;
                Fn : Subprogram_Declaration'Class :=
                       Aquarius.Drys.Declarations.New_Function
-                        (Ada_Name (Key) & "_To_Storage",
+                        (Key.Ada_Name & "_To_Storage",
                          "System.Storage_Elements.Storage_Array",
                          To_Storage_Expression
                            (Key, 1));
             begin
-               for I in 1 .. Compound_Field_Count (Key) loop
+               for I in 1 .. Key.Field_Count loop
                   Fn.Add_Formal_Argument
-                    (Compound_Field (Key, I).Ada_Name,
-                     Compound_Field (Key, I).Get_Field_Type.Argument_Subtype);
+                    (Key.Field (I).Ada_Name,
+                     Key.Field (I).Get_Field_Type.Argument_Subtype);
                end loop;
                Fn.Add_Local_Declaration
                  (Use_Type ("System.Storage_Elements.Storage_Array"));
@@ -86,18 +91,18 @@ package body Kit.Generate.Private_Interface is
       ---------------------------
 
       function To_Storage_Expression
-        (Key   : Kit.Schema.Tables.Key_Cursor;
+        (Key   : Kit.Schema.Keys.Key_Type'Class;
          Index : Positive)
          return Aquarius.Drys.Expression'Class
       is
          use Aquarius.Drys.Expressions;
          Field : constant Kit.Schema.Fields.Field_Type'Class :=
-                   Kit.Schema.Tables.Compound_Field (Key, Index);
+                   Key.Field (Index);
          This  : constant Aquarius.Drys.Expression'Class :=
                    Field.Get_Field_Type.To_Storage_Array
                      (Field.Ada_Name);
       begin
-         if Index = Kit.Schema.Tables.Compound_Field_Count (Key) then
+         if Index = Key.Field_Count then
             return This;
          else
             return Operator ("&", This,
@@ -198,20 +203,20 @@ package body Kit.Generate.Private_Interface is
    is
 
       procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type'Class;
-                           Key  : Kit.Schema.Tables.Key_Cursor);
+                           Key  : Kit.Schema.Keys.Key_Type'Class);
 
       ---------------
       -- Add_Mutex --
       ---------------
 
       procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type'Class;
-                           Key  : Kit.Schema.Tables.Key_Cursor)
+                           Key  : Kit.Schema.Keys.Key_Type'Class)
       is
          pragma Unreferenced (Base);
       begin
          Impl.Append
            (Aquarius.Drys.Declarations.New_Object_Declaration
-              (Kit.Schema.Tables.Ada_Name (Key) & "_Key_Mutex",
+              (Key.Ada_Name & "_Key_Mutex",
                "Kit.Mutex.Mutex_Type"));
       end Add_Mutex;
 
@@ -386,7 +391,7 @@ package body Kit.Generate.Private_Interface is
          end if;
 
          declare
-            P     : Aquarius.Drys.Declarations.Subprogram_Declaration :=
+            P     : Aquarius.Drys.Declarations.Subprogram_Declaration'Class :=
                       Aquarius.Drys.Declarations.New_Procedure
                         (Name  => (if Write then "Write" else "Read"),
                          Block => Block);

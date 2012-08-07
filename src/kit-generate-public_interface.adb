@@ -1,28 +1,18 @@
-with Ada.Strings.Fixed;
-
 with Aquarius.Drys.Blocks;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
 with Aquarius.Drys.Types;
 
 with Kit.Schema.Fields;
+with Kit.Schema.Keys;
+with Kit.Schema.Types;
+
 with Kit.Generate.Fetch;
 with Kit.Generate.Public_Get;
-with Kit.Schema.Types;
 
 package body Kit.Generate.Public_Interface is
 
    procedure Create_Control_Procedures
-     (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type'Class;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
-
-   procedure Create_Key_Context_Type
-     (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type'Class;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
-
-   procedure Create_Key_Marks
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
@@ -101,7 +91,7 @@ package body Kit.Generate.Public_Interface is
          is
             procedure Insert_Key
               (Key_Table : Kit.Schema.Tables.Table_Type'Class;
-               Key       : Kit.Schema.Tables.Key_Cursor);
+               Key       : Kit.Schema.Keys.Key_Type'Class);
 
             ----------------
             -- Insert_Key --
@@ -109,7 +99,7 @@ package body Kit.Generate.Public_Interface is
 
             procedure Insert_Key
               (Key_Table : Kit.Schema.Tables.Table_Type'Class;
-               Key       : Kit.Schema.Tables.Key_Cursor)
+               Key       : Kit.Schema.Keys.Key_Type'Class)
             is
                Insert : Procedure_Call_Statement :=
                           New_Procedure_Call_Statement
@@ -121,11 +111,11 @@ package body Kit.Generate.Public_Interface is
                                              (Key));
                Insert.Add_Actual_Argument
                  (Kit.Schema.Tables.To_Storage (Table       => Table,
-                                         Base_Table  => Base,
-                                         Key_Table   => Key_Table,
-                                         Object_Name => "Item",
-                                         Key         => Key,
-                                         With_Index  => True));
+                                                Base_Table  => Base,
+                                                Key_Table   => Key_Table,
+                                                Object_Name => "Item",
+                                                Key         => Key,
+                                                With_Index  => True));
                Insert_Keys.Append (Insert);
             end Insert_Key;
 
@@ -185,8 +175,12 @@ package body Kit.Generate.Public_Interface is
             Finalize_Block.Add_Statement (If_Do_Unlock);
          end;
 
+         Finalize_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Free", Object ("Item.Mark")));
+
          declare
-            Finalize : Subprogram_Declaration :=
+            Finalize : Subprogram_Declaration'Class :=
                          New_Procedure ("Finalize",
                                         Argument, Finalize_Block);
          begin
@@ -252,7 +246,7 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Local.S_Locked", "False");
 
          declare
-            Initialize : Subprogram_Declaration :=
+            Initialize : Subprogram_Declaration'Class :=
                            New_Procedure ("Initialize",
                                           Argument, Initialize_Block);
          begin
@@ -284,45 +278,45 @@ package body Kit.Generate.Public_Interface is
       procedure Lock_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key        : Kit.Schema.Tables.Key_Cursor);
+         Key        : Kit.Schema.Keys.Key_Type'Class);
 
       procedure Unlock_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key        : Kit.Schema.Tables.Key_Cursor);
+         Key        : Kit.Schema.Keys.Key_Type'Class);
 
       procedure Perform_Lock
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor;
+         Key        : Kit.Schema.Keys.Key_Type'Class;
          Lock     : Boolean);
 
       procedure Delete_Old_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor);
+         Key        : Kit.Schema.Keys.Key_Type'Class);
 
       procedure Insert_New_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor);
+         Key        : Kit.Schema.Keys.Key_Type'Class);
 
       procedure Key_Operation
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key       : Kit.Schema.Tables.Key_Cursor;
+         Key        : Kit.Schema.Keys.Key_Type'Class;
          Operation : String);
 
       procedure Release_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor);
+         Key        : Kit.Schema.Keys.Key_Type'Class);
 
       procedure Process_Keys
         (Process : not null access
            procedure (Table_Base : Kit.Schema.Tables.Table_Type'Class;
                       Key_Base : Kit.Schema.Tables.Table_Type'Class;
-                      Key : Kit.Schema.Tables.Key_Cursor));
+                      Key        : Kit.Schema.Keys.Key_Type'Class));
 
       ---------------------------
       -- Create_Abstract_Store --
@@ -330,7 +324,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Abstract_Store is
          use Aquarius.Drys.Declarations;
-         Store : Subprogram_Declaration :=
+         Store : Subprogram_Declaration'Class :=
                    New_Abstract_Procedure
                      ("Set_" & Field.Ada_Name,
                       New_Inout_Argument ("Item",
@@ -353,7 +347,7 @@ package body Kit.Generate.Public_Interface is
       procedure Delete_Old_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor)
+         Key        : Kit.Schema.Keys.Key_Type'Class)
       is
       begin
          Key_Operation (Table_Base, Key_Base, Key, "Delete");
@@ -366,7 +360,7 @@ package body Kit.Generate.Public_Interface is
       procedure Insert_New_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor)
+         Key        : Kit.Schema.Keys.Key_Type'Class)
       is
       begin
          Key_Operation (Table_Base, Key_Base, Key, "Insert");
@@ -379,7 +373,7 @@ package body Kit.Generate.Public_Interface is
       procedure Key_Operation
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key       : Kit.Schema.Tables.Key_Cursor;
+         Key        : Kit.Schema.Keys.Key_Type'Class;
          Operation : String)
       is
          S : Aquarius.Drys.Statements.Procedure_Call_Statement :=
@@ -421,7 +415,7 @@ package body Kit.Generate.Public_Interface is
       procedure Lock_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor)
+         Key        : Kit.Schema.Keys.Key_Type'Class)
       is
       begin
          Perform_Lock (Table_Base, Key_Base, Key, True);
@@ -434,7 +428,7 @@ package body Kit.Generate.Public_Interface is
       procedure Perform_Lock
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor;
+         Key        : Kit.Schema.Keys.Key_Type'Class;
          Lock     : Boolean)
       is
          pragma Unreferenced (Key_Base);
@@ -443,7 +437,7 @@ package body Kit.Generate.Public_Interface is
          S : constant Aquarius.Drys.Statement'Class :=
                Aquarius.Drys.Statements.New_Procedure_Call_Statement
                  (Table_Base.Ada_Name
-                  & "_Impl." & Kit.Schema.Tables.Ada_Name (Key)
+                  & "_Impl." & Key.Ada_Name
                   & "_Key_Mutex." & Lock_Name);
       begin
          Store_Block.Add_Statement
@@ -461,7 +455,7 @@ package body Kit.Generate.Public_Interface is
         (Process : not null access
            procedure (Table_Base : Kit.Schema.Tables.Table_Type'Class;
                       Key_Base : Kit.Schema.Tables.Table_Type'Class;
-                      Key : Kit.Schema.Tables.Key_Cursor))
+                      Key        : Kit.Schema.Keys.Key_Type'Class))
       is
 
          procedure Process_Base
@@ -491,9 +485,8 @@ package body Kit.Generate.Public_Interface is
       procedure Release_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor)
+         Key        : Kit.Schema.Keys.Key_Type'Class)
       is
-         pragma Unreferenced (Table_Base);
          pragma Unreferenced (Key_Base);
          use Aquarius.Drys;
          use Aquarius.Drys.Expressions;
@@ -502,22 +495,20 @@ package body Kit.Generate.Public_Interface is
                             Operator
                               ("not", Aquarius.Drys.Object ("Item.Created"));
          Using_Key      : constant Expression'Class :=
-                            Object ("Item.Using_Key");
+                            Object ("Item.Scanning");
+         Key_Ref        : constant String :=
+                            "Marlowe_Keys."
+                            & Table_Base.Key_Reference_Name (Key);
          This_Key       : constant Expression'Class :=
                             Operator
                               ("=",
-                               Object ("Item.Key_Value.K"),
-                               Object ("K_" & Table.Ada_Name & "_"
-                                 & Kit.Schema.Tables.Ada_Name (Key)));
+                               Object ("Item.Key_Ref"),
+                               Object (Key_Ref));
          Release        : constant Statement'Class :=
                             New_Procedure_Call_Statement
                               ("Marlowe.Btree_Handles.Release",
-                               Object
-                                 ("Item.Key_Value."
-                                  & Kit.Schema.Tables.Ada_Name (Key)
-                                  & "_Context"));
+                               Object ("Item.Mark.all"));
       begin
-
          Store_Block.Add_Statement
            (If_Statement
               (Long_Operator
@@ -535,7 +526,7 @@ package body Kit.Generate.Public_Interface is
       procedure Unlock_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
-         Key      : Kit.Schema.Tables.Key_Cursor)
+         Key        : Kit.Schema.Keys.Key_Type'Class)
       is
       begin
          Perform_Lock (Table_Base, Key_Base, Key, False);
@@ -550,6 +541,12 @@ package body Kit.Generate.Public_Interface is
       Store_Block.Add_Declaration
         (Aquarius.Drys.Declarations.Use_Type
            ("System.Storage_Elements.Storage_Array"));
+      if Table.Has_Key_Field then
+         Store_Block.Add_Declaration
+           (Aquarius.Drys.Declarations.Use_Type
+              ("Marlowe.Btree_Handles.Btree_Reference"));
+      end if;
+
       Store_Block.Add_Declaration
         (Aquarius.Drys.Declarations.Renaming_Declaration
            ("Target",
@@ -592,7 +589,7 @@ package body Kit.Generate.Public_Interface is
 
       declare
          use Aquarius.Drys.Declarations;
-         Store : Subprogram_Declaration :=
+         Store : Subprogram_Declaration'Class :=
                    New_Procedure
                      ("Set_" & Field.Ada_Name,
                       New_Inout_Argument ("Item",
@@ -624,7 +621,6 @@ package body Kit.Generate.Public_Interface is
 
       Got_Field : Boolean := False;
 
-      Fetch  : Subprogram_Declaration;
       Block  : Aquarius.Drys.Blocks.Block_Type;
       Choose : Case_Statement_Record'Class :=
                  Case_Statement ("Field");
@@ -693,20 +689,26 @@ package body Kit.Generate.Public_Interface is
 
       Block.Append (Choose);
 
-      Fetch := New_Function
-        ("Get",
-         Named_Subtype ("String"),
-         Block);
+      declare
+         Fetch : Subprogram_Declaration'Class :=
+                   New_Function
+                     ("Get",
+                      Named_Subtype ("String"),
+                      Block);
+      begin
 
-      Fetch.Add_Formal_Argument
-        ("Item",
-         Table.Ada_Name & "_Implementation");
-      Fetch.Add_Formal_Argument
-        ("Field",
-         "Database_Field");
+         Fetch.Add_Formal_Argument
+           ("Item",
+            Table.Ada_Name & "_Implementation");
+         Fetch.Add_Formal_Argument
+           ("Field",
+            "Database_Field");
 
-      Fetch.Set_Overriding;
-      Top.Append_To_Body (Fetch);
+         Fetch.Set_Overriding;
+         Top.Append_To_Body (Fetch);
+
+      end;
+
    end Create_Generic_Get;
 
    ------------------------
@@ -723,7 +725,6 @@ package body Kit.Generate.Public_Interface is
 
       Got_Field : Boolean := False;
 
-      Store  : Subprogram_Declaration;
       Block  : Aquarius.Drys.Blocks.Block_Type;
       Choose : Case_Statement_Record'Class :=
                  Case_Statement ("Field");
@@ -793,110 +794,29 @@ package body Kit.Generate.Public_Interface is
          Block.Add_Declaration (New_Pragma ("Unreferenced", "Value"));
       end if;
 
-      Store := New_Procedure
-        ("Set",
-         Block);
+      declare
+         Store : Subprogram_Declaration'Class :=
+                   New_Procedure
+                     ("Set",
+                      Block);
+      begin
 
-      Store.Add_Formal_Argument
-        ("Item",
-         Inout_Argument,
-         Table.Ada_Name & "_Implementation");
-      Store.Add_Formal_Argument
-        ("Field",
-         "Database_Field");
-      Store.Add_Formal_Argument
-        ("Value",
-         "String");
+         Store.Add_Formal_Argument
+           ("Item",
+            Inout_Argument,
+            Table.Ada_Name & "_Implementation");
+         Store.Add_Formal_Argument
+           ("Field",
+            "Database_Field");
+         Store.Add_Formal_Argument
+           ("Value",
+            "String");
 
-      Store.Set_Overriding;
-      Top.Append_To_Body (Store);
+         Store.Set_Overriding;
+         Top.Append_To_Body (Store);
+      end;
+
    end Create_Generic_Set;
-
-   -----------------------------
-   -- Create_Key_Context_Type --
-   -----------------------------
-
-   procedure Create_Key_Context_Type
-     (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type'Class;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
-   is
-      pragma Unreferenced (Db);
-
-      Context_Type : Aquarius.Drys.Types.Record_Type_Definition;
-
-      procedure Create_Mark_Component
-        (Base : Kit.Schema.Tables.Table_Type'Class;
-         Key  : Kit.Schema.Tables.Key_Cursor);
-
-      ---------------------------
-      -- Create_Mark_Component --
-      ---------------------------
-
-      procedure Create_Mark_Component
-        (Base : Kit.Schema.Tables.Table_Type'Class;
-         Key  : Kit.Schema.Tables.Key_Cursor)
-      is
-         pragma Unreferenced (Base);
-      begin
-         Context_Type.Next_Case_Option
-           ("K_" & Table.Ada_Name & "_" & Kit.Schema.Tables.Ada_Name (Key));
-         Context_Type.Add_Component
-           (Kit.Schema.Tables.Ada_Name (Key) & "_Context",
-            Kit.Schema.Tables.Ada_Name (Key) & "_Mark");
-      end Create_Mark_Component;
-
-   begin
-      Context_Type.Add_Variant ("K",
-                                Table.Ada_Name & "_Key",
-                                "K_None");
-      Context_Type.Start_Case ("K_None");
-      Table.Scan_Keys (Create_Mark_Component'Access);
-      Context_Type.End_Case;
-
-      Top.Append_To_Body
-        (Aquarius.Drys.Declarations.New_Full_Type_Declaration
-           ("Context_Key_Value",
-            Context_Type));
-
-   end Create_Key_Context_Type;
-
-   ----------------------
-   -- Create_Key_Marks --
-   ----------------------
-
-   procedure Create_Key_Marks
-     (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type'Class;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
-   is
-      pragma Unreferenced (Db);
-      procedure Create_Mark (Base : Kit.Schema.Tables.Table_Type'Class;
-                             Key  : Kit.Schema.Tables.Key_Cursor);
-
-      procedure Create_Mark (Base : Kit.Schema.Tables.Table_Type'Class;
-                             Key  : Kit.Schema.Tables.Key_Cursor)
-      is
-         pragma Unreferenced (Base);
-         use Aquarius.Drys.Declarations;
-         Key_Size     : constant String :=
-                          Ada.Strings.Fixed.Trim
-                            (Positive'Image
-                               (Kit.Schema.Tables.Key_Size (Key)),
-                             Ada.Strings.Left);
-         Mark_Subtype : constant Subtype_Declaration :=
-                          New_Subtype_Declaration
-                            (Kit.Schema.Tables.Ada_Name (Key) & "_Mark",
-                             Aquarius.Drys.Named_Subtype
-                               ("Marlowe.Btree_Handles.Btree_Mark ("
-                                & Key_Size & ")"));
-      begin
-         Top.Append_To_Body (Mark_Subtype);
-      end Create_Mark;
-
-   begin
-      Table.Scan_Keys (Create_Mark'Access);
-   end Create_Key_Marks;
 
    -------------------------------
    -- Create_Locking_Procedures --
@@ -1107,49 +1027,6 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Next is
          use Aquarius.Drys.Statements;
          Next_Block        : Aquarius.Drys.Blocks.Block_Type;
-         Key_Case          : Case_Statement_Record'Class :=
-                               Case_Statement ("Item.Key_Value.K");
-
-         procedure Add_Key_Case (Base : Kit.Schema.Tables.Table_Type'Class;
-                                 Key  : Kit.Schema.Tables.Key_Cursor);
-
-         ------------------
-         -- Add_Key_Case --
-         ------------------
-
-         procedure Add_Key_Case (Base : Kit.Schema.Tables.Table_Type'Class;
-                                 Key  : Kit.Schema.Tables.Key_Cursor)
-         is
-            pragma Unreferenced (Base);
-            Key_Context : constant String :=
-                            "Item.Key_Value."
-                              & Schema.Tables.Ada_Name (Key) & "_Context";
-            Sequence : Sequence_Of_Statements;
-         begin
-            Sequence.Append
-              (New_Procedure_Call_Statement
-                 ("Marlowe.Btree_Handles.Next",
-                  Object (Key_Context)));
-            Sequence.Append
-              (New_Assignment_Statement
-                 ("Got_Valid_Index",
-                  New_Function_Call_Expression
-                    ("Marlowe.Btree_Handles.Valid", Key_Context)));
-            Sequence.Append
-              (If_Statement
-                 (Object ("Got_Valid_Index"),
-                  New_Assignment_Statement
-                    ("Item.Index",
-                     New_Function_Call_Expression
-                       ("Marlowe.Key_Storage.To_Database_Index",
-                        New_Function_Call_Expression
-                          ("Marlowe.Btree_Handles.Get_Key",
-                           Key_Context)))));
-            Key_Case.Add_Case_Option
-              ("K_" & Table.Ada_Name & "_" & Schema.Tables.Ada_Name (Key),
-               Sequence);
-         end Add_Key_Case;
-
       begin
          Next_Block.Add_Declaration
            (Use_Type ("Marlowe.Database_Index"));
@@ -1170,56 +1047,25 @@ package body Kit.Generate.Public_Interface is
                                      & ".Shared_Lock");
          Next_Block.Add_Statement ("Item.Local.Unlock");
 
-         declare
-            Index_Scan : Sequence_Of_Statements;
-         begin
-
-            declare
-               Valid_Index : constant Expression'Class :=
-                               New_Function_Call_Expression
-                                 ("Marlowe.Btree_Handles.Valid_Index",
-                                  "Marlowe_Keys.Handle",
-                                  Table.Ada_Name & "_Table_Index",
-                                  "Item.Index");
-               Is_Deleted  : constant Expression'Class :=
-                               New_Function_Call_Expression
-                                 ("Marlowe.Btree_Handles.Deleted_Record",
-                                  "Marlowe_Keys.Handle",
-                                  Table.Ada_Name & "_Table_Index",
-                                  "Item.Index");
-               Condition   : constant Expression'Class :=
-                               Operator ("and then",
-                                         Valid_Index, Is_Deleted);
-               Increment   : constant Statement'Class :=
-                     New_Assignment_Statement
-                                 ("Item.Index",
-                                  Operator
-                                    ("+",
-                                     Object ("Item.Index"),
-                                     Literal (1)));
-            begin
-               Index_Scan.Append (Increment);
-               Index_Scan.Append
-                 (While_Statement
-                    (Condition, Increment));
-               Index_Scan.Append
-                 (New_Assignment_Statement
-                    ("Got_Valid_Index",
-                     Valid_Index));
-            end;
-
-            Key_Case.Add_Case_Option
-              ("K_None", Index_Scan);
-
-            Table.Scan_Keys (Add_Key_Case'Access);
-
-            Next_Block.Add_Statement (Key_Case);
---
---                (If_Statement
---                   (Operator ("not", Object ("Item.Using_Key")),
---                    Index_Scan,
---                    Key_Scan));
-         end;
+         Next_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Marlowe.Btree_Handles.Next",
+               Object ("Item.Mark.all")));
+         Next_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Got_Valid_Index",
+               New_Function_Call_Expression
+                 ("Marlowe.Btree_Handles.Valid", "Item.Mark.all")));
+         Next_Block.Add_Statement
+           (If_Statement
+              (Object ("Got_Valid_Index"),
+               New_Assignment_Statement
+                 ("Item.Index",
+                  New_Function_Call_Expression
+                    ("Marlowe.Key_Storage.To_Database_Index",
+                     New_Function_Call_Expression
+                       ("Marlowe.Btree_Handles.Get_Key",
+                        "Item.Mark.all")))));
 
          Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
                                    & ".Shared_Unlock");
@@ -1292,7 +1138,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Key_Get
         (Base  : Kit.Schema.Tables.Table_Type'Class;
-         Key   : Kit.Schema.Tables.Key_Cursor);
+         Key   : Kit.Schema.Keys.Key_Type'Class);
       procedure Create_Reference_Get
         (Base : Kit.Schema.Tables.Table_Type'Class);
 
@@ -1338,6 +1184,9 @@ package body Kit.Generate.Public_Interface is
 
          Sequence : Sequence_Of_Statements;
 
+         procedure Add_Create_Arguments
+           (Sub : in out Subprogram_Declaration'Class);
+
          procedure Allocate_Context
            (Base : Kit.Schema.Tables.Table_Type'Class);
 
@@ -1348,37 +1197,43 @@ package body Kit.Generate.Public_Interface is
                               Value      : String);
 
          Create_Ref_Block : Aquarius.Drys.Blocks.Block_Type;
-         Create_Ref_Fn    : Subprogram_Declaration;
-         Create_Ref_Proc  : Subprogram_Declaration;
          Got_Field        : Boolean := False;
 
          procedure Initialise_Field
            (Base     : Kit.Schema.Tables.Table_Type'Class;
             Field    : Kit.Schema.Fields.Field_Type'Class);
 
-         procedure Add_Formal_Argument
-           (Base     : Kit.Schema.Tables.Table_Type'Class;
-            Field    : Kit.Schema.Fields.Field_Type'Class);
+         --------------------------
+         -- Add_Create_Arguments --
+         --------------------------
 
-         -------------------------
-         -- Add_Formal_Argument --
-         -------------------------
-
-         procedure Add_Formal_Argument
-           (Base     : Kit.Schema.Tables.Table_Type'Class;
-            Field    : Kit.Schema.Fields.Field_Type'Class)
+         procedure Add_Create_Arguments
+           (Sub : in out Subprogram_Declaration'Class)
          is
-            pragma Unreferenced (Base);
+            procedure Add_Formal_Argument
+              (Base     : Kit.Schema.Tables.Table_Type'Class;
+               Field    : Kit.Schema.Fields.Field_Type'Class);
+
+            -------------------------
+            -- Add_Formal_Argument --
+            -------------------------
+
+            procedure Add_Formal_Argument
+              (Base     : Kit.Schema.Tables.Table_Type'Class;
+               Field    : Kit.Schema.Fields.Field_Type'Class)
+            is
+               pragma Unreferenced (Base);
+            begin
+               if Field.Created then
+                  Sub.Add_Formal_Argument
+                    (Field.Ada_Name,
+                     Field.Get_Field_Type.Argument_Subtype);
+               end if;
+            end Add_Formal_Argument;
+
          begin
-            if Field.Created then
-               Create_Ref_Fn.Add_Formal_Argument
-                 (Field.Ada_Name,
-                  Field.Get_Field_Type.Argument_Subtype);
-               Create_Ref_Proc.Add_Formal_Argument
-                 (Field.Ada_Name,
-                  Field.Get_Field_Type.Argument_Subtype);
-            end if;
-         end Add_Formal_Argument;
+            Table.Iterate_All (Add_Formal_Argument'Access);
+         end Add_Create_Arguments;
 
          ----------------------
          -- Allocate_Context --
@@ -1556,28 +1411,34 @@ package body Kit.Generate.Public_Interface is
          Table.Iterate_All (Initialise_Field'Access);
 
          if Got_Field then
-            Create_Ref_Proc := New_Procedure
-              (Name        => "Create",
-               Block       => Create_Ref_Block);
+            declare
+               Create_Ref_Proc : Subprogram_Declaration'Class :=
+                                   New_Procedure
+                                     (Name        => "Create",
+                                      Block       => Create_Ref_Block);
+            begin
+               Add_Create_Arguments (Create_Ref_Proc);
+               Table_Package.Append (Create_Ref_Proc);
+            end;
          end if;
 
          Create_Ref_Block.Append
            (New_Return_Statement
               (Object ("Result.Reference")));
 
-         Create_Ref_Fn := New_Function
-           (Name        => "Create",
-            Result_Type => Table.Reference_Type,
-            Block       => Create_Ref_Block);
-
-         Table.Iterate_All (Add_Formal_Argument'Access);
-         Table_Package.Append (Create_Ref_Fn);
-
-         if Got_Field then
-            Table_Package.Append (Create_Ref_Proc);
-         end if;
+         declare
+            Create_Ref_Fn : Subprogram_Declaration'Class :=
+                              New_Function
+                                (Name        => "Create",
+                                 Result_Type => Table.Reference_Type,
+                                 Block       => Create_Ref_Block);
+         begin
+            Add_Create_Arguments (Create_Ref_Fn);
+            Table_Package.Append (Create_Ref_Fn);
+         end;
 
          Table_Package.Append (New_Separator);
+
       end Add_Create_Function;
 
       ---------------
@@ -1594,7 +1455,7 @@ package body Kit.Generate.Public_Interface is
 
          if Base.Name = Table.Name then
             declare
-               Fetch : constant Subprogram_Declaration :=
+               Fetch : constant Subprogram_Declaration'Class :=
                          New_Abstract_Function
                            (Field.Safe_Ada_Name ("Get_"),
                             New_Formal_Argument ("Item",
@@ -1610,7 +1471,6 @@ package body Kit.Generate.Public_Interface is
 
          declare
             use Aquarius.Drys.Statements;
-            Fetch  : Subprogram_Declaration;
             Block  : Aquarius.Drys.Blocks.Block_Type;
          begin
 
@@ -1625,17 +1485,20 @@ package body Kit.Generate.Public_Interface is
               (New_Return_Statement
                  (Field.Get_Field_Type.Return_Value ("Result")));
 
-            Fetch := New_Function
-              (Field.Ada_Name,
-               Field.Get_Field_Type.Return_Subtype,
-               Block);
+            declare
+               Fetch  : Subprogram_Declaration'Class :=
+                          New_Function
+                            (Field.Ada_Name,
+                             Field.Get_Field_Type.Return_Subtype,
+                             Block);
+            begin
+               Fetch.Add_Formal_Argument
+                 ("Item",
+                  Table.Ada_Name & "_Implementation");
 
-            Fetch.Add_Formal_Argument
-              ("Item",
-               Table.Ada_Name & "_Implementation");
-
-            Fetch.Set_Overriding;
-            Table_Package.Append_To_Body (Fetch);
+               Fetch.Set_Overriding;
+               Table_Package.Append_To_Body (Fetch);
+            end;
          end;
 
       end Add_Fetch;
@@ -1717,7 +1580,9 @@ package body Kit.Generate.Public_Interface is
          Record_Defn.Add_Component ("Subclassed", "Boolean");
          Record_Defn.Add_Component ("Using_Key", "Boolean");
          Record_Defn.Add_Component ("Using_Key_Value", "Boolean");
-         Record_Defn.Add_Component ("Key_Value", "Context_Key_Value");
+         Record_Defn.Add_Component ("Mark", "Mark_Access");
+         Record_Defn.Add_Component ("Key_Ref",
+                                    "Marlowe.Btree_Handles.Btree_Reference");
          Record_Defn.Add_Component ("Index", "Marlowe.Database_Index");
          Record_Defn.Add_Component ("Local",
                                     "Local_Lock_Context");
@@ -1737,39 +1602,38 @@ package body Kit.Generate.Public_Interface is
       -- Create_Key_Get --
       --------------------
 
-      procedure Create_Key_Get (Base  : Kit.Schema.Tables.Table_Type'Class;
-                                Key   : Kit.Schema.Tables.Key_Cursor)
+      procedure Create_Key_Get
+        (Base  : Kit.Schema.Tables.Table_Type'Class;
+         Key   : Kit.Schema.Keys.Key_Type'Class)
       is
       begin
          for First in reverse Boolean loop
             for Use_Key_Value in Boolean loop
-               Public_Get.Create_Get_Function
+               Public_Get.Create_Scan_Function
                  (Db            => Db,
                   Table         => Table,
                   Key_Table     => Base,
                   Table_Package => Table_Package,
-                  Scan          => True,
                   First         => First,
-                  Key           => Key,
+                  Key_Name      => Key.Standard_Name,
                   Key_Value     => Use_Key_Value,
                   Bounds        => False);
             end loop;
 
-            Public_Get.Create_Get_Function
+            Public_Get.Create_Scan_Function
               (Db            => Db,
                Table         => Table,
                Key_Table     => Base,
                Table_Package => Table_Package,
-               Scan          => True,
                First         => First,
-               Key           => Key,
+               Key_Name      => Key.Standard_Name,
                Key_Value     => True,
                Bounds        => True);
          end loop;
 
          if Base.Ada_Name = Table.Ada_Name
-           --  and then Kit.Schema.Tables.Ada_Name (Key) = Table.Ada_Name
-           and then Kit.Schema.Tables.Is_Unique (Key)
+           --  and then Key.Ada_Name = Table.Ada_Name
+           and then Key.Unique
          then
             --  a unique key with the same name as its table is
             --  understood to be a default key
@@ -1792,7 +1656,7 @@ package body Kit.Generate.Public_Interface is
 
          if Base.Ada_Name = Table.Ada_Name then
             declare
-               Abstract_Get : constant Subprogram_Declaration :=
+               Abstract_Get : constant Subprogram_Declaration'Class :=
                                 New_Abstract_Function
                                   ("Reference",
                                    New_Formal_Argument ("Item",
@@ -1810,7 +1674,7 @@ package body Kit.Generate.Public_Interface is
             Index_Expression : constant String :=
                                  Table.Database_Index_Component
                                    ("Item", Base);
-            Get              : Subprogram_Declaration :=
+            Get              : Subprogram_Declaration'Class :=
                                  New_Function
                                    ("Reference",
                                     Base.Ada_Name & "_Reference",
@@ -1832,6 +1696,8 @@ package body Kit.Generate.Public_Interface is
    begin
 
       Table_Package.With_Package ("Ada.Finalization",
+                                  Body_With => True);
+      Table_Package.With_Package ("Ada.Unchecked_Deallocation",
                                   Body_With => True);
 
       Table_Package.With_Package ("System.Storage_Elements",
@@ -1885,8 +1751,31 @@ package body Kit.Generate.Public_Interface is
             Aquarius.Drys.Class_Wide_Subtype
               (Table.Interface_Name)));
 
-      Create_Key_Marks (Db, Table, Table_Package);
-      Create_Key_Context_Type (Db, Table, Table_Package);
+      --  Create_Key_Marks (Db, Table, Table_Package);
+      --  Create_Key_Context_Type (Db, Table, Table_Package);
+
+      declare
+         Mark_Access : constant Access_Type_Definition :=
+                         New_Access_Type
+                           ("Marlowe.Btree_Handles.Btree_Mark",
+                            False);
+         Free        : Subprogram_Declaration'Class :=
+                         Instantiate_Generic_Procedure
+                           (Instantiated_Name => "Free",
+                            Generic_Name      => "Ada.Unchecked_Deallocation");
+      begin
+
+         Table_Package.Append_To_Body
+           (New_Full_Type_Declaration
+              ("Mark_Access", Mark_Access));
+
+         Free.Add_Generic_Actual_Argument
+           ("Marlowe.Btree_Handles.Btree_Mark");
+         Free.Add_Generic_Actual_Argument
+           ("Mark_Access");
+
+         Table_Package.Append_To_Body (Free);
+      end;
 
       Create_Implementation_Type;
 
@@ -1907,28 +1796,6 @@ package body Kit.Generate.Public_Interface is
       Create_Generic_Get (Table, Table_Package);
       Create_Generic_Set (Table, Table_Package);
 
-      Public_Get.Create_Get_Function
-        (Db            => Db,
-         Table         => Table,
-         Key_Table     => Table,
-         Table_Package => Table_Package,
-         Scan          => False,
-         First         => True,
-         Key           => Kit.Schema.Tables.Null_Key_Cursor,
-         Key_Value     => False,
-         Bounds        => False);
-
-      Public_Get.Create_Get_Function
-        (Db            => Db,
-         Table         => Table,
-         Key_Table     => Table,
-         Table_Package => Table_Package,
-         Scan          => True,
-         First         => True,
-         Key           => Kit.Schema.Tables.Null_Key_Cursor,
-         Key_Value     => False,
-         Bounds        => False);
-
       Table.Scan_Keys (Create_Key_Get'Access);
 
       if Table.Has_Key_Field then
@@ -1937,6 +1804,9 @@ package body Kit.Generate.Public_Interface is
          Public_Get.Create_Generic_Get_Function
            (Db, Table, Table_Package, First => True, Key_Value => True);
       end if;
+
+      Public_Get.Create_Reference_Get_Function
+        (Db, Table, Table_Package);
 
       return Table_Package;
    end Generate_Public_Interface;

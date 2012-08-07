@@ -14,3 +14,4 @@ tests/generated/*
 src/server/generated
 src/server/leander
 *.orig
+config/test
