@@ -17,6 +17,9 @@ package Aquarius.Drys.Types is
    overriding
    function Variant_Default (Item : Record_Type_Definition) return String;
 
+   overriding
+   function Is_Tagged (Item : Record_Type_Definition) return Boolean;
+
    procedure Add_Component
      (To_Record      : in out Record_Type_Definition'Class;
       Component_Name : in String;
@@ -45,7 +48,7 @@ package Aquarius.Drys.Types is
      (To_Record         : in out Record_Type_Definition'Class;
       Variant_Name      : in     String;
       Variant_Type      : in     String;
-      Variant_Default   : in     String);
+      Variant_Default   : in     String  := "");
 
    procedure Start_Case (Rec   : in out Record_Type_Definition'Class;
                          Value : in     String);

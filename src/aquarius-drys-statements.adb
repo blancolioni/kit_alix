@@ -32,6 +32,17 @@ package body Aquarius.Drys.Statements is
    procedure Write (Item        : While_Statement_Record;
                     Writer      : in out Writer_Interface'Class);
 
+   type Iterate_Statement_Record is
+     new Loop_Statement_Record with
+      record
+         Loop_Variable  : access String;
+         Container_Name : access String;
+      end record;
+
+   overriding
+   procedure Write (Item        : Iterate_Statement_Record;
+                    Writer      : in out Writer_Interface'Class);
+
    type Declare_Statement_Record is
      new Statement with
       record
@@ -261,6 +272,24 @@ package body Aquarius.Drys.Statements is
       Sequence.Append (True_Part);
       return If_Statement (Condition, Sequence);
    end If_Statement;
+
+   -------------
+   -- Iterate --
+   -------------
+
+   function Iterate
+     (Loop_Variable  : String;
+      Container_Name : String;
+      Iterate_Body   : Sequence_Of_Statements'Class)
+      return Statement'Class
+   is
+   begin
+      return Result : Iterate_Statement_Record do
+         Result.Loop_Variable := new String'(Loop_Variable);
+         Result.Container_Name := new String'(Container_Name);
+         Result.Loop_Body := Sequence_Of_Statements (Iterate_Body);
+      end return;
+   end Iterate;
 
    ------------------------------
    -- New_Assignment_Statement --
@@ -676,6 +705,20 @@ package body Aquarius.Drys.Statements is
       Writer.Put ("while ");
       Item.Condition.Write (Writer);
       Writer.Put (" ");
+      Loop_Statement_Record (Item).Write (Writer);
+   end Write;
+
+   -----------
+   -- Write --
+   -----------
+
+   overriding
+   procedure Write (Item        : Iterate_Statement_Record;
+                    Writer      : in out Writer_Interface'Class)
+   is
+   begin
+      Writer.Put ("for " & Item.Loop_Variable.all & " of "
+                  & Item.Container_Name.all & " ");
       Loop_Statement_Record (Item).Write (Writer);
    end Write;
 

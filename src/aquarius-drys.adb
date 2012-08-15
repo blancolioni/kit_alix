@@ -6,6 +6,36 @@ package body Aquarius.Drys is
    Right_Margin : constant := 78;
 
    ----------------
+   -- Add_Aspect --
+   ----------------
+
+   procedure Add_Aspect
+     (D     : in out Declaration'Class;
+      Name  : in String;
+      Value : in Expression'Class)
+   is
+   begin
+      D.Aspects.Append
+        ((new String'(Name),
+         new Expression'Class'(Value)));
+   end Add_Aspect;
+
+   ----------------
+   -- Add_Aspect --
+   ----------------
+
+   procedure Add_Aspect
+     (D     : in out Declaration'Class;
+      Name  : in String;
+      Value : in String)
+   is
+   begin
+      D.Aspects.Append
+        ((new String'(Name),
+         new Expression'Class'(Object (Value))));
+   end Add_Aspect;
+
+   ----------------
    -- Add_Parent --
    ----------------
 
@@ -66,6 +96,8 @@ package body Aquarius.Drys is
    is
    begin
       case Writer.Context is
+         when Compilation_Unit =>
+            return False;
          when Package_Spec =>
             return not Item.Body_Only
               and then not Item.Private_Spec;
@@ -112,6 +144,16 @@ package body Aquarius.Drys is
    begin
       Writer.Indent (Writer.Col - 1);
    end Indent;
+
+   ---------------
+   -- Is_Tagged --
+   ---------------
+
+   function Is_Tagged (Item : Type_Definition) return Boolean is
+      pragma Unreferenced (Item);
+   begin
+      return False;
+   end Is_Tagged;
 
    -------------
    -- Literal --

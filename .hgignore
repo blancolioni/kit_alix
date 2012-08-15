@@ -10,6 +10,7 @@ tests/test_driver
 tests/test_diamond_1-driver
 tests/test_reference_1-driver
 tests/*.marlowe
+tests/*.ad[bs]
 tests/generated/*
 src/server/generated
 src/server/leander
