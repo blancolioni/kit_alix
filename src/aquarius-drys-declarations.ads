@@ -57,6 +57,9 @@ package Aquarius.Drys.Declarations is
    procedure Write (Item        : Object_Declaration;
                     Writer      : in out Writer_Interface'Class);
 
+   procedure Set_Aliased (Item : in out Object_Declaration'Class);
+   procedure Set_Constant (Item : in out Object_Declaration'Class);
+
    type Defining_Identifier_List is private;
 
    function Identifier (Id : String) return Defining_Identifier_List;
@@ -145,12 +148,14 @@ package Aquarius.Drys.Declarations is
 
    function New_Private_Type_Declaration
      (Identifier  : String;
-      Definition  : Type_Definition'Class)
+      Definition  : Type_Definition'Class;
+      Indefinite  : Boolean               := False)
      return Type_Declaration;
 
    function New_Deferred_Type_Declaration
      (Identifier  : String;
-      Definition  : Type_Definition'Class)
+      Definition  : Type_Definition'Class;
+      Indefinite  : Boolean               := False)
       return Type_Declaration;
 
    type Subtype_Declaration is new Declaration with private;
@@ -174,10 +179,19 @@ package Aquarius.Drys.Declarations is
       Definition  : Subtype_Indication'Class)
      return Subtype_Declaration;
 
-   type Formal_Argument is new Syntax_Root with private;
+   type Argument_Mode is (In_Argument, Out_Argument, Inout_Argument,
+                          Access_Argument);
+
+   type Formal_Argument is new Object_Declaration with private;
 
    function New_Formal_Argument
      (Name          : String;
+      Argument_Type : Subtype_Indication'Class)
+     return Formal_Argument'Class;
+
+   function New_Formal_Argument
+     (Name          : String;
+      Mode          : Argument_Mode;
       Argument_Type : Subtype_Indication'Class)
      return Formal_Argument'Class;
 
@@ -233,9 +247,6 @@ package Aquarius.Drys.Declarations is
    procedure Add_Local_Declaration
      (Subprogram : in out Subprogram_Declaration;
       Dec        : in     Declaration'Class);
-
-   type Argument_Mode is (In_Argument, Out_Argument, Inout_Argument,
-                          Access_Argument);
 
    function New_Abstract_Function
      (Name        : String;
@@ -295,6 +306,13 @@ package Aquarius.Drys.Declarations is
       Result      : Expression'Class)
      return Subprogram_Declaration'Class;
 
+   function New_Function
+     (Name        : String;
+      Argument    : Formal_Argument'Class;
+      Result_Type : String;
+      Block       : Blocks.Block_Type'Class)
+     return Subprogram_Declaration'Class;
+
    function New_Procedure
      (Name        : String;
       Argument    : Formal_Argument'Class;
@@ -335,7 +353,7 @@ package Aquarius.Drys.Declarations is
    procedure Set_Overriding
      (Item : in out Subprogram_Declaration);
 
-   procedure Set_Generic_Instantion
+   procedure Set_Generic_Instantiation
      (Item                    : in out Subprogram_Declaration'Class;
       Instantiated_Subprogram : in     String);
 
@@ -419,10 +437,11 @@ private
 
    type Type_Declaration is new Declaration with
       record
-         Name        : String_Access;
-         Definition  : access Type_Definition'Class;
-         Is_Private  : Boolean := False;
-         Is_Deferred : Boolean := False;
+         Name          : String_Access;
+         Definition    : access Type_Definition'Class;
+         Is_Private    : Boolean := False;
+         Is_Deferred   : Boolean := False;
+         Is_Indefinite : Boolean := False;
       end record;
 
    type Subtype_Declaration is new Declaration with

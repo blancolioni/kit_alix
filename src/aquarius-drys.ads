@@ -57,6 +57,8 @@ package Aquarius.Drys is
    function Variant_Type (Item : Type_Definition) return String;
    function Variant_Default (Item : Type_Definition) return String;
 
+   function Is_Tagged (Item : Type_Definition) return Boolean;
+
    type Enumeration_Type_Definition is
      new Type_Definition with private;
 
@@ -154,6 +156,16 @@ package Aquarius.Drys is
 
    function Object (Name : String) return Expression'Class;
 
+   procedure Add_Aspect
+     (D     : in out Declaration'Class;
+      Name  : in String;
+      Value : in Expression'Class);
+
+   procedure Add_Aspect
+     (D     : in out Declaration'Class;
+      Name  : in String;
+      Value : in String);
+
 private
 
    type String_Access is access String;
@@ -170,8 +182,18 @@ private
          Is_Synchronized : Boolean := False;
       end record;
 
+   type Aspect is
+      record
+         Name     : access String;
+         Value    : access Expression'Class;
+      end record;
+
+   package Aspect_Lists is
+     new Ada.Containers.Doubly_Linked_Lists (Aspect);
+
    type Declaration is abstract new Syntax_Root with
       record
+         Aspects      : Aspect_Lists.List;
          Body_Only    : Boolean := False;
          Private_Spec : Boolean := False;
       end record;
@@ -240,7 +262,8 @@ private
    package Actual_Argument_Lists is
      new Ada.Containers.Doubly_Linked_Lists (Actual_Argument);
 
-   type Write_Context is (Package_Spec, Package_Private,
+   type Write_Context is (Compilation_Unit,
+                          Package_Spec, Package_Private,
                           Package_Body, Package_Body_Specs,
                           Block);
 
@@ -248,7 +271,7 @@ private
 
    type Writer_Interface is abstract tagged limited
       record
-         Context : Write_Context;
+         Context : Write_Context := Compilation_Unit;
          Tabs    : Tab_Stops     := (others => 0);
       end record;
 

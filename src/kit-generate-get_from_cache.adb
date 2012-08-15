@@ -21,7 +21,7 @@ package body Kit.Generate.Get_From_Cache is
       Table_Package.With_Package ("Kit.Generic_Cache");
       Table_Package.With_Package
         (Db.Ada_Name & "." & Database_Package);
-      Table_Package.Set_Generic_Instantion ("Kit.Generic_Cache");
+      Table_Package.Set_Generic_Instantiation ("Kit.Generic_Cache");
 
       Table_Package.Add_Generic_Actual_Argument
         (Integer (Table.Reference_Index));

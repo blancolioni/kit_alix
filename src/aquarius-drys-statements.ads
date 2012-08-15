@@ -48,6 +48,12 @@ package Aquarius.Drys.Statements is
       While_Body : Statement'Class)
       return Statement'Class;
 
+   function Iterate
+     (Loop_Variable  : String;
+      Container_Name : String;
+      Iterate_Body   : Sequence_Of_Statements'Class)
+      return Statement'Class;
+
    type Case_Statement_Record is
      new Statement with private;
 

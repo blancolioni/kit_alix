@@ -78,7 +78,7 @@ package body Aquarius.Drys.Types is
      (To_Record         : in out Record_Type_Definition'Class;
       Variant_Name      : in     String;
       Variant_Type      : in     String;
-      Variant_Default   : in     String)
+      Variant_Default   : in     String := "")
    is
    begin
       To_Record.Variant := True;
@@ -107,6 +107,17 @@ package body Aquarius.Drys.Types is
    begin
       return Item.Variant;
    end Has_Variant;
+
+   ---------------
+   -- Is_Tagged --
+   ---------------
+
+   overriding function Is_Tagged
+     (Item : Record_Type_Definition) return Boolean
+   is
+   begin
+      return Item.Parents.Last_Index > 0;
+   end Is_Tagged;
 
    ----------------------
    -- Next_Case_Option --
@@ -157,7 +168,11 @@ package body Aquarius.Drys.Types is
    overriding
    function Variant_Default (Item : Record_Type_Definition) return String is
    begin
-      return Item.Variant_Default.all;
+      if Item.Variant_Default /= null then
+         return Item.Variant_Default.all;
+      else
+         return "";
+      end if;
    end Variant_Default;
 
    ------------------
@@ -231,7 +246,7 @@ package body Aquarius.Drys.Types is
          Writer.Put ("limited ");
       end if;
 
-      if Item.Parents.Last_Index > 0 then
+      if not Item.Parents.Is_Empty then
          Writer.Indent (Writer.Indent + 2);
          for Parent_Name of Item.Parents loop
             if First_Parent then
@@ -251,74 +266,88 @@ package body Aquarius.Drys.Types is
          Writer.Indent (Writer.Indent + 3);
       end if;
 
-      Writer.New_Line;
-      Writer.Put ("record");
-      Writer.New_Line;
-      Writer.Indent (Writer.Indent + 3);
-
-      for Component of Item.Components loop
-
-         declare
-            Name : constant String := Component.Component_Name.all;
-         begin
-            if Name'Length > Max_Name_Length then
-               Max_Name_Length := Name'Length;
-            end if;
-         end;
-      end loop;
-
-      if Item.Variant then
-
-         Colon_Indent := Max_Name_Length + Writer.Indent + 2;
-
-         for Component of Item.Components loop
-            if Component.Component_Case_Value = null then
-               Write_Component (Component);
-            end if;
-         end loop;
-
-         Colon_Indent := Colon_Indent + 6;
-
-         Writer.Put_Line ("case " & Item.Variant_Name.all & " is");
+      if Item.Components.Is_Empty then
+         Writer.Put ("null record");
+         Writer.Indent (Writer.Indent - 3);
+      else
+         Writer.New_Line;
+         Writer.Put ("record");
+         Writer.New_Line;
          Writer.Indent (Writer.Indent + 3);
 
-         for S of Item.Case_Values loop
-            Writer.Put_Line ("when " & S & " =>");
-
-            Writer.Indent (Writer.Indent + 3);
+         for Component of Item.Components loop
 
             declare
-               Got_Component : Boolean := False;
+               Name : constant String := Component.Component_Name.all;
             begin
-               for Component of Item.Components loop
-                  if Component.Component_Case_Value /= null
-                    and then Component.Component_Case_Value.all = S
-                  then
-                     Write_Component (Component);
-                     Got_Component := True;
-                  end if;
-               end loop;
-               if not Got_Component then
-                  Writer.Put_Line ("null;");
+               if Name'Length > Max_Name_Length then
+                  Max_Name_Length := Name'Length;
                end if;
             end;
-            Writer.Indent (Writer.Indent - 3);
          end loop;
+
+         if Item.Variant then
+
+            Colon_Indent := Max_Name_Length + Writer.Indent + 2;
+
+            declare
+               Have_Cases : Boolean := False;
+            begin
+
+               for Component of Item.Components loop
+                  if Component.Component_Case_Value = null then
+                     Write_Component (Component);
+                  else
+                     Have_Cases := True;
+                  end if;
+               end loop;
+
+               if Have_Cases then
+                  Colon_Indent := Colon_Indent + 6;
+
+                  Writer.Put_Line ("case " & Item.Variant_Name.all & " is");
+                  Writer.Indent (Writer.Indent + 3);
+
+                  for S of Item.Case_Values loop
+                     Writer.Put_Line ("when " & S & " =>");
+
+                     Writer.Indent (Writer.Indent + 3);
+
+                     declare
+                        Got_Component : Boolean := False;
+                     begin
+                        for Component of Item.Components loop
+                           if Component.Component_Case_Value /= null
+                             and then Component.Component_Case_Value.all = S
+                           then
+                              Write_Component (Component);
+                              Got_Component := True;
+                           end if;
+                        end loop;
+                        if not Got_Component then
+                           Writer.Put_Line ("null;");
+                        end if;
+                     end;
+                     Writer.Indent (Writer.Indent - 3);
+                  end loop;
+                  Writer.Indent (Writer.Indent - 3);
+                  Writer.Put_Line ("end case;");
+               end if;
+            end;
+
+         else
+
+            Colon_Indent := Max_Name_Length + Writer.Indent + 2;
+
+            for Component of Item.Components loop
+               Write_Component (Component);
+            end loop;
+         end if;
+
          Writer.Indent (Writer.Indent - 3);
-         Writer.Put_Line ("end case;");
-
-      else
-
-         Colon_Indent := Max_Name_Length + Writer.Indent + 2;
-
-         for Component of Item.Components loop
-            Write_Component (Component);
-         end loop;
+         Writer.Put ("end record");
+         Writer.Indent (Writer.Indent - 3);
       end if;
-
-      Writer.Indent (Writer.Indent - 3);
-      Writer.Put ("end record");
-      Writer.Indent (Writer.Indent - 3);
    end Write;
 
 end Aquarius.Drys.Types;

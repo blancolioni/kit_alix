@@ -1146,6 +1146,8 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Implementation_Type;
 
+      procedure Create_Selection_Type;
+
       --------------
       -- Add_Base --
       --------------
@@ -1607,29 +1609,25 @@ package body Kit.Generate.Public_Interface is
          Key   : Kit.Schema.Keys.Key_Type'Class)
       is
       begin
-         for First in reverse Boolean loop
-            for Use_Key_Value in Boolean loop
-               Public_Get.Create_Scan_Function
-                 (Db            => Db,
-                  Table         => Table,
-                  Key_Table     => Base,
-                  Table_Package => Table_Package,
-                  First         => First,
-                  Key_Name      => Key.Standard_Name,
-                  Key_Value     => Use_Key_Value,
-                  Bounds        => False);
-            end loop;
-
-            Public_Get.Create_Scan_Function
+         for Use_Key_Value in Boolean loop
+            Public_Get.Create_Selection_Function
               (Db            => Db,
                Table         => Table,
                Key_Table     => Base,
                Table_Package => Table_Package,
-               First         => First,
                Key_Name      => Key.Standard_Name,
-               Key_Value     => True,
-               Bounds        => True);
+               Key_Value     => Use_Key_Value,
+               Bounds        => False);
          end loop;
+
+         Public_Get.Create_Selection_Function
+           (Db            => Db,
+            Table         => Table,
+            Key_Table     => Base,
+            Table_Package => Table_Package,
+            Key_Name      => Key.Standard_Name,
+            Key_Value     => True,
+            Bounds        => True);
 
          if Base.Ada_Name = Table.Ada_Name
            --  and then Key.Ada_Name = Table.Ada_Name
@@ -1693,19 +1691,305 @@ package body Kit.Generate.Public_Interface is
 
       end Create_Reference_Get;
 
+      ---------------------------
+      -- Create_Selection_Type --
+      ---------------------------
+
+      procedure Create_Selection_Type is
+
+         Selection          : Aquarius.Drys.Types.Record_Type_Definition;
+         Cursor             : Aquarius.Drys.Types.Record_Type_Definition;
+         Constant_Reference : Aquarius.Drys.Types.Record_Type_Definition;
+         Variable_Reference : Aquarius.Drys.Types.Record_Type_Definition;
+         Iterator_Package   : Aquarius.Drys.Declarations.Package_Type :=
+                                Aquarius.Drys.Declarations.New_Package_Type
+                                  ("Selection_Iterator_Interfaces");
+      begin
+
+         for Mark_Package in Boolean loop
+            declare
+               Name : constant String :=
+                        (if Mark_Package then "Mark" else "Element");
+               Type_Name : constant String :=
+                             (if Mark_Package
+                              then "Marlowe.Btree_Handles.Btree_Mark"
+                              else Table.Type_Name);
+               List_Package   : Aquarius.Drys.Declarations.Package_Type :=
+                                  Aquarius.Drys.Declarations.New_Package_Type
+                                    ("List_Of_" & Name & "s");
+               Access_Type    : Declaration'Class :=
+                                  New_Full_Type_Declaration
+                                    (Name & "_Access",
+                                     New_Access_Type (Type_Name, False));
+            begin
+               Access_Type.Set_Private_Spec;
+               Table_Package.Append (Access_Type);
+
+               List_Package.Set_Generic_Instantiation
+                 ("Ada.Containers.Doubly_Linked_Lists");
+               List_Package.Add_Generic_Actual_Argument
+                 (Name & "_Access");
+               List_Package.Set_Private_Spec;
+               Table_Package.Append (List_Package);
+            end;
+         end loop;
+
+         Cursor.Add_Component
+           ("Current_Element", "List_Of_Elements.Cursor");
+         Cursor.Add_Component
+           ("Current_Mark", "List_Of_Marks.Cursor");
+         Table_Package.Append
+           (New_Private_Type_Declaration
+              ("Cursor", Cursor));
+
+         declare
+            use Aquarius.Drys.Expressions;
+            use Aquarius.Drys.Statements;
+            Has_Element_Block : Aquarius.Drys.Blocks.Block_Type;
+         begin
+--        return List_Of_Marks.Has_Element (Item.Current_Mark)
+--          and then Marlowe.Btree_Handles.Valid
+--            (List_Of_Marks.Element (Item.Current_Mark).all);
+
+
+            Has_Element_Block.Add_Statement
+              (New_Return_Statement
+                 (Operator
+                    (Name  => "and then",
+                     Left  =>
+                       New_Function_Call_Expression
+                         ("List_Of_Marks.Has_Element",
+                          Object ("Item.Current_Mark")),
+                     Right =>
+                       New_Function_Call_Expression
+                         ("Marlowe.Btree_Handles.Valid",
+                          Object
+                            ("List_Of_Marks.Element (Item.Current_Mark).all")
+                         )
+                    )
+                 )
+              );
+
+            Table_Package.Append
+              (New_Function
+                 (Name => "Has_Element",
+                  Argument =>
+                    New_Formal_Argument ("Item", Named_Subtype ("Cursor")),
+                  Result_Type => "Boolean",
+                  Block    => Has_Element_Block));
+         end;
+
+         Constant_Reference.Add_Variant
+           ("Element",
+            "not null access constant " & Table.Type_Name);
+
+         declare
+            Ref_Type : Aquarius.Drys.Declaration'Class :=
+                         New_Private_Type_Declaration
+                           ("Constant_Reference_Type", Constant_Reference);
+         begin
+            Ref_Type.Add_Aspect ("Implicit_Dereference",
+                                 Object ("Element"));
+            Table_Package.Append (Ref_Type);
+         end;
+
+         Variable_Reference.Add_Variant
+           ("Element",
+            "not null access " & Table.Type_Name);
+         declare
+            Ref_Type : Aquarius.Drys.Declaration'Class :=
+                         New_Private_Type_Declaration
+                           ("Reference_Type", Variable_Reference);
+         begin
+            Ref_Type.Add_Aspect ("Implicit_Dereference",
+                                 Object ("Element"));
+            Table_Package.Append (Ref_Type);
+         end;
+
+         Selection.Set_Limited;
+         Selection.Add_Variant ("Key_Length",
+                                "System.Storage_Elements.Storage_Count");
+         Selection.Add_Parent
+           ("Ada.Finalization.Limited_Controlled");
+         Selection.Add_Component
+           ("First",
+            "System.Storage_Elements.Storage_Array (1 .. Key_Length)");
+         Selection.Add_Component
+           ("Last",
+            "System.Storage_Elements.Storage_Array (1 .. Key_Length)");
+         Selection.Add_Component
+           ("Key_Ref",
+            "Marlowe.Btree_Handles.Btree_Reference");
+         Selection.Add_Component
+           ("Elements",
+            "List_Of_Elements.List");
+         Selection.Add_Component
+           ("Mutex",
+            "Kit.Mutex.Mutex_Type");
+
+         Iterator_Package.Set_Generic_Instantiation
+           ("Ada.Iterator_Interfaces");
+         Iterator_Package.Add_Generic_Actual_Argument ("Cursor");
+         Iterator_Package.Add_Generic_Actual_Argument ("Has_Element");
+         Table_Package.Append (Iterator_Package);
+
+         declare
+            Selection_Type : Type_Declaration :=
+                               New_Private_Type_Declaration
+                                 ("Selection", Selection, Indefinite => True);
+         begin
+            Selection_Type.Add_Aspect ("Constant_Indexing",
+                                       "Constant_Reference");
+            Selection_Type.Add_Aspect ("Variable_Indexing",
+                                       "Variable_Reference");
+            Selection_Type.Add_Aspect ("Default_Iterator",
+                                       "Iterate");
+            Selection_Type.Add_Aspect ("Iterator_Element",
+                                       Table.Ada_Name & "_Type");
+
+            Table_Package.Append (Selection_Type);
+         end;
+
+         declare
+            use Aquarius.Drys.Statements;
+            Iterate_Block : Aquarius.Drys.Blocks.Block_Type;
+            Return_Sequence : Sequence_Of_Statements;
+         begin
+            Return_Sequence.Append
+              (New_Assignment_Statement
+                 ("Result.Container",
+                  Object ("Container'Unrestricted_Access")));
+            Iterate_Block.Add_Statement
+              (New_Return_Statement
+                 (Return_Variable   => "Result",
+                  Variable_Type     => "Iterator",
+                  Return_Statements => Return_Sequence));
+            Table_Package.Append
+              (New_Function
+                 (Name => "Iterate",
+                  Argument =>
+                    New_In_Argument
+                      ("Container",
+                       Named_Subtype ("Selection")),
+                  Result_Type =>
+                    "Selection_Iterator_Interfaces.Reversible_Iterator'Class",
+                  Block       => Iterate_Block));
+         end;
+
+         for Is_Variable in Boolean loop
+            declare
+               Ref_Block : Aquarius.Drys.Blocks.Block_Type;
+            begin
+               Ref_Block.Add_Declaration
+                 (Aquarius.Drys.Declarations.New_Pragma
+                    ("Unreferenced", "Container"));
+               Ref_Block.Add_Statement
+                 (Aquarius.Drys.Statements.New_Return_Statement
+                    (Result =>
+                       Object
+                         ("(Element => "
+                          & "List_Of_Elements.Element (Position.Current))")));
+               declare
+                  Fn_Name : constant String :=
+                              (if Is_Variable
+                               then "Variable_"
+                               else "Constant_")
+                              & "Reference";
+                  Ref_Fn : Subprogram_Declaration'Class :=
+                             New_Function
+                               (Fn_Name,
+                                Named_Subtype
+                                  ((if Is_Variable
+                                   then ""
+                                   else "Constant_")
+                                   & "Reference_Type"),
+                                Ref_Block);
+                  Container : Formal_Argument'Class :=
+                                New_Formal_Argument
+                                  ("Container",
+                                   (if Is_Variable
+                                    then Inout_Argument
+                                    else In_Argument),
+                                   Named_Subtype
+                                     ("Selection"));
+                  Position : constant Formal_Argument'Class :=
+                                New_In_Argument
+                                  ("Position",
+                                   Named_Subtype ("Cursor"));
+                  Inline    : Declaration'Class :=
+                                New_Pragma ("Inline", Fn_Name);
+               begin
+                  Container.Set_Aliased;
+                  Ref_Fn.Add_Formal_Argument (Container);
+                  Ref_Fn.Add_Formal_Argument (Position);
+                  Table_Package.Append (Ref_Fn);
+
+                  Inline.Set_Private_Spec;
+                  Table_Package.Append (Inline);
+               end;
+            end;
+         end loop;
+
+         declare
+            use Aquarius.Drys.Statements;
+            Free_Sequence  : Sequence_Of_Statements;
+            Finalize_Block : Aquarius.Drys.Blocks.Block_Type;
+            Free           : Subprogram_Declaration'Class :=
+                               Instantiate_Generic_Procedure
+                                 (Instantiated_Name => "Free",
+                                  Generic_Name      =>
+                                    "Ada.Unchecked_Deallocation");
+         begin
+            Free.Add_Generic_Actual_Argument
+              (Table.Ada_Name & "_Type");
+            Free.Add_Generic_Actual_Argument
+              ("Element_Access");
+            Finalize_Block.Add_Declaration (Free);
+
+            Free_Sequence.Append
+              (New_Procedure_Call_Statement
+                 ("Free", Object ("X")));
+            Finalize_Block.Add_Statement
+              (Item =>
+                 Aquarius.Drys.Statements.Iterate
+                   (Loop_Variable  => "X",
+                    Container_Name => "Object.Elements",
+                    Iterate_Body   => Free_Sequence));
+
+            declare
+               Finalize : Subprogram_Declaration'Class :=
+                            New_Procedure
+                              (Name     => "Finalize",
+                               Argument =>
+                                 New_Inout_Argument
+                                   (Name          => "Object",
+                                    Argument_Type =>
+                                      Named_Subtype ("Selection")),
+                               Block    => Finalize_Block);
+            begin
+               Finalize.Set_Overriding;
+               Finalize.Set_Private_Spec;
+               Table_Package.Append (Finalize);
+            end;
+         end;
+      end Create_Selection_Type;
+
    begin
 
-      Table_Package.With_Package ("Ada.Finalization",
-                                  Body_With => True);
+      Table_Package.With_Package ("Ada.Containers.Doubly_Linked_Lists",
+                                  Private_With => True);
+      Table_Package.With_Package ("Ada.Finalization", Private_With => True);
+
       Table_Package.With_Package ("Ada.Unchecked_Deallocation",
                                   Body_With => True);
 
       Table_Package.With_Package ("System.Storage_Elements",
-                                  Body_With => True);
+                                  Private_With => True);
 
       Table_Package.With_Package ("Marlowe.Btree_Handles",
-                                Body_With => True);
+                                  Private_With => True);
 
+      Table_Package.With_Package ("Ada.Iterator_Interfaces");
       if Table.Has_Key_Field then
          Table_Package.With_Package ("Marlowe.Key_Storage",
                                      Body_With => True);
@@ -1793,6 +2077,10 @@ package body Kit.Generate.Public_Interface is
 
       Add_Create_Function;
 
+      Create_Selection_Type;
+
+      Public_Get.Create_Get_From_Index (Table, Table_Package);
+
       Create_Generic_Get (Table, Table_Package);
       Create_Generic_Set (Table, Table_Package);
 
@@ -1807,6 +2095,8 @@ package body Kit.Generate.Public_Interface is
 
       Public_Get.Create_Reference_Get_Function
         (Db, Table, Table_Package);
+
+      Public_Get.Create_Iterator (Table, Table_Package);
 
       return Table_Package;
    end Generate_Public_Interface;

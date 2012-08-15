@@ -648,14 +648,16 @@ package body Aquarius.Drys.Declarations is
 
    function New_Deferred_Type_Declaration
      (Identifier  : String;
-      Definition  : Type_Definition'Class)
+      Definition  : Type_Definition'Class;
+      Indefinite  : Boolean               := False)
       return Type_Declaration
    is
    begin
       return Result : Type_Declaration do
         Result.Name := new String'(Identifier);
         Result.Definition := new Type_Definition'Class'(Definition);
-        Result.Is_Deferred := True;
+         Result.Is_Deferred := True;
+         Result.Is_Indefinite := Indefinite;
       end return;
    end New_Deferred_Type_Declaration;
 
@@ -675,6 +677,21 @@ package body Aquarius.Drys.Declarations is
         Result.Is_Argument := True;
         Result.Mode        := Mode;
       end return;
+   end New_Formal_Argument;
+
+   -------------------------
+   -- New_Formal_Argument --
+   -------------------------
+
+   function New_Formal_Argument
+     (Name          : String;
+      Mode          : Argument_Mode;
+      Argument_Type : Subtype_Indication'Class)
+      return Formal_Argument'Class
+   is
+   begin
+      return New_Formal_Argument
+        (New_Object_Declaration (Name, Argument_Type), Mode);
    end New_Formal_Argument;
 
    -------------------------
@@ -760,6 +777,26 @@ package body Aquarius.Drys.Declarations is
       return New_Function (Name,
                            Named_Subtype (Result_Type),
                            Block);
+   end New_Function;
+
+   ------------------
+   -- New_Function --
+   ------------------
+
+   function New_Function
+     (Name        : String;
+      Argument    : Formal_Argument'Class;
+      Result_Type : String;
+      Block       : Blocks.Block_Type'Class)
+      return Subprogram_Declaration'Class
+   is
+      Result : Subprogram_Declaration'Class :=
+                 New_Function (Name,
+                               Named_Subtype (Result_Type),
+                               Block);
+   begin
+      Result.Add_Formal_Argument (Argument);
+      return Result;
    end New_Function;
 
    ------------------
@@ -964,14 +1001,16 @@ package body Aquarius.Drys.Declarations is
 
    function New_Private_Type_Declaration
      (Identifier  : String;
-      Definition  : Type_Definition'Class)
+      Definition  : Type_Definition'Class;
+      Indefinite  : Boolean               := False)
       return Type_Declaration
    is
    begin
       return Result : Type_Declaration do
-        Result.Name := new String'(Identifier);
-        Result.Definition := new Type_Definition'Class'(Definition);
-        Result.Is_Private := True;
+         Result.Name := new String'(Identifier);
+         Result.Definition := new Type_Definition'Class'(Definition);
+         Result.Is_Private := True;
+         Result.Is_Indefinite := Indefinite;
       end return;
    end New_Private_Type_Declaration;
 
@@ -1067,11 +1106,29 @@ package body Aquarius.Drys.Declarations is
       end return;
    end Renaming_Declaration;
 
+   -----------------
+   -- Set_Aliased --
+   -----------------
+
+   procedure Set_Aliased (Item : in out Object_Declaration'Class) is
+   begin
+      Item.Is_Aliased := True;
+   end Set_Aliased;
+
+   ------------------
+   -- Set_Constant --
+   ------------------
+
+   procedure Set_Constant (Item : in out Object_Declaration'Class) is
+   begin
+      Item.Is_Constant := True;
+   end Set_Constant;
+
    ----------------------------
    -- Set_Generic_Instantion --
    ----------------------------
 
-   procedure Set_Generic_Instantion
+   procedure Set_Generic_Instantiation
      (Item                    : in out Subprogram_Declaration'Class;
       Instantiated_Subprogram : in     String)
    is
@@ -1079,7 +1136,7 @@ package body Aquarius.Drys.Declarations is
       Item.Is_Instantiation := True;
       Item.Has_Body := False;
       Item.Generic_Name := new String'(Instantiated_Subprogram);
-   end Set_Generic_Instantion;
+   end Set_Generic_Instantiation;
 
    --------------------
    -- Set_Overriding --
@@ -1193,42 +1250,46 @@ package body Aquarius.Drys.Declarations is
      (Item        : Package_Type;
       Writer      : in out Writer_Interface'Class)
    is
+      Top_Level : constant Boolean :=
+                    Writer.Context = Compilation_Unit;
    begin
 
       for Is_Body in Boolean loop
          exit when Is_Body and then not Item.Has_Body;
 
-         Writer.Create (To_File_Name (Item.Name, Spec => not Is_Body));
-         Writer.Context := (if Is_Body then Package_Body else Package_Spec);
+         if Top_Level then
+            Writer.Create (To_File_Name (Item.Name, Spec => not Is_Body));
+            Writer.Context := (if Is_Body then Package_Body else Package_Spec);
 
-         declare
-            Got_With : Boolean := False;
-         begin
+            declare
+               Got_With : Boolean := False;
+            begin
 
-            for Context of Item.Withed_Packages loop
-               if (Context.Is_Body and then Writer.Context = Package_Body)
-                 or else (not Context.Is_Body
-                          and then Writer.Context = Package_Spec)
-               then
-                  if Context.Is_Private then
-                     Writer.Put ("private ");
+               for Context of Item.Withed_Packages loop
+                  if (Context.Is_Body and then Writer.Context = Package_Body)
+                    or else (not Context.Is_Body
+                             and then Writer.Context = Package_Spec)
+                  then
+                     if Context.Is_Private then
+                        Writer.Put ("private ");
+                     end if;
+                     Writer.Put_Line ("with " &
+                                        Context.Withed_Package.all &
+                                        ";");
+                     Got_With := True;
                   end if;
-                  Writer.Put_Line ("with " &
-                                   Context.Withed_Package.all &
-                                   ";");
-                  Got_With := True;
+               end loop;
+
+               if Got_With then
+                  Writer.New_Line;
                end if;
-            end loop;
+            end;
 
-            if Got_With then
-               Writer.New_Line;
+            if not Is_Body
+              and then Item.Is_Private
+            then
+               Writer.Put ("private ");
             end if;
-         end;
-
-         if not Is_Body
-           and then Item.Is_Private
-         then
-            Writer.Put ("private ");
          end if;
 
          Writer.Put ("package ");
@@ -1240,10 +1301,9 @@ package body Aquarius.Drys.Declarations is
          Writer.Put_Line (" is");
 
          if Item.Is_Instantiation then
-            Writer.Indent (2);
-            Writer.New_Line;
+            Writer.Indent (Writer.Indent + 2);
             Writer.Put ("new " & Item.Generic_Name.all);
-            Writer.Indent (4);
+            Writer.Indent (Writer.Indent + 4);
             Writer.New_Line;
             declare
                First : Boolean := True;
@@ -1260,8 +1320,10 @@ package body Aquarius.Drys.Declarations is
                if not First then
                   Writer.Put (")");
                end if;
-               Writer.Indent (0);
-               Writer.Put_Line (";");
+               Writer.Indent (Writer.Indent - 6);
+               if Top_Level then
+                  Writer.Put_Line (";");
+               end if;
             end;
          else
             Writer.Indent (3);
@@ -1286,27 +1348,42 @@ package body Aquarius.Drys.Declarations is
             declare
                Decs : Declaration_Vector.Vector;
             begin
-               for Dec of Item.Declarations loop
-                  if Dec not in Subprogram_Declaration'Class then
+
+               if not Is_Body then
+
+                  for Dec of Item.Declarations loop
                      if Dec.Has_Output (Writer) then
                         Dec.Write (Writer);
                         if not Dec.Pseudo_Declaration then
                            Writer.Put_Line (";");
                         end if;
                      end if;
-                  else
-                     Decs.Append (Dec);
-                  end if;
-               end loop;
+                  end loop;
 
-               Sort_Subprograms (Decs);
+               else
 
-               for Dec of Decs loop
-                  if Dec.Has_Output (Writer) then
-                     Dec.Write (Writer);
-                     Writer.Put_Line (";");
-                  end if;
-               end loop;
+                  for Dec of Item.Declarations loop
+                     if Dec not in Subprogram_Declaration'Class then
+                        if Dec.Has_Output (Writer) then
+                           Dec.Write (Writer);
+                           if not Dec.Pseudo_Declaration then
+                              Writer.Put_Line (";");
+                           end if;
+                        end if;
+                     else
+                        Decs.Append (Dec);
+                     end if;
+                  end loop;
+
+                  Sort_Subprograms (Decs);
+
+                  for Dec of Decs loop
+                     if Dec.Has_Output (Writer) then
+                        Dec.Write (Writer);
+                        Writer.Put_Line (";");
+                     end if;
+                  end loop;
+               end if;
             end;
 
             Writer.Indent (0);
@@ -1341,7 +1418,10 @@ package body Aquarius.Drys.Declarations is
             Writer.New_Line;
          end if;
 
-         Writer.Close;
+         if Top_Level then
+            Writer.Close;
+            Writer.Context := Compilation_Unit;
+         end if;
 
       end loop;
 
@@ -1389,6 +1469,17 @@ package body Aquarius.Drys.Declarations is
          end if;
 
          Writer.Put (" : ");
+
+         if Item.Is_Aliased then
+            Writer.Put ("aliased ");
+         end if;
+
+         if Item.Is_Constant
+           and then not Item.Is_Argument
+         then
+            Writer.Put ("constant ");
+         end if;
+
          if Item.Is_Argument then
             case Item.Mode is
                when In_Argument =>
@@ -1399,14 +1490,10 @@ package body Aquarius.Drys.Declarations is
                   Writer.Put ("in out ");
                when Access_Argument =>
                   Writer.Put ("access ");
+                  if Item.Is_Constant then
+                     Writer.Put ("constant ");
+                  end if;
             end case;
-         else
-            if Item.Is_Aliased then
-               Writer.Put ("aliased ");
-            end if;
-            if Item.Is_Constant then
-               Writer.Put ("constant ");
-            end if;
          end if;
 
          if Item.Object_Type /= null then
@@ -1531,7 +1618,7 @@ package body Aquarius.Drys.Declarations is
          if Item.Is_Instantiation then
             Writer.Indent (Writer.Indent + 2);
             Writer.Put ("new " & Item.Generic_Name.all);
-            Writer.Indent (4);
+            Writer.Indent (Writer.Indent + 4);
             Writer.New_Line;
             declare
                First : Boolean := True;
@@ -1548,7 +1635,7 @@ package body Aquarius.Drys.Declarations is
                if not First then
                   Writer.Put (")");
                end if;
-               Writer.Indent (Writer.Indent - 2);
+               Writer.Indent (Writer.Indent - 6);
             end;
          else
             Item.Sub_Body.Write (Writer);
@@ -1593,7 +1680,12 @@ package body Aquarius.Drys.Declarations is
       then
          Writer.Put ("type ");
          Writer.Put (To_Ada_Name (Item.Name));
-         if Item.Definition.Has_Variant then
+         if Item.Is_Indefinite
+           and then Writer.Context = Package_Spec
+         then
+            Writer.Put (" (<>)");
+         elsif Item.Definition.Has_Variant then
+            Writer.Optional_New_Line;
             Writer.Put (" (" & Item.Definition.Variant_Name
                         & " : " & Item.Definition.Variant_Type);
             if Item.Definition.Variant_Default /= "" then
@@ -1606,7 +1698,35 @@ package body Aquarius.Drys.Declarations is
          if Item.Is_Private
            and then Writer.Context = Package_Spec
          then
-            Writer.Put (" private");
+            if Item.Definition.Is_Tagged then
+               Writer.Put ("tagged ");
+            end if;
+            if Item.Definition.Is_Limited then
+               Writer.Put ("limited ");
+            end if;
+            Writer.Put ("private");
+
+            if not Item.Aspects.Is_Empty then
+               Writer.New_Line;
+               Writer.Put ("with ");
+               Writer.Indent (Writer.Indent + 5);
+               declare
+                  First : Boolean := True;
+               begin
+                  for A of Item.Aspects loop
+                     if First then
+                        First := False;
+                     else
+                        Writer.Put (",");
+                        Writer.New_Line;
+                     end if;
+                     Writer.Put (A.Name.all & " => ");
+                     A.Value.Write (Writer);
+                  end loop;
+               end;
+               Writer.Indent (Writer.Indent - 5);
+            end if;
+
          else
             Item.Definition.Write (Writer);
          end if;
