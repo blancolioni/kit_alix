@@ -55,6 +55,24 @@ package body Kit.Names is
    end Name;
 
    -------------------
+   -- Safe_Ada_Name --
+   -------------------
+
+   function Safe_Ada_Name (Item : Root_Named_Object;
+                           Safe_Prefix : String)
+                           return String
+   is
+      Result : constant String :=
+                 Root_Named_Object'Class (Item).Ada_Name;
+   begin
+      if Result = "Type" then
+         return Safe_Prefix & Result;
+      else
+         return Result;
+      end if;
+   end Safe_Ada_Name;
+
+   -------------------
    -- Standard_Name --
    -------------------
 

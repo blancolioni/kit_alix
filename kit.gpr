@@ -1,12 +1,9 @@
 with "marlowe";
 with "gcs";
 with "wlib";
-with "xmlada";
 
 project Kit is
 
-   for Object_Dir use "build/obj";
-   for Exec_Dir use "build/bin";
    for Main use ("kit-driver");
    type Xmlada_Kind_Type is
       ("static", "relocatable");
@@ -15,9 +12,13 @@ project Kit is
    case Library_Type is
 
       when "static" =>
-         for Source_Dirs use ("src");
+         for Exec_Dir use "build\bin";
+         for Object_Dir use "build\obj";
+         for Source_Dirs use ("src", "src\xml");
 
       when "relocatable" =>
+         for Exec_Dir use "build/bin";
+         for Object_Dir use "build/obj";
          for Source_Dirs use ("./src");
    end case;
 
@@ -34,15 +35,7 @@ project Kit is
    end Builder;
 
    package Compiler is
-
-      case Library_Type is
-
-         when "static" =>
-            for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012", "-gnata", "-gnat12");
-
-         when "relocatable" =>
-            for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012");
-      end case;
+      for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012");
    end Compiler;
 
    package Linker is
