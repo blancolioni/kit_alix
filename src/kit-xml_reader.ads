@@ -4,6 +4,6 @@ package Kit.XML_Reader is
 
    procedure Read_XML_File
      (Path : String;
-      Db   : in out Kit.Schema.Databases.Database_Type);
+      Db   : Kit.Schema.Databases.Database_Access);
 
 end Kit.XML_Reader;
