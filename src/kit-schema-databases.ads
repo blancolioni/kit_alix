@@ -1,5 +1,7 @@
 private with Ada.Containers.Vectors;
 
+with Aquarius.Writer;
+
 with Kit.Names;
 with Kit.Schema.Tables;
 
@@ -44,6 +46,11 @@ package Kit.Schema.Databases is
 
    procedure With_Database (Db     : in out Database_Type'Class;
                             Withed : in     Database_Type'Class);
+
+   procedure Write (Db     : Database_Type;
+                    Writer : in out Aquarius.Writer.Writer_Interface'Class);
+
+   type Database_Access is access Database_Type;
 
 private
 
