@@ -789,10 +789,8 @@ package body Kit.Schema.Tables is
             F : constant Table_Field_Access :=
                   Item.Fields.Element (I);
          begin
-            if not F.Is_Compound then
-               if F.Field.Get_Field_Type.Is_Reference_To (Other.Name) then
-                  return True;
-               end if;
+            if F.Field.Get_Field_Type.Is_Reference_To (Other.Name) then
+               return True;
             end if;
          end;
       end loop;
