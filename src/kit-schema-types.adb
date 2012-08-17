@@ -125,6 +125,12 @@ package body Kit.Schema.Types is
    function Default_Value (Item : Table_Reference_Type_Record)
                            return Aquarius.Drys.Expression'Class;
 
+   overriding
+   function Is_Reference_To
+     (Item       : Table_Reference_Type_Record;
+      Table_Name : String)
+      return Boolean;
+
    type String_Type is new Kit_Type with
       record
          Length : Positive;
@@ -585,6 +591,34 @@ package body Kit.Schema.Types is
    begin
       return False;
    end Has_Default_Value;
+
+   ---------------------
+   -- Is_Reference_To --
+   ---------------------
+
+   function Is_Reference_To
+     (Item       : Kit_Type;
+      Table_Name : String)
+      return Boolean
+   is
+      pragma Unreferenced (Item);
+      pragma Unreferenced (Table_Name);
+   begin
+      return False;
+   end Is_Reference_To;
+
+   ---------------------
+   -- Is_Reference_To --
+   ---------------------
+
+   function Is_Reference_To
+     (Item       : Table_Reference_Type_Record;
+      Table_Name : String)
+      return Boolean
+   is
+   begin
+      return Item.Ada_Name = Kit.Names.Ada_Name (Table_Name);
+   end Is_Reference_To;
 
    ---------------
    -- Is_String --

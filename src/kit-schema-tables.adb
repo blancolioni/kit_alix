@@ -250,6 +250,15 @@ package body Kit.Schema.Tables is
       Kit.Names.Create (Kit.Names.Root_Named_Object (Item), Name);
       Item.Magic := Get_Magic_Number (Name);
       Item.Index := Current_Table;
+      Item.Fields_Length := 0;
+      Item.Bases_Length := 0;
+      Item.Header_Length := 4;
+      Item.Bases.Clear;
+      Item.Base_Layout.Clear;
+      Item.Has_String_Type := False;
+      Item.Has_Key_Field := False;
+      Item.Has_Compound_Key_Field := False;
+      Item.Fields.Clear;
       Current_Table := Current_Table + 1;
    end Create;
 
@@ -765,6 +774,33 @@ package body Kit.Schema.Tables is
    begin
       return Item.Ada_Name & "_Reference";
    end Reference_Type;
+
+   ----------------------
+   -- References_Table --
+   ----------------------
+
+   function References_Table (Item    : Table_Type;
+                              Other   : Table_Type'Class)
+                              return Boolean
+   is
+   begin
+      for I in 1 .. Item.Fields.Last_Index loop
+         declare
+            F : constant Table_Field_Access :=
+                  Item.Fields.Element (I);
+         begin
+            if F.Field.Get_Field_Type.Is_Reference_To (Other.Name) then
+               return True;
+            end if;
+         end;
+      end loop;
+      for B of Item.Bases loop
+         if B.References_Table (Other) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end References_Table;
 
    ----------------
    -- Same_Field --

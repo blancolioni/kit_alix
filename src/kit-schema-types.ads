@@ -87,6 +87,11 @@ package Kit.Schema.Types is
      (Table_Name : String)
       return Kit_Type'Class;
 
+   function Is_Reference_To
+     (Item       : Kit_Type;
+      Table_Name : String)
+      return Boolean;
+
    procedure New_Type (New_Type : Kit.Schema.Types.Kit_Type'Class);
 
    function Is_Type_Name (Name : String) return Boolean;

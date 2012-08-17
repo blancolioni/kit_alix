@@ -535,7 +535,7 @@ package body Kit.Server.Tables is
          declare
             Result : constant Kit_Db_Record_Access :=
                        new Kit_Db_Record
-                         (Record_Length (Handle, Table_Index));
+                         (Get_Record_Length (Handle, Table_Index));
          begin
             Result.Table_Index  := Table_Index;
             Result.Record_Index := Record_Index;

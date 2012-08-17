@@ -8,7 +8,17 @@ package body Kit.Schema.Databases is
      (Db   : in out Database_Type;
       Item : in     Kit.Schema.Tables.Table_Type'Class)
    is
+      New_Item : constant Database_Table :=
+                   new Kit.Schema.Tables.Table_Type'Class'(Item);
    begin
+      if False then
+         for I in 1 .. Db.Tables.Last_Index loop
+            if Item.References_Table (Db.Tables.Element (I).all) then
+               Db.Tables.Insert (I, New_Item);
+               return;
+            end if;
+         end loop;
+      end if;
       Db.Tables.Append (new Kit.Schema.Tables.Table_Type'Class'(Item));
    end Append;
 
@@ -159,5 +169,17 @@ package body Kit.Schema.Databases is
          Db.Append (T.all);
       end loop;
    end With_Database;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (Db     : Database_Type;
+                    Writer : in out Aquarius.Writer.Writer_Interface'Class)
+   is
+   begin
+      Writer.Put_Line ("package " & Db.Name & " is");
+      Writer.Put_Line ("end " & Db.Name & ";");
+   end Write;
 
 end Kit.Schema.Databases;
