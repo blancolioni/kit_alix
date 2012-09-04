@@ -90,6 +90,9 @@ package Aquarius.Drys.Statements is
                     Writer : in out Writer_Interface'Class);
 
    function New_Return_Statement
+      return Statement'Class;
+
+   function New_Return_Statement
      (Result : Expression'Class)
       return Statement'Class;
 

@@ -35,7 +35,7 @@ package body Kit.Generate.Public_Get is
       use Aquarius.Drys.Declarations;
       Ask   : Aquarius.Drys.Expressions.Function_Call_Expression :=
                 Aquarius.Drys.Expressions.New_Function_Call_Expression
-                  ("First_By_" & Key.Ada_Name);
+                  ("Get_By_" & Key.Ada_Name);
       Block : Aquarius.Drys.Blocks.Block_Type;
    begin
 
@@ -91,7 +91,6 @@ package body Kit.Generate.Public_Get is
      (Db            : in     Kit.Schema.Databases.Database_Type;
       Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
-      First         : in     Boolean;
       Key_Value     : in     Boolean)
    is
       pragma Unreferenced (Db);
@@ -102,10 +101,7 @@ package body Kit.Generate.Public_Get is
                     Aquarius.Drys.Statements.Case_Statement ("Key");
       Block                  : Aquarius.Drys.Blocks.Block_Type;
 
-      Function_Name          : constant String :=
-                                 (if First
-                                  then "First_By"
-                                  else "Last_By");
+      Function_Name          : constant String := "Select_By";
 
       procedure Process_Key (Base  : Kit.Schema.Tables.Table_Type'Class;
                              Key   : Kit.Schema.Keys.Key_Type'Class);
@@ -119,10 +115,12 @@ package body Kit.Generate.Public_Get is
       is
          pragma Unreferenced (Base);
          use Aquarius.Drys.Expressions;
+         Function_Name : constant String :=
+                           "Select_By_"
+                           & Key.Ada_Name;
          Call : Function_Call_Expression :=
-                  New_Function_Call_Expression
-                    ("First_By_" &
-                     Key.Ada_Name);
+                           New_Function_Call_Expression
+                             (Function_Name);
          Seq  : Aquarius.Drys.Statements.Sequence_Of_Statements;
       begin
 
@@ -148,7 +146,7 @@ package body Kit.Generate.Public_Get is
       declare
          Fn : Subprogram_Declaration'Class :=
                 New_Function
-                  (Function_Name, Table.Type_Name,
+                  (Function_Name, "Selection",
                    Block);
       begin
          Fn.Add_Formal_Argument
@@ -163,6 +161,10 @@ package body Kit.Generate.Public_Get is
 
       Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
    end Create_Generic_Get_Function;
+
+   ---------------------------
+   -- Create_Get_From_Index --
+   ---------------------------
 
    procedure Create_Get_From_Index
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
@@ -232,11 +234,11 @@ package body Kit.Generate.Public_Get is
            (New_Out_Argument
               ("Element",
                Named_Subtype
-                 (Table.Implementation_Record_Type & "'Class")));
+                 (Table.Ada_Name & "_Implementation'Class")));
          Table_Package.Append_To_Body (Proc);
       end;
 
-      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+      Table_Package.Append_To_Body (Aquarius.Drys.Declarations.New_Separator);
    end Create_Get_From_Index;
 
    ---------------------
@@ -251,6 +253,14 @@ package body Kit.Generate.Public_Get is
       use Aquarius.Drys.Declarations, Aquarius.Drys.Types;
       Iterator_Definition : Record_Type_Definition;
    begin
+
+      Table_Package.Append_To_Body
+        (New_Full_Type_Declaration
+           ("Selection_Access",
+            Aquarius.Drys.New_Access_Type
+              ("Selection",
+               Access_All => False)));
+
       Iterator_Definition.Add_Parent
         ("Selection_Iterator_Interfaces.Reversible_Iterator");
       Iterator_Definition.Add_Component
@@ -362,6 +372,8 @@ package body Kit.Generate.Public_Get is
       end;
 
       Next_Block.Add_Statement ("Object.Container.Mutex.Shared_Unlock");
+
+      Next_Block.Add_Statement ("return Position");
 
       declare
          Next_Declaration : Subprogram_Declaration'Class :=
@@ -476,7 +488,8 @@ package body Kit.Generate.Public_Get is
             New_Function_Call_Expression
               ("Marlowe.Key_Storage.To_Database_Index",
                New_Function_Call_Expression
-                 ("Marlowe.Btree_Handles.Get_Key", "M"))));
+                 ("Marlowe.Btree_Handles.Get_Key", "M")),
+            Object ("Element.all")));
       Valid_Block.Add_Statement
         (New_Assignment_Statement
            ("Result.Current_Element",
@@ -556,7 +569,7 @@ package body Kit.Generate.Public_Get is
       begin
          Block.Append
            (Aquarius.Drys.Statements.New_Return_Statement
-              ("Result", Table.Implementation_Name, Return_Sequence));
+              ("Result", "Cursor", Return_Sequence));
 
          declare
             Fn : Subprogram_Declaration'Class :=
@@ -628,10 +641,10 @@ package body Kit.Generate.Public_Get is
         (New_Procedure_Call_Statement
            (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
 
-      Return_Sequence.Append
-        (New_Assignment_Statement
-           ("Result.Mark",
-            Object ("null")));
+--        Return_Sequence.Append
+--          (New_Assignment_Statement
+--             ("Result.Mark",
+--              Object ("null")));
 
       Return_Sequence.Append
         (New_Assignment_Statement
@@ -700,8 +713,9 @@ package body Kit.Generate.Public_Get is
       Return_Sequence  : Sequence_Of_Statements;
       Key              : constant Kit.Schema.Keys.Key_Type'Class :=
                            Table.Key (Key_Name);
-
       function Function_Name return String;
+
+      function To_Storage (First : Boolean) return Expression'Class;
 
       -------------------
       -- Function_Name --
@@ -709,8 +723,32 @@ package body Kit.Generate.Public_Get is
 
       function Function_Name return String is
       begin
-         return "Select_By_" & Kit.Names.Ada_Name (Key_Name);
+         return "Select_By_"
+           & Kit.Names.Ada_Name (Key_Name);
       end Function_Name;
+
+      ----------------
+      -- To_Storage --
+      ----------------
+
+      function To_Storage (First : Boolean) return Expression'Class is
+      begin
+         if not Bounds then
+            return Table.To_Storage
+              (Table, Key_Table, "", Key,
+               With_Index => False);
+         elsif First then
+            return Table.To_Storage
+              (Table, Key_Table,
+               "Start_", Key,
+               With_Index => False);
+         else
+            return Table.To_Storage
+              (Table, Key_Table,
+               "Finish_", Key,
+               With_Index => False);
+         end if;
+      end To_Storage;
 
    begin
 
@@ -727,24 +765,6 @@ package body Kit.Generate.Public_Get is
                   & "System.Storage_Elements.Storage_Element'Last)")));
       else
          declare
-            Key_To_Storage   : constant Expression'Class :=
-                                 Table.To_Storage
-                                   (Table, Key_Table, "", Key,
-                                    With_Index => False);
-            First_To_Storage : constant Expression'Class :=
-                                 (if Bounds
-                                  then Table.To_Storage
-                                    (Table, Key_Table,
-                                     "Start_", Key,
-                                     With_Index => False)
-                                  else Key_To_Storage);
-            Last_To_Storage  : constant Expression'Class :=
-                                 (if Bounds
-                                  then Table.To_Storage
-                                    (Table, Key_Table,
-                                     "Finish_", Key,
-                                     With_Index => False)
-                                  else Key_To_Storage);
             Start_Storage    : constant Expression'Class :=
                                  New_Function_Call_Expression
                                    ("Marlowe.Key_Storage.To_Storage_Array",
@@ -759,14 +779,14 @@ package body Kit.Generate.Public_Get is
                  ("Result.First",
                   Operator
                     (Name  => "&",
-                     Left  => First_To_Storage,
+                     Left  => To_Storage (True),
                      Right => Start_Storage)));
             Return_Sequence.Append
               (New_Assignment_Statement
                  ("Result.Last",
                   Operator
                     (Name  => "&",
-                     Left  => Last_To_Storage,
+                     Left  => To_Storage (False),
                      Right => Last_Storage)));
          end;
       end if;
@@ -786,6 +806,8 @@ package body Kit.Generate.Public_Get is
                                                     Ada.Strings.Left)
                           & ")";
       begin
+         Block.Add_Declaration
+           (Use_Type ("System.Storage_Elements.Storage_Array"));
          Block.Append
            (Aquarius.Drys.Statements.New_Return_Statement
               ("Result", Return_Type, Return_Sequence));
@@ -856,5 +878,187 @@ package body Kit.Generate.Public_Get is
 
       Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
    end Create_Selection_Function;
+
+   --------------------------------
+   -- Create_Unique_Get_Function --
+   --------------------------------
+
+   procedure Create_Unique_Get_Function
+     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type'Class;
+      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Key_Name      : in     String)
+   is
+      use Aquarius.Drys;
+      use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
+
+      Key              : constant Kit.Schema.Keys.Key_Type'Class :=
+                           Table.Key (Key_Name);
+
+      Block            : Aquarius.Drys.Blocks.Block_Type;
+
+      function Function_Name return String;
+
+      procedure Set_Field
+        (Seq        : in out Sequence_Of_Statements;
+         Field_Name : String;
+         Value      : Boolean);
+
+      -------------------
+      -- Function_Name --
+      -------------------
+
+      function Function_Name return String is
+      begin
+         return "Get_By_" & Key.Ada_Name;
+      end Function_Name;
+
+      ---------------
+      -- Set_Field --
+      ---------------
+
+      procedure Set_Field
+        (Seq        : in out Sequence_Of_Statements;
+         Field_Name : String;
+         Value      : Boolean)
+      is
+      begin
+         Seq.Append
+           (New_Assignment_Statement
+              ("Result." & Field_Name,
+               (if Value then Object ("True") else Object ("False"))));
+      end Set_Field;
+
+   begin
+
+      Block.Add_Declaration
+        (Use_Type ("System.Storage_Elements.Storage_Array"));
+
+      Block.Add_Statement
+        (New_Procedure_Call_Statement
+           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
+
+      declare
+         Mark_Block : Aquarius.Drys.Blocks.Block_Type;
+         Initialiser      : Function_Call_Expression :=
+                              New_Function_Call_Expression
+                                ("Marlowe.Btree_Handles.Search");
+      begin
+         Initialiser.Add_Actual_Argument
+           (Object ("Marlowe_Keys.Handle"));
+         Initialiser.Add_Actual_Argument
+           (Object ("Marlowe_Keys." & Table.Key_Reference_Name (Key)));
+         declare
+            Key_To_Storage   : constant Expression'Class :=
+                                 Table.To_Storage
+                                   (Table, Key_Table, "", Key,
+                                    With_Index => False);
+            Start_Storage    : constant Expression'Class :=
+                                 New_Function_Call_Expression
+                                   ("Marlowe.Key_Storage.To_Storage_Array",
+                                    "Marlowe.Database_Index'First");
+            Last_Storage     : constant Expression'Class :=
+                                 New_Function_Call_Expression
+                                   ("Marlowe.Key_Storage.To_Storage_Array",
+                                    "Marlowe.Database_Index'Last");
+         begin
+            Initialiser.Add_Actual_Argument
+              (Operator
+                 (Name  => "&",
+                  Left  => Key_To_Storage,
+                  Right => Start_Storage));
+            Initialiser.Add_Actual_Argument
+              (Operator
+                 (Name  => "&",
+                  Left  => Key_To_Storage,
+                  Right => Last_Storage));
+         end;
+
+         Initialiser.Add_Actual_Argument
+           (Object ("Marlowe.Closed"));
+         Initialiser.Add_Actual_Argument
+           (Object ("Marlowe.Closed"));
+         Initialiser.Add_Actual_Argument
+           (Object ("Marlowe.Forward"));
+         Mark_Block.Add_Declaration
+           (New_Constant_Declaration
+              ("M", "Marlowe.Btree_Handles.Btree_Mark",
+               Initialiser));
+
+         declare
+            Return_Sequence  : Sequence_Of_Statements;
+            Valid_Sequence   : Sequence_Of_Statements;
+            Invalid_Sequence : Sequence_Of_Statements;
+         begin
+
+            Valid_Sequence.Append
+              (New_Assignment_Statement
+                 ("Result.Index",
+                  New_Function_Call_Expression
+                    ("Marlowe.Key_Storage.To_Database_Index",
+                     New_Function_Call_Expression
+                       ("Marlowe.Btree_Handles.Get_Key",
+                        "M"))));
+            Fetch.Fetch_From_Index (Table       => Table,
+                                    Object_Name => "Result",
+                                    Target      => Valid_Sequence);
+
+            Set_Field (Valid_Sequence, "Finished", False);
+            Set_Field (Valid_Sequence, "Using_Key_Value", False);
+            Set_Field (Valid_Sequence, "Scanning", False);
+            Set_Field (Valid_Sequence, "Link.S_Locked", True);
+
+            Invalid_Sequence.Append
+              (New_Assignment_Statement
+                 ("Result.Index",
+                  Literal (0)));
+            Set_Field (Invalid_Sequence, "Finished", True);
+            Set_Field (Invalid_Sequence, "Using_Key_Value", False);
+            Set_Field (Invalid_Sequence, "Scanning", False);
+            Set_Field (Invalid_Sequence, "Link.S_Locked", False);
+
+            Return_Sequence.Append
+              (If_Statement
+                 (New_Function_Call_Expression
+                    ("Marlowe.Btree_Handles.Valid", "M"),
+                  Valid_Sequence,
+                  Invalid_Sequence));
+            Return_Sequence.Append
+              (New_Procedure_Call_Statement
+                 (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+
+            Mark_Block.Add_Statement
+              (New_Return_Statement
+                 ("Result", Table.Implementation_Name,
+                  Return_Sequence));
+            Block.Add_Statement
+              (Declare_Statement (Mark_Block));
+         end;
+      end;
+
+      declare
+         Fn : Subprogram_Declaration'Class :=
+                New_Function
+                  (Function_Name, Table.Type_Name,
+                   Block);
+      begin
+         for I in 1 .. Key.Field_Count loop
+            declare
+               Field : Kit.Schema.Fields.Field_Type'Class
+               renames Key.Field (I);
+            begin
+               Fn.Add_Formal_Argument
+                 (New_Formal_Argument
+                    (Field.Ada_Name,
+                     Named_Subtype
+                       (Field.Get_Field_Type.Argument_Subtype)));
+            end;
+         end loop;
+         Table_Package.Append (Fn);
+      end;
+
+      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+   end Create_Unique_Get_Function;
 
 end Kit.Generate.Public_Get;

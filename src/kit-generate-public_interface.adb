@@ -10,6 +10,8 @@ with Kit.Schema.Types;
 with Kit.Generate.Fetch;
 with Kit.Generate.Public_Get;
 
+with Kit.Options;
+
 package body Kit.Generate.Public_Interface is
 
    procedure Create_Control_Procedures
@@ -128,10 +130,31 @@ package body Kit.Generate.Public_Interface is
          Finalize_Block.Add_Declaration
            (Aquarius.Drys.Declarations.Use_Type
               ("System.Storage_Elements.Storage_Array"));
+         Finalize_Block.Add_Declaration
+           (Aquarius.Drys.Declarations.Use_Type
+              ("Marlowe.Database_Index"));
+
+         Finalize_Block.Add_Statement
+           (If_Statement
+              (Operator ("=", Object ("Item.Index"), Literal (0)),
+               New_Return_Statement));
 
          Insert_Keys.Append
            (New_Procedure_Call_Statement
               ("Database_Mutex.Shared_Lock"));
+
+         if Kit.Options.Generate_Debug then
+            Finalize_Block.Add_Statement
+              (New_Procedure_Call_Statement
+                 ("Ada.Text_IO.Put_Line",
+                  Operator
+                    ("&",
+                     Literal
+                       ("Finalize " & Table.Ada_Name & ":"),
+                     New_Function_Call_Expression
+                       ("Marlowe.Database_Index'Image",
+                        Object ("Item.Index")))));
+         end if;
 
          Table.Iterate (Insert_Table_Keys'Access,
                         Inclusive   => True,
@@ -176,9 +199,29 @@ package body Kit.Generate.Public_Interface is
          end;
 
          Finalize_Block.Add_Statement
-           (New_Procedure_Call_Statement
-              ("Free", Object ("Item.Mark")));
+           (New_Assignment_Statement
+              ("Item.Index", Literal (0)));
+         Finalize_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Item.Created", Object ("False")));
+         Finalize_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Item.Local", Object ("null")));
+         Finalize_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Item.Link", Object ("null")));
 
+--           Finalize_Block.Add_Statement
+--             (New_Procedure_Call_Statement
+--                ("Free", Object ("Item.Mark")));
+
+         if Kit.Options.Generate_Debug then
+            Finalize_Block.Add_Statement
+              (New_Procedure_Call_Statement
+                 ("Ada.Text_IO.Put_Line",
+                  Literal
+                    ("Finalize " & Table.Ada_Name & ": complete")));
+         end if;
          declare
             Finalize : Subprogram_Declaration'Class :=
                          New_Procedure ("Finalize",
@@ -311,6 +354,7 @@ package body Kit.Generate.Public_Interface is
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
          Key        : Kit.Schema.Keys.Key_Type'Class);
+      pragma Unreferenced (Release_Key);
 
       procedure Process_Keys
         (Process : not null access
@@ -567,7 +611,7 @@ package body Kit.Generate.Public_Interface is
       end;
 
       Process_Keys (Lock_Key'Access);
-      Table.Scan_Keys (Field, Release_Key'Access);
+      --  Table.Scan_Keys (Field, Release_Key'Access);
       Process_Keys (Delete_Old_Key'Access);
 
       Field.Get_Field_Type.Set_Value
@@ -988,6 +1032,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Has_Element;
       procedure Create_Next;
+      pragma Unreferenced (Create_Next);
 
       ------------------------
       -- Create_Has_Element --
@@ -1100,7 +1145,7 @@ package body Kit.Generate.Public_Interface is
 
    begin
       Create_Has_Element;
-      Create_Next;
+      --  Create_Next;
    end Create_Search_Procedures;
 
    -------------------------------
@@ -1582,7 +1627,7 @@ package body Kit.Generate.Public_Interface is
          Record_Defn.Add_Component ("Subclassed", "Boolean");
          Record_Defn.Add_Component ("Using_Key", "Boolean");
          Record_Defn.Add_Component ("Using_Key_Value", "Boolean");
-         Record_Defn.Add_Component ("Mark", "Mark_Access");
+         --  Record_Defn.Add_Component ("Mark", "Mark_Access");
          Record_Defn.Add_Component ("Key_Ref",
                                     "Marlowe.Btree_Handles.Btree_Reference");
          Record_Defn.Add_Component ("Index", "Marlowe.Database_Index");
@@ -1594,6 +1639,13 @@ package body Kit.Generate.Public_Interface is
          Table_Package.Append_To_Body
            (New_Full_Type_Declaration
               (Implementation_Type, Record_Defn));
+
+         Table_Package.Append_To_Body
+           (New_Full_Type_Declaration
+              ("Implementation_Access",
+               New_Access_Type
+                 (Access_To  => Implementation_Type,
+                  Access_All => True)));
 
          Create_Control_Procedures (Db, Table, Table_Package);
          Create_Search_Procedures (Db, Table, Table_Package);
@@ -1610,6 +1662,16 @@ package body Kit.Generate.Public_Interface is
       is
       begin
          for Use_Key_Value in Boolean loop
+            if Use_Key_Value then
+--                and then Key.Unique
+--              then
+               Public_Get.Create_Unique_Get_Function
+                 (Table         => Table,
+                  Key_Table     => Base,
+                  Table_Package => Table_Package,
+                  Key_Name      => Key.Standard_Name);
+            end if;
+
             Public_Get.Create_Selection_Function
               (Db            => Db,
                Table         => Table,
@@ -1720,7 +1782,9 @@ package body Kit.Generate.Public_Interface is
                Access_Type    : Declaration'Class :=
                                   New_Full_Type_Declaration
                                     (Name & "_Access",
-                                     New_Access_Type (Type_Name, False));
+                                     New_Access_Type
+                                       (Type_Name,
+                                        not Mark_Package));
             begin
                Access_Type.Set_Private_Spec;
                Table_Package.Append (Access_Type);
@@ -1824,6 +1888,9 @@ package body Kit.Generate.Public_Interface is
            ("Elements",
             "List_Of_Elements.List");
          Selection.Add_Component
+           ("Marks",
+            "List_Of_Marks.List");
+         Selection.Add_Component
            ("Mutex",
             "Kit.Mutex.Mutex_Type");
 
@@ -1888,7 +1955,8 @@ package body Kit.Generate.Public_Interface is
                     (Result =>
                        Object
                          ("(Element => "
-                          & "List_Of_Elements.Element (Position.Current))")));
+                          & "List_Of_Elements.Element "
+                          & "(Position.Current_Element))")));
                declare
                   Fn_Name : constant String :=
                               (if Is_Variable
@@ -1932,13 +2000,14 @@ package body Kit.Generate.Public_Interface is
 
          declare
             use Aquarius.Drys.Statements;
-            Free_Sequence  : Sequence_Of_Statements;
-            Finalize_Block : Aquarius.Drys.Blocks.Block_Type;
-            Free           : Subprogram_Declaration'Class :=
-                               Instantiate_Generic_Procedure
-                                 (Instantiated_Name => "Free",
-                                  Generic_Name      =>
-                                    "Ada.Unchecked_Deallocation");
+            Free_Element_Sequence  : Sequence_Of_Statements;
+            Free_Mark_Sequence     : Sequence_Of_Statements;
+            Finalize_Block         : Aquarius.Drys.Blocks.Block_Type;
+            Free                   : Subprogram_Declaration'Class :=
+                                       Instantiate_Generic_Procedure
+                                         (Instantiated_Name => "Free",
+                                          Generic_Name      =>
+                                            "Ada.Unchecked_Deallocation");
          begin
             Free.Add_Generic_Actual_Argument
               (Table.Ada_Name & "_Type");
@@ -1946,7 +2015,10 @@ package body Kit.Generate.Public_Interface is
               ("Element_Access");
             Finalize_Block.Add_Declaration (Free);
 
-            Free_Sequence.Append
+            Free_Element_Sequence.Append
+              (New_Procedure_Call_Statement
+                 ("Free", Object ("X")));
+            Free_Mark_Sequence.Append
               (New_Procedure_Call_Statement
                  ("Free", Object ("X")));
             Finalize_Block.Add_Statement
@@ -1954,7 +2026,13 @@ package body Kit.Generate.Public_Interface is
                  Aquarius.Drys.Statements.Iterate
                    (Loop_Variable  => "X",
                     Container_Name => "Object.Elements",
-                    Iterate_Body   => Free_Sequence));
+                    Iterate_Body   => Free_Element_Sequence));
+            Finalize_Block.Add_Statement
+              (Item =>
+                 Aquarius.Drys.Statements.Iterate
+                   (Loop_Variable  => "X",
+                    Container_Name => "Object.Marks",
+                    Iterate_Body   => Free_Mark_Sequence));
 
             declare
                Finalize : Subprogram_Declaration'Class :=
@@ -2022,6 +2100,12 @@ package body Kit.Generate.Public_Interface is
         (Db.Ada_Name & "." & Cache_Package,
          Body_With => True);
 
+      if Kit.Options.Generate_Debug then
+         Table_Package.With_Package
+           ("Ada.Text_IO",
+            Body_With => True);
+      end if;
+
       Table_Package.Append
         (New_Full_Type_Declaration
            (Table.Interface_Name,
@@ -2039,19 +2123,19 @@ package body Kit.Generate.Public_Interface is
       --  Create_Key_Context_Type (Db, Table, Table_Package);
 
       declare
-         Mark_Access : constant Access_Type_Definition :=
-                         New_Access_Type
-                           ("Marlowe.Btree_Handles.Btree_Mark",
-                            False);
+--           Mark_Access : constant Access_Type_Definition :=
+--                           New_Access_Type
+--                             ("Marlowe.Btree_Handles.Btree_Mark",
+--                              False);
          Free        : Subprogram_Declaration'Class :=
                          Instantiate_Generic_Procedure
                            (Instantiated_Name => "Free",
                             Generic_Name      => "Ada.Unchecked_Deallocation");
       begin
 
-         Table_Package.Append_To_Body
-           (New_Full_Type_Declaration
-              ("Mark_Access", Mark_Access));
+--           Table_Package.Append_To_Body
+--             (New_Full_Type_Declaration
+--                ("Mark_Access", Mark_Access));
 
          Free.Add_Generic_Actual_Argument
            ("Marlowe.Btree_Handles.Btree_Mark");
@@ -2088,9 +2172,9 @@ package body Kit.Generate.Public_Interface is
 
       if Table.Has_Key_Field then
          Public_Get.Create_Generic_Get_Function
-           (Db, Table, Table_Package, First => True, Key_Value => False);
+           (Db, Table, Table_Package, Key_Value => False);
          Public_Get.Create_Generic_Get_Function
-           (Db, Table, Table_Package, First => True, Key_Value => True);
+           (Db, Table, Table_Package, Key_Value => True);
       end if;
 
       Public_Get.Create_Reference_Get_Function

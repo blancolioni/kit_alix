@@ -1658,6 +1658,7 @@ package body Aquarius.Drys.Declarations is
       Writer.Put ("subtype ");
       Writer.Put (Item.Name.all);
       Writer.Put (" is ");
+      Writer.Optional_New_Line;
       Item.Definition.Write (Writer);
    end Write;
 

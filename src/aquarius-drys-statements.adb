@@ -380,6 +380,19 @@ package body Aquarius.Drys.Statements is
    --------------------------
 
    function New_Return_Statement
+      return Statement'Class
+   is
+   begin
+      return R : Return_Statement do
+         R.Expr := null;
+      end return;
+   end New_Return_Statement;
+
+   --------------------------
+   -- New_Return_Statement --
+   --------------------------
+
+   function New_Return_Statement
      (Result : Expression'Class)
       return Statement'Class
    is
@@ -491,8 +504,11 @@ package body Aquarius.Drys.Statements is
       Writer : in out Writer_Interface'Class)
    is
    begin
-      Writer.Put ("return ");
-      Item.Expr.Write (Writer);
+      Writer.Put ("return");
+      if Item.Expr /= null then
+         Writer.Put (" ");
+         Item.Expr.Write (Writer);
+      end if;
    end Write;
 
    -----------

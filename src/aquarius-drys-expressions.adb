@@ -128,6 +128,26 @@ package body Aquarius.Drys.Expressions is
 
    function New_Function_Call_Expression
      (Procedure_Name : String;
+      Argument_1     : Expression'Class;
+      Argument_2     : Expression'Class;
+      Argument_3     : Expression'Class)
+      return Function_Call_Expression
+   is
+   begin
+      return F : Function_Call_Expression do
+         F.Name := new String'(Procedure_Name);
+         F.Add_Actual_Argument (Argument_1);
+         F.Add_Actual_Argument (Argument_2);
+         F.Add_Actual_Argument (Argument_3);
+      end return;
+   end New_Function_Call_Expression;
+
+   ----------------------------------
+   -- New_Function_Call_Expression --
+   ----------------------------------
+
+   function New_Function_Call_Expression
+     (Procedure_Name : String;
       Argument       : String)
       return Function_Call_Expression
    is
@@ -264,11 +284,18 @@ package body Aquarius.Drys.Expressions is
    procedure Write (Item   : Operator_Expression;
                     Writer : in out Writer_Interface'Class)
    is
-      Paren_Left : constant Boolean :=
-                     Item.Left.all in Operator_Expression'Class;
+      Operator    : constant String :=
+                      Item.Operator_Name.all;
+      Separate_Args : constant Boolean := Operator /= ".";
+      Paren_Left    : constant Boolean :=
+                        Separate_Args
+                            and then Item.Left.all in
+                              Operator_Expression'Class;
       Paren_Right : constant Boolean :=
-                      Item.Right /= null
-                      and then Item.Right.all in Operator_Expression'Class;
+                        Separate_Args
+                            and then Item.Right /= null
+                                and then Item.Right.all in
+                                  Operator_Expression'Class;
    begin
       if Item.Right /= null then
          if Paren_Left then
@@ -278,13 +305,21 @@ package body Aquarius.Drys.Expressions is
          if Paren_Left then
             Writer.Put (")");
          end if;
-         if Item.Long then
-            Writer.New_Line;
-         else
+         if Separate_Args then
+            if Item.Long then
+               Writer.New_Line;
+            else
+               Writer.Put (" ");
+            end if;
+            Writer.Optional_New_Line;
+         end if;
+
+         Writer.Put (Operator);
+
+         if Separate_Args then
             Writer.Put (" ");
          end if;
-         Writer.Optional_New_Line;
-         Writer.Put (Item.Operator_Name.all & " ");
+
          if Paren_Right then
             Writer.Put ("(");
          end if;

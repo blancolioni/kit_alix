@@ -387,12 +387,12 @@ package body Kit.Generate is
             Named_Subtype ("Boolean")));
       Top.Add_Separator;
 
-      Top.Append
-        (New_Abstract_Procedure
-           ("Next",
-            New_Inout_Argument
-              ("Item", Named_Subtype ("Search_Interface"))));
-      Top.Add_Separator;
+--        Top.Append
+--          (New_Abstract_Procedure
+--             ("Next",
+--              New_Inout_Argument
+--                ("Item", Named_Subtype ("Search_Interface"))));
+--        Top.Add_Separator;
 
    end Create_Search_Interface;
 
