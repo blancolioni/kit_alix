@@ -4,11 +4,12 @@ package Kit.Db is
       key Top_Record : Record_Type is Readable;
    end Kit_Root_Record;
 
-   record Kit_Named_Item is
-      key Name : String (64);
-   end Kit_Named_Item;
+--     record Kit_Named_Item is
+--        key Name : String (64);
+--     end Kit_Named_Item;
 
-   record Kit_Record : Kit_Named_Item is
+   record Kit_Record is
+      unique key Name : String (64);
       unique key Table_Index   : Positive;
       Record_Length : Natural;
    end Kit_Record;
@@ -20,8 +21,9 @@ package Kit.Db is
       key Base_Record with Base, Derived;
    end Kit_Record_Base;
 
-   record Kit_Type : Kit_Named_Item is
+   record Kit_Type is
       Size : Natural;
+      unique key Name : String (64);
    end Kit_Type;
 
    record Kit_Integer : Kit_Type is
@@ -43,14 +45,16 @@ package Kit.Db is
 
    record Kit_Enumeration : Kit_Type;
 
-   record Kit_Literal : Kit_Named_Item is
+   record Kit_Literal is
+      Name : String (64);
       key Kit_Enumeration;
       key Value : Natural;
       unique key Enum_Value with Kit_Enumeration, Value;
       unique key Enum_Name with Kit_Enumeration, Name;
    end Kit_Literal;
 
-   record Kit_Field : Kit_Named_Item is
+   record Kit_Field is
+      Name : String (64);
       key Kit_Record;
       Field_Type   : Kit_Type;
       Field_Offset : Natural;
@@ -58,7 +62,8 @@ package Kit.Db is
       unique key Record_Field with Kit_Record, Name;
    end Kit_Field;
 
-   record Kit_Key : Kit_Named_Item is
+   record Kit_Key is
+      Name : String (64);
       key Kit_Record;
       Is_Unique : Boolean;
       Length    : Natural;

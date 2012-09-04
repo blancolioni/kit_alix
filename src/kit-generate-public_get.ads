@@ -20,6 +20,16 @@ package Kit.Generate.Public_Get is
    --  containing only records with a given value.  Otherwise, the selection
    --  contains the entire table in key order.
 
+   procedure Create_Unique_Get_Function
+     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type'Class;
+      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Key_Name      : in     String);
+
+   --  For table T, key K of type (t1,...,tn), generate a function
+   --     function Get_By_K (v1 : t2; ...; vn : tn) return T
+   --  Returns the record containing K if it exists
+
    procedure Create_Iterator
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class);
@@ -50,7 +60,6 @@ package Kit.Generate.Public_Get is
      (Db            : in     Kit.Schema.Databases.Database_Type;
       Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
-      First         : in     Boolean;
       Key_Value     : in     Boolean);
 
 end Kit.Generate.Public_Get;

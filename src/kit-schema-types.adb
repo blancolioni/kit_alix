@@ -417,11 +417,12 @@ package body Kit.Schema.Types is
    begin
       Result.Add_Actual_Argument (Literal (8));
       Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
-      Result.Add_Actual_Argument
-        (Object
-           ("Kit_Record.First_By_Name ("""
-            & For_Type.Standard_Name
-            & """).Reference"));
+      Result.Add_Actual_Argument (Object (For_Type.Ada_Name & "_Ref"));
+--
+--          (Object
+--             ("Kit_Record.Get_By_Name ("""
+--              & For_Type.Standard_Name
+--              & """).Reference"));
       return Result;
    end Create_Database_Record;
 
@@ -791,7 +792,7 @@ package body Kit.Schema.Types is
    is
    begin
       return Aquarius.Drys.Object
-        ("Kit_Type.First_By_Name (""" & Of_Kit_Type.Standard_Name
+        ("Kit_Type.Get_By_Name (""" & Of_Kit_Type.Standard_Name
          & """).Reference");
    end Reference_Database_Type;
 
@@ -1259,12 +1260,14 @@ package body Kit.Schema.Types is
    is
       pragma Unreferenced (Item);
       use Aquarius.Drys, Aquarius.Drys.Expressions;
+      Convert_To_Index : constant Expression'Class :=
+                           New_Function_Call_Expression
+                             ("Marlowe.Database_Index",
+                              Object_Name);
    begin
       return New_Function_Call_Expression
         ("Marlowe.Key_Storage.To_Storage_Array",
-         New_Function_Call_Expression
-           ("Marlowe.Database_Index",
-            Object_Name));
+         Argument => Convert_To_Index);
    end To_Storage_Array;
 
    ----------------------

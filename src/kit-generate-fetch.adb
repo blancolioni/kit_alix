@@ -1,7 +1,13 @@
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
 
+with Kit.Options;
+
 package body Kit.Generate.Fetch is
+
+   ----------------------
+   -- Fetch_From_Index --
+   ----------------------
 
    ----------------------
    -- Fetch_From_Index --
@@ -41,6 +47,25 @@ package body Kit.Generate.Fetch is
       end Get_Base;
 
    begin
+      if Kit.Options.Generate_Debug then
+         declare
+            use Aquarius.Drys;
+            use Aquarius.Drys.Expressions;
+            use Aquarius.Drys.Statements;
+         begin
+            Target.Append
+              (New_Procedure_Call_Statement
+                 ("Ada.Text_IO.Put_Line",
+                  Operator
+                    ("&",
+                     Literal
+                       ("Fetch " & Table.Ada_Name & ": "),
+                     New_Function_Call_Expression
+                       ("Marlowe.Database_Index'Image",
+                        Object (Object_Name & ".Index")))));
+         end;
+      end if;
+
       Table.Iterate (Get_Base'Access,
                      Inclusive   => True,
                      Table_First => True);

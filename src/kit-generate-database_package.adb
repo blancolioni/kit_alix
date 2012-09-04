@@ -319,10 +319,20 @@ package body Kit.Generate.Database_Package is
       Seq : in out Aquarius.Drys.Statement_Sequencer'Class)
    is
 
+      use Aquarius.Drys;
+      use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Expressions;
+      use Aquarius.Drys.Statements;
+
       procedure Create_Table
         (Table : Kit.Schema.Tables.Table_Type'Class);
 
+      procedure Create_Table_Fields
+        (Table : Kit.Schema.Tables.Table_Type'Class);
+
       procedure Create_Type (T  : Kit.Schema.Types.Kit_Type'Class);
+
+      Init_Block : Aquarius.Drys.Blocks.Block_Type;
 
       ------------------
       -- Create_Table --
@@ -331,15 +341,32 @@ package body Kit.Generate.Database_Package is
       procedure Create_Table
         (Table : Kit.Schema.Tables.Table_Type'Class)
       is
-         use Aquarius.Drys;
-         use Aquarius.Drys.Expressions;
-         use Aquarius.Drys.Statements;
-         Create : constant Statement'Class :=
-                    New_Procedure_Call_Statement
-                      ("Kit_Record.Create",
-                       Literal (Table.Standard_Name),
-                       Object (Table.Index_Image),
-                       Literal (Natural (Table.Length)));
+         Create : constant Declaration'Class :=
+                    New_Constant_Declaration
+                      (Table.Ada_Name & "_Ref",
+                       "Kit_Record_Reference",
+                       New_Function_Call_Expression
+                         ("Kit_Record.Create",
+                          Literal (Table.Standard_Name),
+                          Object (Table.Index_Image),
+                          Literal (Natural (Table.Length))));
+      begin
+         Init_Block.Add_Declaration (Create);
+         Init_Block.Append
+           (Kit.Schema.Types.Table_Reference_Type
+              (Table.Standard_Name).Create_Database_Record);
+      end Create_Table;
+
+      -------------------------
+      -- Create_Table_Fields --
+      -------------------------
+
+      procedure Create_Table_Fields
+        (Table : Kit.Schema.Tables.Table_Type'Class)
+      is
+
+         Ref_Name : constant String :=
+                      Table.Ada_Name & "_Ref";
 
          procedure Create_Field
            (Field       : Kit.Schema.Fields.Field_Type'Class);
@@ -362,15 +389,10 @@ package body Kit.Generate.Database_Package is
               (Literal (Natural (Table.Base_Start (Base))));
             New_Base.Add_Actual_Argument
               (Object
-                 ("Kit_Record.First_By_Name ("""
-                  & Base.Standard_Name
-                  & """).Reference"));
+                 (Base.Ada_Name & "_Ref"));
             New_Base.Add_Actual_Argument
-              (Object
-                 ("Kit_Record.First_By_Name ("""
-                  & Table.Standard_Name
-                  & """).Reference"));
-            Seq.Append (New_Base);
+              (Object (Ref_Name));
+            Init_Block.Append (New_Base);
          end Create_Base;
 
          ------------------
@@ -383,21 +405,25 @@ package body Kit.Generate.Database_Package is
             New_Field : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
                             ("Kit_Field.Create");
+            Block     : Aquarius.Drys.Blocks.Block_Type;
          begin
-            New_Field.Add_Actual_Argument (Literal (Field.Standard_Name));
+            Block.Add_Declaration
+              (New_Constant_Declaration
+                 ("Type_Ref",
+                  "Kit_Type_Reference",
+                  Field.Get_Field_Type.Reference_Database_Type));
             New_Field.Add_Actual_Argument
-              (Object
-                 ("Kit_Record.First_By_Name ("""
-                  & Table.Standard_Name
-                  & """).Reference"));
+              (Literal (Field.Standard_Name));
             New_Field.Add_Actual_Argument
-              (Field.Get_Field_Type.Reference_Database_Type);
-
+              (Object (Ref_Name));
+            New_Field.Add_Actual_Argument
+              (Object ("Type_Ref"));
             New_Field.Add_Actual_Argument
               (Literal (Natural (Table.Field_Start (Field))));
             New_Field.Add_Actual_Argument
               (Literal (Field.Get_Field_Type.Size));
-            Seq.Append (New_Field);
+            Block.Add_Statement (New_Field);
+            Init_Block.Append (Declare_Statement (Block));
          end Create_Field;
 
          ----------------
@@ -408,17 +434,13 @@ package body Kit.Generate.Database_Package is
            (Key : Kit.Schema.Keys.Key_Type'Class)
          is
             use Kit.Schema.Tables;
-            use Aquarius.Drys.Declarations;
             New_Key : Function_Call_Expression'Class :=
                         New_Function_Call_Expression ("Kit_Key.Create");
             Block   : Aquarius.Drys.Blocks.Block_Type;
          begin
             New_Key.Add_Actual_Argument (Literal (Key.Standard_Name));
             New_Key.Add_Actual_Argument
-              (Object
-                 ("Kit_Record.First_By_Name ("""
-                  & Table.Standard_Name
-                  & """).Reference"));
+              (Object (Ref_Name));
             New_Key.Add_Actual_Argument
               (Object ((if Key.Unique then "True" else "False")));
             New_Key.Add_Actual_Argument (Literal (Key.Size));
@@ -431,28 +453,37 @@ package body Kit.Generate.Database_Package is
                   Key_Field : Procedure_Call_Statement'Class :=
                                 New_Procedure_Call_Statement
                                   ("Kit_Key_Field.Create");
+                  Field_Block : Aquarius.Drys.Blocks.Block_Type;
                begin
+                  Field_Block.Add_Declaration
+                    (New_Constant_Declaration
+                       ("Key_Field",
+                        "Kit_Field.Kit_Field_Type",
+                        New_Function_Call_Expression
+                          ("Kit_Field.Get_By_Record_Field",
+                           Object (Ref_Name),
+                           Literal (Key.Field (I).Standard_Name))));
+                  Field_Block.Add_Declaration
+                    (New_Constant_Declaration
+                       ("Field_Ref",
+                        "Kit_Field_Reference",
+                        Object ("Key_Field.Reference")));
                   Key_Field.Add_Actual_Argument (Object ("Ref"));
-                  Key_Field.Add_Actual_Argument
-                    (Object
-                       ("Kit_Field.First_By_Name ("""
-                        & Key.Field (I).Standard_Name
-                        & """).Reference"));
-                  Block.Append (Key_Field);
+                  Key_Field.Add_Actual_Argument (Object ("Field_Ref"));
+                  Field_Block.Add_Statement (Key_Field);
+                  Block.Add_Statement
+                    (Declare_Statement (Field_Block));
                end;
             end loop;
 
-            Seq.Append (Declare_Statement (Block));
+            Init_Block.Append (Declare_Statement (Block));
          end Create_Key;
 
       begin
-         Seq.Append (Create);
-         Seq.Append (Kit.Schema.Types.Table_Reference_Type
-                     (Table.Standard_Name).Create_Database_Record);
          Table.Scan_Fields (Create_Field'Access);
          Table.Scan_Keys (Create_Key'Access);
          Table.Iterate (Create_Base'Access, Inclusive => False);
-      end Create_Table;
+      end Create_Table_Fields;
 
       -----------------
       -- Create_Type --
@@ -466,6 +497,8 @@ package body Kit.Generate.Database_Package is
    begin
       Kit.Schema.Types.Iterate_All_Types (Create_Type'Access);
       Db.Iterate (Create_Table'Access);
+      Db.Iterate (Create_Table_Fields'Access);
+      Seq.Append (Declare_Statement (Init_Block));
    end Initialise_Database_Structure;
 
    --------------------
