@@ -934,6 +934,11 @@ package body Kit.Generate.Public_Get is
 
       Block.Add_Declaration
         (Use_Type ("System.Storage_Elements.Storage_Array"));
+      Block.Add_Declaration
+        (Use_Type ("Marlowe.Database_Index"));
+      Block.Add_Declaration
+        (Aquarius.Drys.Declarations.New_Object_Declaration
+           ("Index", "Marlowe.Database_Index", Literal (0)));
 
       Block.Add_Statement
         (New_Procedure_Call_Statement
@@ -985,56 +990,60 @@ package body Kit.Generate.Public_Get is
            (New_Constant_Declaration
               ("M", "Marlowe.Btree_Handles.Btree_Mark",
                Initialiser));
-
-         declare
-            Return_Sequence  : Sequence_Of_Statements;
-            Valid_Sequence   : Sequence_Of_Statements;
-            Invalid_Sequence : Sequence_Of_Statements;
-         begin
-
-            Valid_Sequence.Append
-              (New_Assignment_Statement
-                 ("Result.Index",
+         Mark_Block.Add_Statement
+           (If_Statement
+              (New_Function_Call_Expression
+                 ("Marlowe.Btree_Handles.Valid",
+                  Object ("M")),
+               New_Assignment_Statement
+                 ("Index",
                   New_Function_Call_Expression
                     ("Marlowe.Key_Storage.To_Database_Index",
                      New_Function_Call_Expression
                        ("Marlowe.Btree_Handles.Get_Key",
-                        "M"))));
-            Fetch.Fetch_From_Index (Table       => Table,
-                                    Object_Name => "Result",
-                                    Target      => Valid_Sequence);
+                        "M")))));
+         Block.Add_Statement
+           (Declare_Statement (Mark_Block));
+      end;
 
-            Set_Field (Valid_Sequence, "Finished", False);
-            Set_Field (Valid_Sequence, "Using_Key_Value", False);
-            Set_Field (Valid_Sequence, "Scanning", False);
-            Set_Field (Valid_Sequence, "Link.S_Locked", True);
+      declare
+         Return_Sequence  : Sequence_Of_Statements;
+         Valid_Sequence   : Sequence_Of_Statements;
+         Invalid_Sequence : Sequence_Of_Statements;
+      begin
 
-            Invalid_Sequence.Append
-              (New_Assignment_Statement
-                 ("Result.Index",
-                  Literal (0)));
-            Set_Field (Invalid_Sequence, "Finished", True);
-            Set_Field (Invalid_Sequence, "Using_Key_Value", False);
-            Set_Field (Invalid_Sequence, "Scanning", False);
-            Set_Field (Invalid_Sequence, "Link.S_Locked", False);
+         Return_Sequence.Append
+           (New_Assignment_Statement
+              (Target => "Result.Index",
+               Value  => Object ("Index")));
 
-            Return_Sequence.Append
-              (If_Statement
-                 (New_Function_Call_Expression
-                    ("Marlowe.Btree_Handles.Valid", "M"),
-                  Valid_Sequence,
-                  Invalid_Sequence));
-            Return_Sequence.Append
-              (New_Procedure_Call_Statement
-                 (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+         Fetch.Fetch_From_Index (Table       => Table,
+                                 Object_Name => "Result",
+                                 Target      => Valid_Sequence);
 
-            Mark_Block.Add_Statement
-              (New_Return_Statement
-                 ("Result", Table.Implementation_Name,
-                  Return_Sequence));
-            Block.Add_Statement
-              (Declare_Statement (Mark_Block));
-         end;
+         Set_Field (Valid_Sequence, "Finished", False);
+         Set_Field (Valid_Sequence, "Using_Key_Value", False);
+         Set_Field (Valid_Sequence, "Scanning", False);
+         Set_Field (Valid_Sequence, "Link.S_Locked", True);
+
+         Set_Field (Invalid_Sequence, "Finished", True);
+         Set_Field (Invalid_Sequence, "Using_Key_Value", False);
+         Set_Field (Invalid_Sequence, "Scanning", False);
+         Set_Field (Invalid_Sequence, "Link.S_Locked", False);
+
+         Return_Sequence.Append
+           (If_Statement
+              (Operator ("/=", Object ("Index"), Literal (0)),
+               Valid_Sequence,
+               Invalid_Sequence));
+         Return_Sequence.Append
+           (New_Procedure_Call_Statement
+              (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+
+         Block.Add_Statement
+           (New_Return_Statement
+              ("Result", Table.Implementation_Name,
+               Return_Sequence));
       end;
 
       declare
