@@ -65,14 +65,14 @@ package body Kit.Server.Storage is
                use type System.Storage_Elements.Storage_Element;
                X : Marlowe.Key_Storage.Unsigned_Integer := 0;
                Enum : Kit.Db.Kit_Enumeration.Kit_Enumeration_Type :=
-                        Kit.Db.Kit_Enumeration.First_By_Name
+                        Kit.Db.Kit_Enumeration.Get_By_Name
                           (Value_Type.Name);
             begin
                Marlowe.Key_Storage.From_Storage (X, Value);
 
                declare
                   Lit : constant Kit.Db.Kit_Literal.Kit_Literal_Type :=
-                          Kit.Db.Kit_Literal.First_By_Enum_Value
+                          Kit.Db.Kit_Literal.Get_By_Enum_Value
                             (Enum.Reference, Natural (X));
                begin
                   return Lit.Name;
@@ -81,9 +81,9 @@ package body Kit.Server.Storage is
          when Kit.Db.R_Kit_Reference =>
             declare
                Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-                       Kit.Db.Kit_Record.First_By_Name (Value_Type.Name);
+                       Kit.Db.Kit_Record.Get_By_Name (Value_Type.Name);
                Name_Field : Kit.Db.Kit_Field.Kit_Field_Type :=
-                              Kit.Db.Kit_Field.First_By_Record_Field
+                              Kit.Db.Kit_Field.Get_By_Record_Field
                                 (Rec.Reference, "Name");
                Index      : Marlowe.Database_Index;
             begin
@@ -143,10 +143,10 @@ package body Kit.Server.Storage is
             declare
                use type System.Storage_Elements.Storage_Element;
                Enum : Kit.Db.Kit_Enumeration.Kit_Enumeration_Type :=
-                        Kit.Db.Kit_Enumeration.First_By_Name
+                        Kit.Db.Kit_Enumeration.Get_By_Name
                           (Value_Type.Name);
                Lit : constant Kit.Db.Kit_Literal.Kit_Literal_Type :=
-                       Kit.Db.Kit_Literal.First_By_Enum_Name
+                       Kit.Db.Kit_Literal.Get_By_Enum_Name
                          (Enum.Reference, Value);
                X   : constant Marlowe.Key_Storage.Unsigned_Integer :=
                        Marlowe.Key_Storage.Unsigned_Integer (Lit.Value);
