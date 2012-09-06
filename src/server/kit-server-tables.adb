@@ -185,27 +185,35 @@ package body Kit.Server.Tables is
       Index    : Positive)
       return Root_Table_Interface'Class
    is
+      use Kit.Db.Kit_Record_Base;
+      use Kit.Db.Kit_Record_Base.Selection_Iterator_Interfaces;
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Table.Index));
-      Base  : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                Kit.Db.Kit_Record_Base.First_By_Derived
+      Bases : Kit.Db.Kit_Record_Base.Selection :=
+                Kit.Db.Kit_Record_Base.Select_By_Derived
                   (Rec.Reference);
+      Base_It : Forward_Iterator'Class := Bases.Iterate;
+      Base  : Cursor := Base_It.First;
    begin
       for I in 1 .. Index - 1 loop
-         exit when not Base.Has_Element;
-         Base.Next;
+         exit when not Has_Element (Base);
+         Base := Base_It.Next (Base);
       end loop;
 
-      if not Base.Has_Element then
+      if not Has_Element (Base) then
          raise Constraint_Error
            with "asked for illegal base number" & Positive'Image (Index)
            & " in table " & Rec.Name;
       end if;
 
       declare
+         Found    : constant Kit_Record_Base_Type :=
+                      Bases.Constant_Reference (Base).Element.all;
+         Rec_Ref  : constant Kit.Db.Kit_Record_Reference :=
+                      Found.Derived;
          Base_Rec : constant Kit.Db.Kit_Record.Kit_Record_Type :=
-                      Kit.Db.Kit_Record.Get (Base.Base);
+                      Kit.Db.Kit_Record.Get (Rec_Ref);
       begin
          return Table_Type'(Db => Table.Db,
                             Index => Marlowe.Table_Index
@@ -222,17 +230,17 @@ package body Kit.Server.Tables is
      (Table    : Table_Type)
       return Natural
    is
-      Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+      Rec    : Kit.Db.Kit_Record.Kit_Record_Type :=
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Table.Index));
-      Base  : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                Kit.Db.Kit_Record_Base.First_By_Derived
+      Bases  : Kit.Db.Kit_Record_Base.Selection :=
+                Kit.Db.Kit_Record_Base.Select_By_Derived
                   (Rec.Reference);
       Result : Natural := 0;
    begin
-      while Base.Has_Element loop
+      for Base of Bases loop
+         pragma Unreferenced (Base);
          Result := Result + 1;
-         Base.Next;
       end loop;
       return Result;
    end Base_Count;
@@ -246,22 +254,21 @@ package body Kit.Server.Tables is
                               return Root_Field_Interface'Class
    is
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Table.Index));
       pragma Assert (Rec.Has_Element);
       Result : Natural := 0;
    begin
 
       declare
-         F : Kit.Db.Kit_Field.Kit_Field_Type :=
-               Kit.Db.Kit_Field.First_By_Kit_Record (Rec.Reference);
+         Fs : Kit.Db.Kit_Field.Selection :=
+               Kit.Db.Kit_Field.Select_By_Kit_Record (Rec.Reference);
       begin
-         while F.Has_Element loop
+         for F of Fs loop
             Result := Result + 1;
             if Result = Index then
                return Table_Field_Type'(Table.Db, Table.Index, F.Reference);
             end if;
-            F.Next;
          end loop;
       end;
 
@@ -280,19 +287,18 @@ package body Kit.Server.Tables is
       Index : Positive)
       return Kit.Databases.Root_Field_Interface'Class
    is
-      F       : Kit.Db.Kit_Key_Field.Kit_Key_Field_Type :=
-                  Kit.Db.Kit_Key_Field.First_By_Kit_Key
+      Fs     : Kit.Db.Kit_Key_Field.Selection :=
+                  Kit.Db.Kit_Key_Field.Select_By_Kit_Key
                     (Key.Reference);
       Result : Natural := 0;
    begin
-      while F.Has_Element loop
+      for F of Fs loop
          Result := Result + 1;
          if Result = Index then
             return Table_Field_Type'(Db        => Key.Db,
                                      Table     => Key.Table,
                                      Reference => F.Kit_Field);
          end if;
-         F.Next;
       end loop;
 
       declare
@@ -314,43 +320,41 @@ package body Kit.Server.Tables is
    function Field_Count (Item : Kit_Db_Record) return Natural is
       use System.Storage_Elements;
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Item.Table_Index));
       pragma Assert (Rec.Has_Element);
       Result : Natural := 0;
    begin
 
       declare
-         F : Kit.Db.Kit_Field.Kit_Field_Type :=
-               Kit.Db.Kit_Field.First_By_Kit_Record (Rec.Reference);
+         Fs : Kit.Db.Kit_Field.Selection :=
+               Kit.Db.Kit_Field.Select_By_Kit_Record (Rec.Reference);
       begin
-         while F.Has_Element loop
+         for F of Fs loop
+            pragma Unreferenced (F);
             Result := Result + 1;
-            F.Next;
          end loop;
       end;
 
       declare
-         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                  Kit.Db.Kit_Record_Base.First_By_Derived
+         Bases : Kit.Db.Kit_Record_Base.Selection :=
+                  Kit.Db.Kit_Record_Base.Select_By_Derived
                     (Rec.Reference);
       begin
-         while Base.Has_Element loop
+         for Base of Bases loop
             declare
                Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
                             Kit.Db.Kit_Record.Get (Base.Base);
                pragma Assert (Base_Rec.Has_Element);
-               F        : Kit.Db.Kit_Field.Kit_Field_Type :=
-                            Kit.Db.Kit_Field.First_By_Kit_Record
+               Fs        : Kit.Db.Kit_Field.Selection :=
+                            Kit.Db.Kit_Field.Select_By_Kit_Record
                               (Base_Rec.Reference);
             begin
-               while F.Has_Element loop
+               for F of Fs loop
+                  pragma Unreferenced (F);
                   Result := Result + 1;
-                  F.Next;
                end loop;
             end;
-
-            Base.Next;
 
          end loop;
 
@@ -369,19 +373,19 @@ package body Kit.Server.Tables is
       return Natural
    is
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Table.Index));
       pragma Assert (Rec.Has_Element);
       Result : Natural := 0;
    begin
 
       declare
-         F : Kit.Db.Kit_Field.Kit_Field_Type :=
-               Kit.Db.Kit_Field.First_By_Kit_Record (Rec.Reference);
+         Fs : Kit.Db.Kit_Field.Selection :=
+               Kit.Db.Kit_Field.Select_By_Kit_Record (Rec.Reference);
       begin
-         while F.Has_Element loop
+         for F of Fs loop
+            pragma Unreferenced (F);
             Result := Result + 1;
-            F.Next;
          end loop;
       end;
 
@@ -394,14 +398,14 @@ package body Kit.Server.Tables is
    -----------------
 
    overriding function Field_Count (Key : Table_Key_Type) return Positive is
-      F       : Kit.Db.Kit_Key_Field.Kit_Key_Field_Type :=
-                  Kit.Db.Kit_Key_Field.First_By_Kit_Key
+      Fs      : Kit.Db.Kit_Key_Field.Selection :=
+                  Kit.Db.Kit_Key_Field.Select_By_Kit_Key
                     (Key.Reference);
       Result : Natural := 0;
    begin
-      while F.Has_Element loop
+      for F of Fs loop
+         pragma Unreferenced (F);
          Result := Result + 1;
-         F.Next;
       end loop;
       return Result;
    end Field_Count;
@@ -417,49 +421,45 @@ package body Kit.Server.Tables is
    is
       use System.Storage_Elements;
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Item.Table_Index));
       pragma Assert (Rec.Has_Element);
       Result : Natural := 0;
    begin
 
       declare
-         F : Kit.Db.Kit_Field.Kit_Field_Type :=
-               Kit.Db.Kit_Field.First_By_Kit_Record (Rec.Reference);
+         Fs : Kit.Db.Kit_Field.Selection :=
+               Kit.Db.Kit_Field.Select_By_Kit_Record (Rec.Reference);
       begin
-         while F.Has_Element loop
+         for F of Fs loop
             Result := Result + 1;
             if Result = Index then
                return F.Name;
             end if;
-            F.Next;
          end loop;
       end;
 
       declare
-         Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                  Kit.Db.Kit_Record_Base.First_By_Derived
+         Bases : Kit.Db.Kit_Record_Base.Selection :=
+                  Kit.Db.Kit_Record_Base.Select_By_Derived
                     (Rec.Reference);
       begin
-         while Base.Has_Element loop
+         for Base of Bases loop
             declare
                Base_Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
                             Kit.Db.Kit_Record.Get (Base.Base);
                pragma Assert (Base_Rec.Has_Element);
-               F        : Kit.Db.Kit_Field.Kit_Field_Type :=
-                            Kit.Db.Kit_Field.First_By_Kit_Record
+               Fs       : Kit.Db.Kit_Field.Selection :=
+                            Kit.Db.Kit_Field.Select_By_Kit_Record
                               (Base_Rec.Reference);
             begin
-               while F.Has_Element loop
+               for F of Fs loop
                   Result := Result + 1;
                   if Result = Index then
                      return F.Name;
                   end if;
-                  F.Next;
                end loop;
             end;
-
-            Base.Next;
 
          end loop;
 
@@ -534,8 +534,7 @@ package body Kit.Server.Tables is
       if Valid_Index (Handle, Table_Index, Record_Index) then
          declare
             Result : constant Kit_Db_Record_Access :=
-                       new Kit_Db_Record
-                         (Get_Record_Length (Handle, Table_Index));
+                       new Kit_Db_Record (0);
          begin
             Result.Table_Index  := Table_Index;
             Result.Record_Index := Record_Index;
@@ -665,11 +664,11 @@ package body Kit.Server.Tables is
    is
       use System.Storage_Elements;
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Item.Table_Index));
       pragma Assert (Rec.Has_Element);
       Field : Kit.Db.Kit_Field.Kit_Field_Type :=
-                Kit.Db.Kit_Field.First_By_Record_Field
+                Kit.Db.Kit_Field.Get_By_Record_Field
                   (Rec.Reference, Field_Name);
       Field_Type  : Kit.Db.Kit_Type_Reference;
       Store_Index : Positive := 1;
@@ -684,15 +683,16 @@ package body Kit.Server.Tables is
          Field_Type := Field.Field_Type;
       else
          declare
-            Base : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                     Kit.Db.Kit_Record_Base.First_By_Derived
-                       (Rec.Reference);
+            Bases : Kit.Db.Kit_Record_Base.Selection :=
+                      Kit.Db.Kit_Record_Base.Select_By_Derived
+                        (Rec.Reference);
+            Found : Boolean := False;
          begin
             Store_Index := 2;
-            while Base.Has_Element loop
+            for Base of Bases loop
                declare
                   Base_Field : Kit.Db.Kit_Field.Kit_Field_Type :=
-                                 Kit.Db.Kit_Field.First_By_Record_Field
+                                 Kit.Db.Kit_Field.Get_By_Record_Field
                                    (Base.Base, Field_Name);
                begin
                   if Base_Field.Has_Element then
@@ -701,15 +701,14 @@ package body Kit.Server.Tables is
                        + Storage_Offset (Base_Field.Field_Length)
                        - 1;
                      Field_Type := Base_Field.Field_Type;
+                     Found := True;
                      exit;
                   end if;
                end;
-
-               Base.Next;
                Store_Index := Store_Index + 1;
             end loop;
 
-            if not Base.Has_Element then
+            if Found then
                raise Constraint_Error
                  with "no field '" & Field_Name & "' for record " & Rec.Name;
             end if;
@@ -747,7 +746,7 @@ package body Kit.Server.Tables is
    is
       pragma Unreferenced (Db);
       Rec : constant Kit.Db.Kit_Record.Kit_Record_Type :=
-              Kit.Db.Kit_Record.First_By_Table_Index (Positive (Index));
+              Kit.Db.Kit_Record.Get_By_Table_Index (Positive (Index));
    begin
       return Rec.Name;
    end Get_Table_Name;
@@ -804,23 +803,21 @@ package body Kit.Server.Tables is
       return Root_Key_Interface'Class
    is
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Table.Index));
       pragma Assert (Rec.Has_Element);
       Result : Natural := 0;
    begin
 
       declare
-         K : Kit.Db.Kit_Key.Kit_Key_Type :=
-               Kit.Db.Kit_Key.First_By_Kit_Record (Rec.Reference);
+         Ks : Kit.Db.Kit_Key.Selection :=
+               Kit.Db.Kit_Key.Select_By_Kit_Record (Rec.Reference);
       begin
-         while K.Has_Element loop
+         for K of Ks loop
             Result := Result + 1;
             if Result = Index then
                return Table_Key_Type'(Table.Db, Table.Index, K.Reference);
             end if;
-
-            K.Next;
          end loop;
       end;
 
@@ -839,19 +836,19 @@ package body Kit.Server.Tables is
       return Natural
    is
       Rec   : Kit.Db.Kit_Record.Kit_Record_Type :=
-                Kit.Db.Kit_Record.First_By_Table_Index
+                Kit.Db.Kit_Record.Get_By_Table_Index
                   (Positive (Table.Index));
       pragma Assert (Rec.Has_Element);
       Result : Natural := 0;
    begin
 
       declare
-         K : Kit.Db.Kit_Key.Kit_Key_Type :=
-               Kit.Db.Kit_Key.First_By_Kit_Record (Rec.Reference);
+         Ks : Kit.Db.Kit_Key.Selection :=
+               Kit.Db.Kit_Key.Select_By_Kit_Record (Rec.Reference);
       begin
-         while K.Has_Element loop
+         for K of Ks loop
+            pragma Unreferenced (K);
             Result := Result + 1;
-            K.Next;
          end loop;
       end;
 
@@ -871,20 +868,20 @@ package body Kit.Server.Tables is
    is
       use System.Storage_Elements;
       Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-              Kit.Db.Kit_Record.First_By_Table_Index
+              Kit.Db.Kit_Record.Get_By_Table_Index
                 (Positive (Table));
       pragma Assert (Rec.Has_Element);
       Key : Kit.Db.Kit_Key.Kit_Key_Type :=
-              Kit.Db.Kit_Key.First_By_Record_Key
+              Kit.Db.Kit_Key.Get_By_Record_Key
                 (Rec.Reference, Rec.Name & "_" & Key_Name);
       pragma Assert (Key.Has_Element);
       Result : Storage_Array (1 .. Storage_Count (Key.Length));
       Start  : Storage_Offset := 1;
-      Key_Field : Kit.Db.Kit_Key_Field.Kit_Key_Field_Type :=
-                    Kit.Db.Kit_Key_Field.First_By_Kit_Key
+      Key_Fields : Kit.Db.Kit_Key_Field.Selection :=
+                    Kit.Db.Kit_Key_Field.Select_By_Kit_Key
                       (Key.Reference);
    begin
-      while Key_Field.Has_Element loop
+      for Key_Field of Key_Fields loop
          declare
             Field : Kit.Db.Kit_Field.Kit_Field_Type :=
                       Kit.Db.Kit_Field.Get (Key_Field.Kit_Field);
@@ -913,12 +910,12 @@ package body Kit.Server.Tables is
    is
       pragma Unreferenced (Db);
       Result : Natural := 0;
-      Rec    : Kit.Db.Kit_Record.Kit_Record_Type :=
-                 Kit.Db.Kit_Record.First;
+      Recs    : Kit.Db.Kit_Record.Selection :=
+                 Kit.Db.Kit_Record.Select_By_Table_Index;
    begin
-      while Rec.Has_Element loop
+      for Rec of Recs loop
+         pragma Unreferenced (Rec);
          Result := Result + 1;
-         Rec.Next;
       end loop;
       return Marlowe.Table_Index (Result);
    end Last_Table_Index;
@@ -1038,7 +1035,7 @@ package body Kit.Server.Tables is
    procedure Read (Item : in out Kit_Db_Record'Class) is
       use System.Storage_Elements;
       Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-              Kit.Db.Kit_Record.First_By_Table_Index
+              Kit.Db.Kit_Record.Get_By_Table_Index
                 (Positive (Item.Table_Index));
       Length  : constant Storage_Count :=
                   Storage_Count (Rec.Record_Length);
@@ -1052,10 +1049,10 @@ package body Kit.Server.Tables is
       Item.Current_Record.Append (Storage);
 
       declare
-         Base  : Kit.Db.Kit_Record_Base.Kit_Record_Base_Type :=
-                   Kit.Db.Kit_Record_Base.First_By_Derived (Rec.Reference);
+         Bases  : Kit.Db.Kit_Record_Base.Selection :=
+                   Kit.Db.Kit_Record_Base.Select_By_Derived (Rec.Reference);
       begin
-         while Base.Has_Element loop
+         for Base of Bases loop
             declare
                Base_Record  : Kit.Db.Kit_Record.Kit_Record_Type :=
                                 Kit.Db.Kit_Record.Get (Base.Base);
@@ -1075,7 +1072,6 @@ package body Kit.Server.Tables is
                   Base_Storage'Address);
                Item.Current_Record.Append (Base_Storage);
             end;
-            Base.Next;
          end loop;
       end;
    end Read;
@@ -1153,7 +1149,7 @@ package body Kit.Server.Tables is
       return Marlowe.Table_Index
    is
       Rec : Kit.Db.Kit_Record.Kit_Record_Type :=
-              Kit.Db.Kit_Record.First_By_Name (Table_Name);
+              Kit.Db.Kit_Record.Get_By_Name (Table_Name);
    begin
       if Rec.Has_Element then
          return Marlowe.Table_Index (Rec.Table_Index);

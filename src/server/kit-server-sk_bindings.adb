@@ -271,7 +271,7 @@ package body Kit.Server.SK_Bindings is
                       SK.Get_Integer
                         (Arguments (Arguments'First));
       Rec         : constant Kit.Db.Kit_Record.Kit_Record_Type :=
-                      Kit.Db.Kit_Record.First_By_Table_Index (Table_Index);
+                      Kit.Db.Kit_Record.Get_By_Table_Index (Table_Index);
    begin
       return Leander.Builtin.String_To_Object (Context, Rec.Name);
    end Evaluate_Table_Name;
