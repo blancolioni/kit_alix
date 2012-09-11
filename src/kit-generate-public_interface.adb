@@ -11,6 +11,7 @@ with Kit.Generate.Fetch;
 with Kit.Generate.Public_Get;
 
 with Kit.Options;
+with Kit.String_Maps;
 
 package body Kit.Generate.Public_Interface is
 
@@ -35,7 +36,8 @@ package body Kit.Generate.Public_Interface is
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Field_Store_Procedure
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Db    : in     Kit.Schema.Databases.Database_Type;
+      Table : in     Kit.Schema.Tables.Table_Type'Class;
       Base  : in     Kit.Schema.Tables.Table_Type'Class;
       Field : in     Kit.Schema.Fields.Field_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
@@ -308,7 +310,8 @@ package body Kit.Generate.Public_Interface is
    ----------------------------------
 
    procedure Create_Field_Store_Procedure
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Db    : in     Kit.Schema.Databases.Database_Type;
+      Table : in     Kit.Schema.Tables.Table_Type'Class;
       Base  : in     Kit.Schema.Tables.Table_Type'Class;
       Field : in     Kit.Schema.Fields.Field_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
@@ -381,6 +384,28 @@ package body Kit.Generate.Public_Interface is
               (Field.Get_Field_Type.Argument_Subtype)));
 
          Top.Append (Store);
+
+         if Field.Get_Field_Type.Is_Table_Reference then
+            declare
+               Type_Name : constant String :=
+                             Field.Get_Field_Type.Referenced_Table_Name;
+               Store : Subprogram_Declaration'Class :=
+                         New_Abstract_Procedure
+                           ("Set_" & Field.Ada_Name,
+                            New_Inout_Argument ("Item",
+                              Aquarius.Drys.Named_Subtype
+                                (Table.Interface_Name)));
+            begin
+               Store.Add_Formal_Argument
+                 (New_Formal_Argument ("Value",
+                  Aquarius.Drys.Named_Subtype
+                    (Db.Ada_Name & "." & Type_Name & "."
+                     & Type_Name & "_Type")));
+
+               Top.Append (Store);
+            end;
+         end if;
+
          Top.Append (New_Separator);
       end Create_Abstract_Store;
 
@@ -649,6 +674,35 @@ package body Kit.Generate.Public_Interface is
          Store.Set_Overriding;
          Top.Append_To_Body (Store);
       end;
+
+      if Field.Get_Field_Type.Is_Table_Reference then
+         declare
+            use Aquarius.Drys;
+            use Aquarius.Drys.Declarations;
+            use Aquarius.Drys.Statements;
+            Type_Name : constant String :=
+                          Field.Get_Field_Type.Referenced_Table_Name;
+            Store     : Subprogram_Declaration'Class :=
+                          New_Procedure
+                            ("Set_" & Field.Ada_Name,
+                             New_Inout_Argument ("Item",
+                               Aquarius.Drys.Named_Subtype
+                                 (Table.Ada_Name & "_Implementation")),
+                             Aquarius.Drys.Blocks.Create_Block
+                               (New_Procedure_Call_Statement
+                                  ("Item.Set_" & Field.Ada_Name,
+                                   Object ("Value.Reference"))));
+         begin
+            Store.Add_Formal_Argument
+              (New_Formal_Argument ("Value",
+               Aquarius.Drys.Named_Subtype
+                 (Db.Ada_Name & "." & Type_Name & "."
+                  & Type_Name & "_Type")));
+            Store.Set_Overriding;
+            Top.Append_To_Body (Store);
+         end;
+      end if;
+
    end Create_Field_Store_Procedure;
 
    ------------------------
@@ -1169,10 +1223,15 @@ package body Kit.Generate.Public_Interface is
       Implementation_Type    : constant String :=
                                  Table.Ada_Name & "_Implementation";
 
+      Withed_Tables : Kit.String_Maps.String_Map;
+
       Table_Package : Aquarius.Drys.Declarations.Package_Type'Class :=
         Top.New_Child_Package (Table.Ada_Name);
       Table_Interface : Aquarius.Drys.Interface_Type_Definition;
 
+      procedure Add_Field_Type_With
+        (Base  : Kit.Schema.Tables.Table_Type'Class;
+         Field : Kit.Schema.Fields.Field_Type'Class);
       procedure Add_Base_With (It : Kit.Schema.Tables.Table_Type'Class);
       procedure Add_Base (It : Kit.Schema.Tables.Table_Type'Class);
 
@@ -1219,6 +1278,7 @@ package body Kit.Generate.Public_Interface is
          Table_Package.With_Package
            (Db.Ada_Name & "." & It.Ada_Name & "_Impl",
             Body_With =>  True);
+         Withed_Tables.Insert (It.Ada_Name);
       end Add_Base_With;
 
       -------------------------
@@ -1550,6 +1610,30 @@ package body Kit.Generate.Public_Interface is
 
       end Add_Fetch;
 
+      -------------------------
+      -- Add_Field_Type_With --
+      -------------------------
+
+      procedure Add_Field_Type_With
+        (Base  : Kit.Schema.Tables.Table_Type'Class;
+         Field : Kit.Schema.Fields.Field_Type'Class)
+      is
+      begin
+         if Field.Get_Field_Type.Is_Table_Reference then
+            declare
+               Table_Name : constant String :=
+                              Field.Get_Field_Type.Referenced_Table_Name;
+            begin
+               if not Withed_Tables.Contains (Table_Name) then
+                  Table_Package.With_Package
+                    (Db.Ada_Name & "." & Table_Name,
+                     Body_With => Base.Standard_Name /= Table.Standard_Name);
+                  Withed_Tables.Insert (Table_Name);
+               end if;
+            end;
+         end if;
+      end Add_Field_Type_With;
+
       ---------------
       -- Add_Store --
       ---------------
@@ -1560,7 +1644,8 @@ package body Kit.Generate.Public_Interface is
       begin
          if Field.Writeable then
             Create_Field_Store_Procedure
-              (Table => Table,
+              (Db    => Db,
+               Table => Table,
                Base  => Base,
                Field => Field,
                Top   => Table_Package);
@@ -2085,6 +2170,7 @@ package body Kit.Generate.Public_Interface is
                                   Body_With => True);
 
       Table.Iterate (Add_Base_With'Access, Inclusive => False);
+      Table.Iterate_All (Add_Field_Type_With'Access);
 
       Table_Interface.Set_Limited;
       Table_Interface.Add_Parent ("Record_Interface");
