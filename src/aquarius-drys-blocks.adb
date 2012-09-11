@@ -39,6 +39,20 @@ package body Aquarius.Drys.Blocks is
         (Aquarius.Drys.Statements.New_Procedure_Call_Statement (Item));
    end Add_Statement;
 
+   ------------------
+   -- Create_Block --
+   ------------------
+
+   function Create_Block
+     (Item : Statement'Class)
+      return Block_Type'Class
+   is
+      Result : Block_Type;
+   begin
+      Result.Add_Statement (Item);
+      return Result;
+   end Create_Block;
+
    -----------
    -- Write --
    -----------

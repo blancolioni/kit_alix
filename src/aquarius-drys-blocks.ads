@@ -27,6 +27,10 @@ package Aquarius.Drys.Blocks is
       Item  : in     Statement'Class)
       renames Add_Statement;
 
+   function Create_Block
+     (Item : Statement'Class)
+      return Block_Type'Class;
+
 private
 
    type Block_Type is
