@@ -897,12 +897,14 @@ package body Kit.Generate.Public_Get is
                            Table.Key (Key_Name);
 
       procedure Create_Function
-        (Unique  : Boolean;
-         First   : Boolean);
+        (Reference : Boolean;
+         Unique    : Boolean;
+         First     : Boolean);
 
       procedure Create_Function
-        (Unique  : Boolean;
-         First   : Boolean)
+        (Reference : Boolean;
+         Unique    : Boolean;
+         First     : Boolean)
       is
 
          Block            : Aquarius.Drys.Blocks.Block_Type;
@@ -919,14 +921,22 @@ package body Kit.Generate.Public_Get is
          -------------------
 
          function Function_Name return String is
+            Reference_Part : constant String :=
+                               (if Reference
+                                then "Reference_"
+                                else "");
+            Order_Part     : constant String :=
+                               (if Unique
+                                then ""
+                                elsif First
+                                then "First_"
+                                else "Last_");
          begin
-            if Unique then
-               return "Get_By_" & Key.Ada_Name;
-            elsif First then
-               return "Get_First_By_" & Key.Ada_Name;
-            else
-               return "Get_Last_By_" & Key.Ada_Name;
-            end if;
+            return "Get_"
+              & Order_Part
+              & Reference_Part
+              & "By_"
+              & Key.Ada_Name;
          end Function_Name;
 
          ---------------
@@ -1027,50 +1037,63 @@ package body Kit.Generate.Public_Get is
               (Declare_Statement (Mark_Block));
          end;
 
-         declare
-            Return_Sequence  : Sequence_Of_Statements;
-            Valid_Sequence   : Sequence_Of_Statements;
-            Invalid_Sequence : Sequence_Of_Statements;
-         begin
-
-            Return_Sequence.Append
-              (New_Assignment_Statement
-                 (Target => "Result.Index",
-                  Value  => Object ("Index")));
-
-            Fetch.Fetch_From_Index (Table       => Table,
-                                    Object_Name => "Result",
-                                    Target      => Valid_Sequence);
-
-            Set_Field (Valid_Sequence, "Finished", False);
-            Set_Field (Valid_Sequence, "Using_Key_Value", False);
-            Set_Field (Valid_Sequence, "Scanning", False);
-            Set_Field (Valid_Sequence, "Link.S_Locked", True);
-
-            Set_Field (Invalid_Sequence, "Finished", True);
-            Set_Field (Invalid_Sequence, "Using_Key_Value", False);
-            Set_Field (Invalid_Sequence, "Scanning", False);
-            Set_Field (Invalid_Sequence, "Link.S_Locked", False);
-
-            Return_Sequence.Append
-              (If_Statement
-                 (Operator ("/=", Object ("Index"), Literal (0)),
-                  Valid_Sequence,
-                  Invalid_Sequence));
-            Return_Sequence.Append
-              (New_Procedure_Call_Statement
-                 (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
-
+         if Reference then
             Block.Add_Statement
               (New_Return_Statement
-                 ("Result", Table.Implementation_Name,
-                  Return_Sequence));
-         end;
+                 (New_Function_Call_Expression
+                    (Table.Ada_Name & "_Reference",
+                     Object ("Index"))));
+         else
+
+            declare
+               Return_Sequence  : Sequence_Of_Statements;
+               Valid_Sequence   : Sequence_Of_Statements;
+               Invalid_Sequence : Sequence_Of_Statements;
+            begin
+
+               Return_Sequence.Append
+                 (New_Assignment_Statement
+                    (Target => "Result.Index",
+                     Value  => Object ("Index")));
+
+               Fetch.Fetch_From_Index (Table       => Table,
+                                       Object_Name => "Result",
+                                       Target      => Valid_Sequence);
+
+               Set_Field (Valid_Sequence, "Finished", False);
+               Set_Field (Valid_Sequence, "Using_Key_Value", False);
+               Set_Field (Valid_Sequence, "Scanning", False);
+               Set_Field (Valid_Sequence, "Link.S_Locked", True);
+
+               Set_Field (Invalid_Sequence, "Finished", True);
+               Set_Field (Invalid_Sequence, "Using_Key_Value", False);
+               Set_Field (Invalid_Sequence, "Scanning", False);
+               Set_Field (Invalid_Sequence, "Link.S_Locked", False);
+
+               Return_Sequence.Append
+                 (If_Statement
+                    (Operator ("/=", Object ("Index"), Literal (0)),
+                     Valid_Sequence,
+                     Invalid_Sequence));
+               Return_Sequence.Append
+                 (New_Procedure_Call_Statement
+                    (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+
+               Block.Add_Statement
+                 (New_Return_Statement
+                    ("Result", Table.Implementation_Name,
+                     Return_Sequence));
+            end;
+         end if;
 
          declare
+            Result_Type : constant String :=
+                            (if Reference
+                             then Table.Ada_Name & "_Reference"
+                             else Table.Type_Name);
             Fn : Subprogram_Declaration'Class :=
                    New_Function
-                     (Function_Name, Table.Type_Name,
+                     (Function_Name, Result_Type,
                       Block);
          begin
             for I in 1 .. Key.Field_Count loop
@@ -1090,13 +1113,15 @@ package body Kit.Generate.Public_Get is
       end Create_Function;
 
    begin
-      if Key.Unique then
-         Create_Function (Unique => True, First => True);
-      else
-         Create_Function (Unique => True, First => True);
-         Create_Function (Unique => False, First => True);
-         Create_Function (Unique => False, First => False);
-      end if;
+      for Reference in Boolean loop
+         if Key.Unique then
+            Create_Function (Reference, Unique => True, First => True);
+         else
+            Create_Function (Reference, Unique => True, First => True);
+            Create_Function (Reference, Unique => False, First => True);
+            Create_Function (Reference, Unique => False, First => False);
+         end if;
+      end loop;
       Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
    end Create_Unique_Get_Function;
 
