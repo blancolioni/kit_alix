@@ -29,6 +29,11 @@ package Kit.Generate.Public_Get is
    --  For table T, key K of type (t1,...,tn), generate a function
    --     function Get_By_K (v1 : t2; ...; vn : tn) return T
    --  Returns the record containing K if it exists
+   --  If K is not unique, then also generate
+   --     function Get_First_By_K ...
+   --     function Get_Last_By_K
+   --  Get_First_By_K is a renaming of Get_By_K
+   --  Get_Last_By_K returns the last record by K order
 
    procedure Create_Iterator
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
