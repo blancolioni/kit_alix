@@ -896,177 +896,207 @@ package body Kit.Generate.Public_Get is
       Key              : constant Kit.Schema.Keys.Key_Type'Class :=
                            Table.Key (Key_Name);
 
-      Block            : Aquarius.Drys.Blocks.Block_Type;
+      procedure Create_Function
+        (Unique  : Boolean;
+         First   : Boolean);
 
-      function Function_Name return String;
-
-      procedure Set_Field
-        (Seq        : in out Sequence_Of_Statements;
-         Field_Name : String;
-         Value      : Boolean);
-
-      -------------------
-      -- Function_Name --
-      -------------------
-
-      function Function_Name return String is
-      begin
-         return "Get_By_" & Key.Ada_Name;
-      end Function_Name;
-
-      ---------------
-      -- Set_Field --
-      ---------------
-
-      procedure Set_Field
-        (Seq        : in out Sequence_Of_Statements;
-         Field_Name : String;
-         Value      : Boolean)
+      procedure Create_Function
+        (Unique  : Boolean;
+         First   : Boolean)
       is
+
+         Block            : Aquarius.Drys.Blocks.Block_Type;
+
+         function Function_Name return String;
+
+         procedure Set_Field
+           (Seq        : in out Sequence_Of_Statements;
+            Field_Name : String;
+            Value      : Boolean);
+
+         -------------------
+         -- Function_Name --
+         -------------------
+
+         function Function_Name return String is
+         begin
+            if Unique then
+               return "Get_By_" & Key.Ada_Name;
+            elsif First then
+               return "Get_First_By_" & Key.Ada_Name;
+            else
+               return "Get_Last_By_" & Key.Ada_Name;
+            end if;
+         end Function_Name;
+
+         ---------------
+         -- Set_Field --
+         ---------------
+
+         procedure Set_Field
+           (Seq        : in out Sequence_Of_Statements;
+            Field_Name : String;
+            Value      : Boolean)
+         is
+         begin
+            Seq.Append
+              (New_Assignment_Statement
+                 ("Result." & Field_Name,
+                  (if Value then Object ("True") else Object ("False"))));
+         end Set_Field;
+
       begin
-         Seq.Append
-           (New_Assignment_Statement
-              ("Result." & Field_Name,
-               (if Value then Object ("True") else Object ("False"))));
-      end Set_Field;
 
-   begin
+         Block.Add_Declaration
+           (Use_Type ("System.Storage_Elements.Storage_Array"));
+         Block.Add_Declaration
+           (Use_Type ("Marlowe.Database_Index"));
+         Block.Add_Declaration
+           (Aquarius.Drys.Declarations.New_Object_Declaration
+              ("Index", "Marlowe.Database_Index", Literal (0)));
 
-      Block.Add_Declaration
-        (Use_Type ("System.Storage_Elements.Storage_Array"));
-      Block.Add_Declaration
-        (Use_Type ("Marlowe.Database_Index"));
-      Block.Add_Declaration
-        (Aquarius.Drys.Declarations.New_Object_Declaration
-           ("Index", "Marlowe.Database_Index", Literal (0)));
+         Block.Add_Statement
+           (New_Procedure_Call_Statement
+              (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
 
-      Block.Add_Statement
-        (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
-
-      declare
-         Mark_Block : Aquarius.Drys.Blocks.Block_Type;
-         Initialiser      : Function_Call_Expression :=
-                              New_Function_Call_Expression
-                                ("Marlowe.Btree_Handles.Search");
-      begin
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe_Keys.Handle"));
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe_Keys." & Table.Key_Reference_Name (Key)));
          declare
-            Key_To_Storage   : constant Expression'Class :=
-                                 Table.To_Storage
-                                   (Table, Key_Table, "", Key,
-                                    With_Index => False);
-            Start_Storage    : constant Expression'Class :=
+            Mark_Block       : Aquarius.Drys.Blocks.Block_Type;
+            Initialiser      : Function_Call_Expression :=
                                  New_Function_Call_Expression
-                                   ("Marlowe.Key_Storage.To_Storage_Array",
-                                    "Marlowe.Database_Index'First");
-            Last_Storage     : constant Expression'Class :=
-                                 New_Function_Call_Expression
-                                   ("Marlowe.Key_Storage.To_Storage_Array",
-                                    "Marlowe.Database_Index'Last");
+                                   ("Marlowe.Btree_Handles.Search");
          begin
             Initialiser.Add_Actual_Argument
-              (Operator
-                 (Name  => "&",
-                  Left  => Key_To_Storage,
-                  Right => Start_Storage));
+              (Object ("Marlowe_Keys.Handle"));
             Initialiser.Add_Actual_Argument
-              (Operator
-                 (Name  => "&",
-                  Left  => Key_To_Storage,
-                  Right => Last_Storage));
+              (Object ("Marlowe_Keys." & Table.Key_Reference_Name (Key)));
+            declare
+               Key_To_Storage   : constant Expression'Class :=
+                                    Table.To_Storage
+                                      (Table, Key_Table, "", Key,
+                                       With_Index => False);
+               Start_Storage    : constant Expression'Class :=
+                                    New_Function_Call_Expression
+                                      ("Marlowe.Key_Storage.To_Storage_Array",
+                                       "Marlowe.Database_Index'First");
+               Last_Storage     : constant Expression'Class :=
+                                    New_Function_Call_Expression
+                                      ("Marlowe.Key_Storage.To_Storage_Array",
+                                       "Marlowe.Database_Index'Last");
+            begin
+               Initialiser.Add_Actual_Argument
+                 (Operator
+                    (Name  => "&",
+                     Left  => Key_To_Storage,
+                     Right => Start_Storage));
+               Initialiser.Add_Actual_Argument
+                 (Operator
+                    (Name  => "&",
+                     Left  => Key_To_Storage,
+                     Right => Last_Storage));
+            end;
+
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe.Closed"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe.Closed"));
+            if First then
+               Initialiser.Add_Actual_Argument
+                 (Object ("Marlowe.Forward"));
+            else
+               Initialiser.Add_Actual_Argument
+                 (Object ("Marlowe.Backward"));
+            end if;
+
+            Mark_Block.Add_Declaration
+              (New_Constant_Declaration
+                 ("M", "Marlowe.Btree_Handles.Btree_Mark",
+                  Initialiser));
+            Mark_Block.Add_Statement
+              (If_Statement
+                 (New_Function_Call_Expression
+                    ("Marlowe.Btree_Handles.Valid",
+                     Object ("M")),
+                  New_Assignment_Statement
+                    ("Index",
+                     New_Function_Call_Expression
+                       ("Marlowe.Key_Storage.To_Database_Index",
+                        New_Function_Call_Expression
+                          ("Marlowe.Btree_Handles.Get_Key",
+                           "M")))));
+            Block.Add_Statement
+              (Declare_Statement (Mark_Block));
          end;
 
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe.Closed"));
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe.Closed"));
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe.Forward"));
-         Mark_Block.Add_Declaration
-           (New_Constant_Declaration
-              ("M", "Marlowe.Btree_Handles.Btree_Mark",
-               Initialiser));
-         Mark_Block.Add_Statement
-           (If_Statement
-              (New_Function_Call_Expression
-                 ("Marlowe.Btree_Handles.Valid",
-                  Object ("M")),
-               New_Assignment_Statement
-                 ("Index",
-                  New_Function_Call_Expression
-                    ("Marlowe.Key_Storage.To_Database_Index",
-                     New_Function_Call_Expression
-                       ("Marlowe.Btree_Handles.Get_Key",
-                        "M")))));
-         Block.Add_Statement
-           (Declare_Statement (Mark_Block));
-      end;
+         declare
+            Return_Sequence  : Sequence_Of_Statements;
+            Valid_Sequence   : Sequence_Of_Statements;
+            Invalid_Sequence : Sequence_Of_Statements;
+         begin
 
-      declare
-         Return_Sequence  : Sequence_Of_Statements;
-         Valid_Sequence   : Sequence_Of_Statements;
-         Invalid_Sequence : Sequence_Of_Statements;
-      begin
+            Return_Sequence.Append
+              (New_Assignment_Statement
+                 (Target => "Result.Index",
+                  Value  => Object ("Index")));
 
-         Return_Sequence.Append
-           (New_Assignment_Statement
-              (Target => "Result.Index",
-               Value  => Object ("Index")));
+            Fetch.Fetch_From_Index (Table       => Table,
+                                    Object_Name => "Result",
+                                    Target      => Valid_Sequence);
 
-         Fetch.Fetch_From_Index (Table       => Table,
-                                 Object_Name => "Result",
-                                 Target      => Valid_Sequence);
+            Set_Field (Valid_Sequence, "Finished", False);
+            Set_Field (Valid_Sequence, "Using_Key_Value", False);
+            Set_Field (Valid_Sequence, "Scanning", False);
+            Set_Field (Valid_Sequence, "Link.S_Locked", True);
 
-         Set_Field (Valid_Sequence, "Finished", False);
-         Set_Field (Valid_Sequence, "Using_Key_Value", False);
-         Set_Field (Valid_Sequence, "Scanning", False);
-         Set_Field (Valid_Sequence, "Link.S_Locked", True);
+            Set_Field (Invalid_Sequence, "Finished", True);
+            Set_Field (Invalid_Sequence, "Using_Key_Value", False);
+            Set_Field (Invalid_Sequence, "Scanning", False);
+            Set_Field (Invalid_Sequence, "Link.S_Locked", False);
 
-         Set_Field (Invalid_Sequence, "Finished", True);
-         Set_Field (Invalid_Sequence, "Using_Key_Value", False);
-         Set_Field (Invalid_Sequence, "Scanning", False);
-         Set_Field (Invalid_Sequence, "Link.S_Locked", False);
+            Return_Sequence.Append
+              (If_Statement
+                 (Operator ("/=", Object ("Index"), Literal (0)),
+                  Valid_Sequence,
+                  Invalid_Sequence));
+            Return_Sequence.Append
+              (New_Procedure_Call_Statement
+                 (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
 
-         Return_Sequence.Append
-           (If_Statement
-              (Operator ("/=", Object ("Index"), Literal (0)),
-               Valid_Sequence,
-               Invalid_Sequence));
-         Return_Sequence.Append
-           (New_Procedure_Call_Statement
-              (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+            Block.Add_Statement
+              (New_Return_Statement
+                 ("Result", Table.Implementation_Name,
+                  Return_Sequence));
+         end;
 
-         Block.Add_Statement
-           (New_Return_Statement
-              ("Result", Table.Implementation_Name,
-               Return_Sequence));
-      end;
+         declare
+            Fn : Subprogram_Declaration'Class :=
+                   New_Function
+                     (Function_Name, Table.Type_Name,
+                      Block);
+         begin
+            for I in 1 .. Key.Field_Count loop
+               declare
+                  Field : Kit.Schema.Fields.Field_Type'Class
+                  renames Key.Field (I);
+               begin
+                  Fn.Add_Formal_Argument
+                    (New_Formal_Argument
+                       (Field.Ada_Name,
+                        Named_Subtype
+                          (Field.Get_Field_Type.Argument_Subtype)));
+               end;
+            end loop;
+            Table_Package.Append (Fn);
+         end;
+      end Create_Function;
 
-      declare
-         Fn : Subprogram_Declaration'Class :=
-                New_Function
-                  (Function_Name, Table.Type_Name,
-                   Block);
-      begin
-         for I in 1 .. Key.Field_Count loop
-            declare
-               Field : Kit.Schema.Fields.Field_Type'Class
-               renames Key.Field (I);
-            begin
-               Fn.Add_Formal_Argument
-                 (New_Formal_Argument
-                    (Field.Ada_Name,
-                     Named_Subtype
-                       (Field.Get_Field_Type.Argument_Subtype)));
-            end;
-         end loop;
-         Table_Package.Append (Fn);
-      end;
-
+   begin
+      if Key.Unique then
+         Create_Function (Unique => True, First => True);
+      else
+         Create_Function (Unique => True, First => True);
+         Create_Function (Unique => False, First => True);
+         Create_Function (Unique => False, First => False);
+      end if;
       Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
    end Create_Unique_Get_Function;
 
