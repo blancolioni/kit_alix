@@ -323,7 +323,11 @@ package body Kit.Parser is
             Record_Name : constant String := Tok_Text;
             Table       : Kit.Schema.Tables.Table_Type;
          begin
-            Table.Create (Record_Name);
+            if Db.Contains (Record_Name) then
+               Error (Record_Name & ": already defined");
+            else
+               Table.Create (Record_Name);
+            end if;
             Scan;
 
             if Record_Name /= "kit_root_record" then
