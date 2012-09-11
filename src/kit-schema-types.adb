@@ -796,6 +796,18 @@ package body Kit.Schema.Types is
          & """).Reference");
    end Reference_Database_Type;
 
+   ---------------------------
+   -- Referenced_Table_Name --
+   ---------------------------
+
+   function Referenced_Table_Name
+     (Item : Kit_Type'Class)
+      return String
+   is
+   begin
+      return Table_Reference_Type_Record (Item).Ada_Name;
+   end Referenced_Table_Name;
+
    --------------------
    -- Return_Subtype --
    --------------------

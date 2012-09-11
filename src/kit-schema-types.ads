@@ -92,6 +92,11 @@ package Kit.Schema.Types is
       Table_Name : String)
       return Boolean;
 
+   function Referenced_Table_Name
+     (Item : Kit_Type'Class)
+      return String
+   with Pre => Item.Is_Table_Reference;
+
    procedure New_Type (New_Type : Kit.Schema.Types.Kit_Type'Class);
 
    function Is_Type_Name (Name : String) return Boolean;
