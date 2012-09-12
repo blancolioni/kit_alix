@@ -1,5 +1,6 @@
 project_name = Kit
 source_dir = src
+depend = { project = XML version = any }
 depend = { project = Marlowe version = any }
 depend = { project = GCS version = any }
 depend = { project = WLib version = any }
