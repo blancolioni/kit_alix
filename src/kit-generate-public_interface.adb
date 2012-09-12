@@ -1624,7 +1624,9 @@ package body Kit.Generate.Public_Interface is
                Table_Name : constant String :=
                               Field.Get_Field_Type.Referenced_Table_Name;
             begin
-               if not Withed_Tables.Contains (Table_Name) then
+               if not Withed_Tables.Contains (Table_Name)
+                 and then Table_Name /= Table.Ada_Name
+               then
                   Table_Package.With_Package
                     (Db.Ada_Name & "." & Table_Name,
                      Body_With => Base.Standard_Name /= Table.Standard_Name);
