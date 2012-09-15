@@ -86,25 +86,39 @@ package body Kit.Schema.Tables is
    is
       Standard_Field_Name : constant String :=
                               Kit.Names.Standard_Name (Field_Name);
-   begin
-      for F of Table.Fields loop
-         if F.Field.Standard_Name = Standard_Field_Name then
-            Key.Add_Field (F.Field);
-            return;
-         end if;
-      end loop;
-      for Base of Table.Bases loop
-         for F of Base.Fields loop
+
+      Success             : Boolean := False;
+
+      procedure Add (Current : Table_Type'Class);
+
+      ---------
+      -- Add --
+      ---------
+
+      procedure Add (Current : Table_Type'Class) is
+      begin
+         for F of Current.Fields loop
             if F.Field.Standard_Name = Standard_Field_Name then
                Key.Add_Field (F.Field);
+               Success := True;
                return;
             end if;
          end loop;
-      end loop;
 
-      raise Constraint_Error with
-        "key field " & Field_Name
-        & " does not exist in table " & Table.Ada_Name;
+         for Base of Current.Bases loop
+            Add (Base.all);
+            exit when Success;
+         end loop;
+
+      end Add;
+
+   begin
+      Add (Table);
+      if not Success then
+         raise Constraint_Error with
+           "key field " & Field_Name
+           & " does not exist in table " & Table.Ada_Name;
+      end if;
    end Add_Key_Field;
 
    ------------
