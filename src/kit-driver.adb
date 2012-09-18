@@ -39,6 +39,7 @@ begin
       Extension : constant String :=
                     Ada.Directories.Extension (File_Name);
    begin
+      Ada.Text_IO.Put_Line ("Reading: " & File_Name);
       if Extension = "xml" then
          Kit.XML_Reader.Read_XML_File (File_Name, Db);
       elsif Extension = "kit" or else Extension = "k3" then
@@ -67,13 +68,17 @@ begin
 
    end;
 
+   Ada.Text_IO.Put_Line ("Creating database");
    declare
       Project : constant Aquarius.Drys.Projects.Project :=
                   Kit.Generate.Generate_Database (Db.all);
       File    : Aquarius.Drys.File_Writer.File_Writer;
    begin
+      Ada.Text_IO.Put_Line ("Writing source files");
       Aquarius.Drys.Projects.Write_Project (Project, File);
    end;
+
+   Ada.Text_IO.Put_Line ("Done");
 
 exception
    when E : others =>
