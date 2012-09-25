@@ -1957,29 +1957,51 @@ package body Kit.Generate.Public_Interface is
             Table_Package.Append (Ref_Type);
          end;
 
+         declare
+            Selection_State : Aquarius.Drys.Types.Record_Type_Definition;
+            State_Type      : Aquarius.Drys.Declarations.Type_Declaration;
+         begin
+            Selection_State.Add_Component
+              ("Elements",
+               "List_Of_Elements.List");
+            Selection_State.Add_Component
+              ("Marks",
+               "List_Of_Marks.List");
+            Selection_State.Add_Component
+              ("Mutex",
+               "Kit.Mutex.Mutex_Type");
+            Selection_State.Set_Limited;
+
+            State_Type :=
+              New_Private_Type_Declaration
+                ("Selection_State", Selection_State);
+
+            Table_Package.Append (State_Type);
+            Table_Package.Append
+              (New_Private_Type_Declaration
+                 ("Selection_State_Access",
+                     New_Access_Type
+                       (Access_To  => "Selection_State",
+                        Access_All => False)));
+
+         end;
+
          Selection.Set_Limited;
          Selection.Add_Variant ("Key_Length",
                                 "System.Storage_Elements.Storage_Count");
          Selection.Add_Parent
            ("Ada.Finalization.Limited_Controlled");
          Selection.Add_Component
-           ("First",
+           ("First_Key",
             "System.Storage_Elements.Storage_Array (1 .. Key_Length)");
          Selection.Add_Component
-           ("Last",
+           ("Last_Key",
             "System.Storage_Elements.Storage_Array (1 .. Key_Length)");
          Selection.Add_Component
            ("Key_Ref",
             "Marlowe.Btree_Handles.Btree_Reference");
          Selection.Add_Component
-           ("Elements",
-            "List_Of_Elements.List");
-         Selection.Add_Component
-           ("Marks",
-            "List_Of_Marks.List");
-         Selection.Add_Component
-           ("Mutex",
-            "Kit.Mutex.Mutex_Type");
+           ("State", "Selection_State_Access");
 
          Iterator_Package.Set_Generic_Instantiation
            ("Ada.Iterator_Interfaces");
@@ -2090,17 +2112,28 @@ package body Kit.Generate.Public_Interface is
             Free_Element_Sequence  : Sequence_Of_Statements;
             Free_Mark_Sequence     : Sequence_Of_Statements;
             Finalize_Block         : Aquarius.Drys.Blocks.Block_Type;
-            Free                   : Subprogram_Declaration'Class :=
+            Free_Element           : Subprogram_Declaration'Class :=
+                                       Instantiate_Generic_Procedure
+                                         (Instantiated_Name => "Free",
+                                          Generic_Name      =>
+                                            "Ada.Unchecked_Deallocation");
+            Free_State             : Subprogram_Declaration'Class :=
                                        Instantiate_Generic_Procedure
                                          (Instantiated_Name => "Free",
                                           Generic_Name      =>
                                             "Ada.Unchecked_Deallocation");
          begin
-            Free.Add_Generic_Actual_Argument
+            Free_Element.Add_Generic_Actual_Argument
               (Table.Ada_Name & "_Type");
-            Free.Add_Generic_Actual_Argument
+            Free_Element.Add_Generic_Actual_Argument
               ("Element_Access");
-            Finalize_Block.Add_Declaration (Free);
+            Finalize_Block.Add_Declaration (Free_Element);
+
+            Free_State.Add_Generic_Actual_Argument
+              ("Selection_State");
+            Free_State.Add_Generic_Actual_Argument
+              ("Selection_State_Access");
+            Finalize_Block.Add_Declaration (Free_State);
 
             Free_Element_Sequence.Append
               (New_Procedure_Call_Statement
@@ -2112,14 +2145,17 @@ package body Kit.Generate.Public_Interface is
               (Item =>
                  Aquarius.Drys.Statements.Iterate
                    (Loop_Variable  => "X",
-                    Container_Name => "Object.Elements",
+                    Container_Name => "Object.State.Elements",
                     Iterate_Body   => Free_Element_Sequence));
             Finalize_Block.Add_Statement
               (Item =>
                  Aquarius.Drys.Statements.Iterate
                    (Loop_Variable  => "X",
-                    Container_Name => "Object.Marks",
+                    Container_Name => "Object.State.Marks",
                     Iterate_Body   => Free_Mark_Sequence));
+            Finalize_Block.Add_Statement
+              (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                 ("Free", Object ("Object.State")));
 
             declare
                Finalize : Subprogram_Declaration'Class :=
@@ -2137,6 +2173,78 @@ package body Kit.Generate.Public_Interface is
                Table_Package.Append (Finalize);
             end;
          end;
+
+         declare
+            use Aquarius.Drys.Expressions;
+            use Aquarius.Drys.Statements;
+            Is_Empty : constant Subprogram_Declaration'Class :=
+                         New_Function
+                           (Name        => "Is_Empty",
+                            Argument    =>
+                              New_In_Argument
+                                (Name          => "Container",
+                                 Argument_Type =>
+                                   Named_Subtype ("Selection")),
+                            Result_Type => "Boolean",
+                            Block       =>
+                              Aquarius.Drys.Blocks.Create_Block
+                                (New_Return_Statement
+                                     (New_Function_Call_Expression
+                                          ("Has_Element",
+                                           Object ("Container.First"))
+                                     )
+                                )
+                           );
+         begin
+            Table_Package.Append (Is_Empty);
+         end;
+
+         declare
+            use Aquarius.Drys.Expressions;
+            use Aquarius.Drys.Statements;
+            Block : Aquarius.Drys.Blocks.Block_Type;
+         begin
+            Block.Add_Declaration
+              (New_Object_Declaration
+                 ("Result", "Natural", Literal (0)));
+            Block.Add_Declaration
+              (New_Object_Declaration
+                 ("It", "Cursor", Object ("Container.First")));
+
+            declare
+               While_Sequence : Sequence_Of_Statements;
+            begin
+               While_Sequence.Append
+                 (New_Assignment_Statement
+                    ("Result",
+                     Operator ("+", Object ("Result"), Literal (1))));
+               While_Sequence.Append
+                 (New_Procedure_Call_Statement
+                    ("Next", Object ("It")));
+               Block.Add_Statement
+                 (Aquarius.Drys.Statements.While_Statement
+                    (Condition  =>
+                       New_Function_Call_Expression
+                         ("Has_Element", "It"),
+                     While_Body => While_Sequence));
+            end;
+
+            Block.Add_Statement
+              (New_Return_Statement
+                 (Object ("Result")));
+
+            Table_Package.Append
+              (New_Function
+                 (Name        => "Length",
+                  Argument    =>
+                    New_In_Argument
+                      (Name          => "Container",
+                       Argument_Type =>
+                         Named_Subtype ("Selection")),
+                  Result_Type => "Natural",
+                  Block       => Block));
+         end;
+
       end Create_Selection_Type;
 
    begin

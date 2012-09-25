@@ -16,11 +16,14 @@ package body Kit.Generate.Public_Get is
    procedure Create_Iterator_Start_Function
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Container     : in     Boolean;
       First         : in     Boolean);
 
    procedure Create_Iterator_Next_Function
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      With_Iterator : in     Boolean;
+      Inline        : in     Boolean;
       Next          : in     Boolean);
 
    ----------------------------------
@@ -269,12 +272,29 @@ package body Kit.Generate.Public_Get is
         (New_Full_Type_Declaration
            ("Iterator", Iterator_Definition));
 
-      for First in reverse Boolean loop
-         Create_Iterator_Start_Function (Table, Table_Package, First);
+      for Container in Boolean loop
+         for First in reverse Boolean loop
+            Create_Iterator_Start_Function
+              (Table, Table_Package,
+               Container => Container,
+               First     => First);
+         end loop;
+      end loop;
+
+      for With_Iterator in Boolean loop
+         for Next in reverse Boolean loop
+            Create_Iterator_Next_Function (Table, Table_Package,
+                                           With_Iterator => With_Iterator,
+                                           Inline        => False,
+                                           Next          => Next);
+         end loop;
       end loop;
 
       for Next in reverse Boolean loop
-         Create_Iterator_Next_Function (Table, Table_Package, Next);
+         Create_Iterator_Next_Function (Table, Table_Package,
+                                        With_Iterator => False,
+                                        Inline        => True,
+                                        Next          => Next);
       end loop;
 
    end Create_Iterator;
@@ -286,6 +306,8 @@ package body Kit.Generate.Public_Get is
    procedure Create_Iterator_Next_Function
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      With_Iterator : in     Boolean;
+      Inline        : in     Boolean;
       Next          : in     Boolean)
    is
       use Aquarius.Drys;
@@ -311,10 +333,16 @@ package body Kit.Generate.Public_Get is
                New_Function_Call_Expression
                  ("Has_Element",
                   Object ("Position"))),
-            New_Return_Statement
-              (Object ("Position"))));
+            (if not Inline
+             then New_Return_Statement
+               (Object ("Position"))
+             else New_Return_Statement)));
 
-      Next_Block.Add_Statement ("Object.Container.Mutex.Shared_Lock");
+      if With_Iterator then
+         Next_Block.Add_Statement
+           ("Object.Container.State.Mutex.Shared_Lock");
+      end if;
+
       Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
                                 & ".Shared_Lock");
 
@@ -363,6 +391,8 @@ package body Kit.Generate.Public_Get is
          Not_Found   : Sequence_Of_Statements;
       begin
          Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
+         Fetch_Found.Append
+           ("Item.Link.S_Locked := True");
          Not_Found.Append ("Item.Index := 0");
          Next_Block.Add_Statement
            (If_Statement
@@ -371,23 +401,43 @@ package body Kit.Generate.Public_Get is
                Not_Found));
       end;
 
-      Next_Block.Add_Statement ("Object.Container.Mutex.Shared_Unlock");
+      if With_Iterator then
+         Next_Block.Add_Statement
+           ("Object.Container.State.Mutex.Shared_Unlock");
+      end if;
 
-      Next_Block.Add_Statement ("return Position");
+      if not Inline then
+         Next_Block.Add_Statement ("return Position");
+      end if;
 
       declare
          Next_Declaration : Subprogram_Declaration'Class :=
-                              New_Function
-                                ((if Next then "Next" else "Previous"),
-                                 "Cursor",
-                                 Next_Block);
+                              (if Inline
+                               then New_Procedure
+                                 ((if Next then "Next" else "Previous"),
+                                  Next_Block)
+                               else New_Function
+                                 ((if Next then "Next" else "Previous"),
+                                  "Cursor",
+                                  Next_Block));
       begin
-         Next_Declaration.Add_Formal_Argument
-           ("Object", "Iterator");
-         Next_Declaration.Add_Formal_Argument
-           ("Position", "Cursor");
-         Next_Declaration.Set_Overriding;
-         Table_Package.Append_To_Body (Next_Declaration);
+         if With_Iterator then
+            Next_Declaration.Add_Formal_Argument
+              ("Object", "Iterator");
+         end if;
+         if Inline then
+            Next_Declaration.Add_Formal_Argument
+              ("Position", Inout_Argument, "Cursor");
+         else
+            Next_Declaration.Add_Formal_Argument
+              ("Position", "Cursor");
+         end if;
+         if With_Iterator then
+            Next_Declaration.Set_Overriding;
+            Table_Package.Append_To_Body (Next_Declaration);
+         else
+            Table_Package.Append (Next_Declaration);
+         end if;
       end;
    end Create_Iterator_Next_Function;
 
@@ -398,6 +448,7 @@ package body Kit.Generate.Public_Get is
    procedure Create_Iterator_Start_Function
      (Table         : in     Kit.Schema.Tables.Table_Type'Class;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Container     : in     Boolean;
       First         : in     Boolean)
    is
       use Aquarius.Drys;
@@ -451,9 +502,15 @@ package body Kit.Generate.Public_Get is
         (New_Procedure_Call_Statement
            (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
 
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           ("Object.Container.Mutex.Lock"));
+      if Container then
+         Return_Sequence.Append
+           (New_Procedure_Call_Statement
+              ("Container.State.Mutex.Lock"));
+      else
+         Return_Sequence.Append
+           (New_Procedure_Call_Statement
+              ("Object.Container.State.Mutex.Lock"));
+      end if;
 
       Valid_Block.Add_Declaration
         (New_Constant_Declaration
@@ -471,16 +528,29 @@ package body Kit.Generate.Public_Get is
               New_Allocation_Expression
                 ("Marlowe.Btree_Handles.Btree_Mark'(M)")));
 
-      Valid_Block.Add_Statement
-        (New_Procedure_Call_Statement
-           ("Object.Container.Elements.Append",
-            New_Function_Call_Expression
-              ("Element_Access", "Element")));
+      if Container then
+         Valid_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Container.State.Elements.Append",
+               New_Function_Call_Expression
+                 ("Element_Access", "Element")));
 
-      Valid_Block.Add_Statement
-        (New_Procedure_Call_Statement
-           ("Object.Container.Marks.Append",
-            Object ("Mark")));
+         Valid_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Container.State.Marks.Append",
+               Object ("Mark")));
+      else
+         Valid_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Object.Container.State.Elements.Append",
+               New_Function_Call_Expression
+                 ("Element_Access", "Element")));
+
+         Valid_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Object.Container.State.Marks.Append",
+               Object ("Mark")));
+      end if;
 
       Valid_Block.Add_Statement
         (New_Procedure_Call_Statement
@@ -490,14 +560,25 @@ package body Kit.Generate.Public_Get is
                New_Function_Call_Expression
                  ("Marlowe.Btree_Handles.Get_Key", "M")),
             Object ("Element.all")));
-      Valid_Block.Add_Statement
-        (New_Assignment_Statement
-           ("Result.Current_Element",
-            Object ("Object.Container.Elements.Last")));
-      Valid_Block.Add_Statement
-        (New_Assignment_Statement
-           ("Result.Current_Mark",
-            Object ("Object.Container.Marks.Last")));
+      if Container then
+         Valid_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Result.Current_Element",
+               Object ("Container.State.Elements.Last")));
+         Valid_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Result.Current_Mark",
+               Object ("Container.State.Marks.Last")));
+      else
+         Valid_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Result.Current_Element",
+               Object ("Object.Container.State.Elements.Last")));
+         Valid_Block.Add_Statement
+           (New_Assignment_Statement
+              ("Result.Current_Mark",
+               Object ("Object.Container.State.Marks.Last")));
+      end if;
 
       Invalid_Sequence.Append
         (New_Assignment_Statement
@@ -516,12 +597,22 @@ package body Kit.Generate.Public_Get is
       begin
          Initialiser.Add_Actual_Argument
            (Object ("Marlowe_Keys.Handle"));
-         Initialiser.Add_Actual_Argument
-           (Object ("Object.Container.Key_Ref"));
-         Initialiser.Add_Actual_Argument
-           (Object ("Object.Container.First"));
-         Initialiser.Add_Actual_Argument
-           (Object ("Object.Container.Last"));
+         if Container then
+            Initialiser.Add_Actual_Argument
+              (Object ("Container.Key_Ref"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Container.First_Key"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Container.Last_Key"));
+         else
+            Initialiser.Add_Actual_Argument
+              (Object ("Object.Container.Key_Ref"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Object.Container.First_Key"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Object.Container.Last_Key"));
+         end if;
+
          Initialiser.Add_Actual_Argument
            (Object ("Marlowe.Closed"));
          Initialiser.Add_Actual_Argument
@@ -556,9 +647,15 @@ package body Kit.Generate.Public_Get is
               (Mark_Block));
       end;
 
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           ("Object.Container.Mutex.Unlock"));
+      if Container then
+         Return_Sequence.Append
+           (New_Procedure_Call_Statement
+              ("Container.State.Mutex.Unlock"));
+      else
+         Return_Sequence.Append
+           (New_Procedure_Call_Statement
+              ("Object.Container.State.Mutex.Unlock"));
+      end if;
 
       Return_Sequence.Append
         (New_Procedure_Call_Statement
@@ -577,15 +674,29 @@ package body Kit.Generate.Public_Get is
                      (Function_Name, "Cursor",
                       Block);
          begin
-            Fn.Set_Overriding;
-            Fn.Add_Formal_Argument
-              ("Object", "Iterator");
-            Table_Package.Append_To_Body (Fn);
+            if not Container then
+               Fn.Set_Overriding;
+            end if;
+
+            if Container then
+               Fn.Add_Formal_Argument
+                 ("Container", "Selection");
+            else
+               Fn.Add_Formal_Argument
+                 ("Object", "Iterator");
+            end if;
+
+            if Container then
+               Table_Package.Append (Fn);
+            else
+               Table_Package.Append_To_Body (Fn);
+               Table_Package.Append_To_Body
+                 (Aquarius.Drys.Declarations.New_Separator);
+            end if;
          end;
 
       end;
 
-      Table_Package.Append_To_Body (Aquarius.Drys.Declarations.New_Separator);
    end Create_Iterator_Start_Function;
 
    -----------------------------------
@@ -755,11 +866,11 @@ package body Kit.Generate.Public_Get is
       if not Key_Value then
          Return_Sequence.Append
            (New_Assignment_Statement
-              ("Result.First",
+              ("Result.First_Key",
                Object ("(others => 0)")));
          Return_Sequence.Append
            (New_Assignment_Statement
-              ("Result.Last",
+              ("Result.Last_Key",
                Object
                  ("(others => "
                   & "System.Storage_Elements.Storage_Element'Last)")));
@@ -776,14 +887,14 @@ package body Kit.Generate.Public_Get is
          begin
             Return_Sequence.Append
               (New_Assignment_Statement
-                 ("Result.First",
+                 ("Result.First_Key",
                   Operator
                     (Name  => "&",
                      Left  => To_Storage (True),
                      Right => Start_Storage)));
             Return_Sequence.Append
               (New_Assignment_Statement
-                 ("Result.Last",
+                 ("Result.Last_Key",
                   Operator
                     (Name  => "&",
                      Left  => To_Storage (False),
@@ -796,6 +907,12 @@ package body Kit.Generate.Public_Get is
            ("Result.Key_Ref",
             Object ("Marlowe_Keys."
               & Table.Key_Reference_Name (Key_Name))));
+
+      Return_Sequence.Append
+        (New_Assignment_Statement
+           ("Result.State",
+            New_Allocation_Expression
+              (Allocated_Type => "Selection_State")));
 
       declare
          use Aquarius.Drys.Declarations;
