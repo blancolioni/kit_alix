@@ -307,6 +307,17 @@ package body Kit.Generate is
 
       Top.Add_Separator;
 
+      Top.Append
+        (New_Abstract_Function
+           (Name        => "Identity",
+            Argument    =>
+              New_In_Argument
+                ("Item", Named_Subtype ("Record_Interface")),
+            Result_Type =>
+              Named_Subtype ("String")));
+
+      Top.Add_Separator;
+
    end Create_Record_Interface;
 
    ----------------------------

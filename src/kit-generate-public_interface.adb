@@ -42,6 +42,10 @@ package body Kit.Generate.Public_Interface is
       Field : in     Kit.Schema.Fields.Field_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
+   procedure Create_Identity_Function
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+
    procedure Create_Generic_Get
      (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
@@ -915,6 +919,51 @@ package body Kit.Generate.Public_Interface is
       end;
 
    end Create_Generic_Set;
+
+   ------------------------------
+   -- Create_Identity_Function --
+   ------------------------------
+
+   procedure Create_Identity_Function
+     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+   is
+      use Aquarius.Drys;
+      use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Expressions;
+      use Aquarius.Drys.Statements;
+
+      Block  : Aquarius.Drys.Blocks.Block_Type;
+
+   begin
+
+      Block.Add_Statement
+        (New_Return_Statement
+           (Operator
+              ("&",
+               Literal (Table.Name),
+               New_Function_Call_Expression
+                 (Table.Ada_Name & "_Reference'Image",
+                  "Item.Reference"))));
+
+      declare
+         Identity : Subprogram_Declaration'Class :=
+                   New_Function
+                     ("Identity",
+                      Named_Subtype ("String"),
+                      Block);
+      begin
+
+         Identity.Add_Formal_Argument
+           ("Item",
+            Table.Ada_Name & "_Implementation");
+
+         Identity.Set_Overriding;
+         Top.Append_To_Body (Identity);
+
+      end;
+
+   end Create_Identity_Function;
 
    -------------------------------
    -- Create_Locking_Procedures --
@@ -2202,6 +2251,31 @@ package body Kit.Generate.Public_Interface is
          declare
             use Aquarius.Drys.Expressions;
             use Aquarius.Drys.Statements;
+            Element : constant Subprogram_Declaration'Class :=
+                         New_Function
+                           (Name        => "Element",
+                            Argument    =>
+                              New_In_Argument
+                                (Name          => "Item",
+                                 Argument_Type =>
+                                   Named_Subtype ("Cursor")),
+                            Result_Type => Table.Ada_Name & "_Type",
+                            Block       =>
+                              Aquarius.Drys.Blocks.Create_Block
+                                (New_Return_Statement
+                                     (Object
+                                          ("List_Of_Elements.Element "
+                                           & "(Item.Current_Element).all")
+                                     )
+                                )
+                           );
+         begin
+            Table_Package.Append (Element);
+         end;
+
+         declare
+            use Aquarius.Drys.Expressions;
+            use Aquarius.Drys.Statements;
             Block : Aquarius.Drys.Blocks.Block_Type;
          begin
             Block.Add_Declaration
@@ -2361,6 +2435,7 @@ package body Kit.Generate.Public_Interface is
 
       Public_Get.Create_Get_From_Index (Table, Table_Package);
 
+      Create_Identity_Function (Table, Table_Package);
       Create_Generic_Get (Table, Table_Package);
       Create_Generic_Set (Table, Table_Package);
 
