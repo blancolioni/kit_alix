@@ -28,6 +28,7 @@ package body Kit.Cache is
 
    Local_Cache : Cache_Map.Map;
    LRU         : List_Of_Cache_Entries.List;
+   Hash_Mutex  : Mutex.Mutex_Type;
 
    Max_Cache_Size : Natural := 100_000;
    --  Maximum number of objects in the cache
@@ -174,6 +175,8 @@ package body Kit.Cache is
          Ada.Text_IO.Flush;
       end if;
 
+      Hash_Mutex.Lock;
+
       while Current_Cache_Size >= Max_Cache_Size loop
          declare
             use List_Of_Cache_Entries;
@@ -203,8 +206,12 @@ package body Kit.Cache is
 
       Local_Cache.Insert (Key      => (New_Entry.Rec, New_Entry.Index),
                           New_Item => New_Entry);
+
+      Hash_Mutex.Unlock;
+
       New_Entry.Cached     := True;
       New_Entry.References := 0;
+
       LRU_Mutex.Lock;
       LRU.Prepend (New_Entry);
       New_Entry.LRU := LRU.First;
@@ -253,6 +260,8 @@ package body Kit.Cache is
       Result  : Cache_Entry := null;
    begin
 
+      Hash_Mutex.Shared_Lock;
+
       if Local_Cache.Contains ((Rec, Index))  then
 
          if Debug_Locking then
@@ -268,6 +277,9 @@ package body Kit.Cache is
          Update_LRU (Result);
 
       end if;
+
+      Hash_Mutex.Shared_Unlock;
+
       return Result;
 --
 --
