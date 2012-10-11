@@ -2354,7 +2354,8 @@ package body Kit.Generate.Public_Interface is
                                   Body_With => True);
 
       Table.Iterate (Add_Base_With'Access, Inclusive => False);
-      Table.Iterate_All (Add_Field_Type_With'Access);
+      Table.Iterate_All (Add_Field_Type_With'Access,
+                         Table_First => True);
 
       Table_Interface.Set_Limited;
       Table_Interface.Add_Parent ("Record_Interface");

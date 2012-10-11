@@ -585,7 +585,8 @@ package body Kit.Schema.Tables is
      (Table : Table_Type'Class;
       Process  : not null access
         procedure (Table : Table_Type'Class;
-                   Field : Kit.Schema.Fields.Field_Type'Class))
+                   Field : Kit.Schema.Fields.Field_Type'Class);
+      Table_First : Boolean := False)
    is
       Visited        : Table_Vectors.Vector;
       Visited_Fields : Field_Vectors.Vector;
@@ -608,6 +609,11 @@ package body Kit.Schema.Tables is
       end Iterate_Fields;
 
    begin
+
+      if Table_First then
+         Iterate_Fields (Table);
+      end if;
+
       for B of Table.Bases loop
          Queue.Append (B);
       end loop;
@@ -627,7 +633,9 @@ package body Kit.Schema.Tables is
          end;
       end loop;
 
-      Iterate_Fields (Table);
+      if not Table_First then
+         Iterate_Fields (Table);
+      end if;
 
    end Iterate_All;
 

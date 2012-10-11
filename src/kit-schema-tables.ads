@@ -111,7 +111,8 @@ package Kit.Schema.Tables is
      (Table : Table_Type'Class;
       Process  : not null access
         procedure (Table : Table_Type'Class;
-                   Field : Kit.Schema.Fields.Field_Type'Class));
+                   Field : Kit.Schema.Fields.Field_Type'Class);
+      Table_First : Boolean := False);
 
    function To_Storage (Table       : Table_Type'Class;
                         Base_Table  : Table_Type'Class;
