@@ -967,7 +967,9 @@ package body Kit.Generate.Public_Get is
                                       (Tag & Field.Ada_Name,
                                        Named_Subtype
                                          (Field_Type.Argument_Subtype),
-                                       Field_Type.First_Value));
+                                       (if Is_Finish
+                                        then Field_Type.Last_Value
+                                        else Field_Type.First_Value)));
                               end if;
                            end;
                         end loop;
