@@ -472,7 +472,7 @@ package body Kit.Generate.Public_Interface is
                Key_Storage,
                Aquarius.Drys.Expressions.New_Function_Call_Expression
                  ("Marlowe.Key_Storage.To_Storage_Array",
-                  Table.Database_Index_Component ("Item", Key_Base))));
+                  Table.Database_Index_Component ("Item", Table_Base))));
 
          Store_Block.Add_Statement
            (Aquarius.Drys.Statements.If_Statement
