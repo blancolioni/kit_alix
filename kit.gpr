@@ -1,37 +1,19 @@
+with "xml";
 with "marlowe";
 with "gcs";
 with "wlib";
+project kit is
 
-project Kit is
+   for Source_Dirs use (
+     "./src");
 
-   for Main use ("kit-driver");
-   type Xmlada_Kind_Type is
-      ("static", "relocatable");
-   Library_Type : Xmlada_Kind_Type := external ("LIBRARY_TYPE");
-
-   case Library_Type is
-
-      when "static" =>
-         for Exec_Dir use "build\bin";
-         for Object_Dir use "build\obj";
-         for Source_Dirs use ("src", "src\xml");
-
-      when "relocatable" =>
-         for Exec_Dir use "build/bin";
-         for Object_Dir use "build/obj";
-         for Source_Dirs use ("./src");
-   end case;
+   for Object_Dir use "build/obj";
+   for Exec_Dir use "build/bin";
+   for Main use (
+     "kit-driver");
 
    package Builder is
-
-      case Library_Type is
-
-         when "static" =>
-            for Default_Switches ("ada") use ("-g", "-k", "-s");
-
-         when "relocatable" =>
-            for Default_Switches ("ada") use ("-g", "-k");
-      end case;
+      for Default_Switches ("ada") use ("-g", "-k");
    end Builder;
 
    package Compiler is
@@ -42,5 +24,4 @@ project Kit is
       for Default_Switches ("ada") use ("-g");
    end Linker;
 
-end Kit;
-
+end kit;
