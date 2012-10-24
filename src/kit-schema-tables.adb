@@ -12,6 +12,10 @@ package body Kit.Schema.Tables is
      (From_Text : String)
       return Natural;
 
+   procedure Create_Visit_Order
+     (Result      : out Table_Vectors.Vector;
+      Table       : Table_Type);
+
    --------------
    -- Add_Base --
    --------------
@@ -276,6 +280,56 @@ package body Kit.Schema.Tables is
       Current_Table := Current_Table + 1;
    end Create;
 
+   ------------------------
+   -- Create_Visit_Order --
+   ------------------------
+
+   procedure Create_Visit_Order
+     (Result      : out Table_Vectors.Vector;
+      Table       : Table_Type)
+   is
+
+      procedure Recurse (Base : Table_Access);
+
+      -------------
+      -- Recurse --
+      -------------
+
+      procedure Recurse (Base : Table_Access) is
+         use type Marlowe.Table_Index;
+      begin
+         if not Result.Contains (Base) then
+            Result.Append (Base);
+            for I in reverse 2 .. Result.Last_Index loop
+               if Result.Element (I).Index
+                 > Result.Element (I - 1).Index
+               then
+                  declare
+                     T1 : constant Table_Access := Result (I);
+                     T2 : constant Table_Access := Result (I - 1);
+                  begin
+                     Result.Replace_Element (I - 1, T1);
+                     Result.Replace_Element (I, T2);
+                  end;
+               end if;
+            end loop;
+
+            for B of Base.Bases loop
+               Recurse (B);
+            end loop;
+
+         end if;
+      end Recurse;
+
+   begin
+      Result.Clear;
+
+      for B of Table.Bases loop
+         Recurse (B);
+      end loop;
+
+   end Create_Visit_Order;
+
    ------------------------------
    -- Database_Index_Component --
    ------------------------------
@@ -519,33 +573,24 @@ package body Kit.Schema.Tables is
                       Table_First : Boolean := False)
    is
 
-      Visited : Table_Vectors.Vector;
-
-      procedure Recurse (Base : Table_Access);
-
-      -------------
-      -- Recurse --
-      -------------
-
-      procedure Recurse (Base : Table_Access) is
-      begin
-         if not Visited.Contains (Base) then
-            Visited.Append (Base);
-            for B of Base.Bases loop
-               Recurse (B);
-            end loop;
-            Process (Base.all);
-         end if;
-      end Recurse;
+      Visit : Table_Vectors.Vector;
 
    begin
       if Inclusive and Table_First then
          Process (Table);
       end if;
 
-      for B of Table.Bases loop
-         Recurse (B);
-      end loop;
+      Create_Visit_Order (Visit, Table);
+
+      if Table_First then
+         for T of Visit loop
+            Process (T.all);
+         end loop;
+      else
+         for T of reverse Visit loop
+            Process (T.all);
+         end loop;
+      end if;
 
       if Inclusive and not Table_First then
          Process (Table);
