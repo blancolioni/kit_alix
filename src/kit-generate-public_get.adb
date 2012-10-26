@@ -1158,6 +1158,9 @@ package body Kit.Generate.Public_Get is
 
          if Reference then
             Block.Add_Statement
+              (New_Procedure_Call_Statement
+                 (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+            Block.Add_Statement
               (New_Return_Statement
                  (New_Function_Call_Expression
                     (Table.Ada_Name & "_Reference",
