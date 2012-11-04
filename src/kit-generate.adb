@@ -1,4 +1,5 @@
 with Aquarius.Drys.Declarations;
+with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Types;
 
 with Kit.String_Maps;
@@ -340,9 +341,22 @@ package body Kit.Generate is
         (Item : Kit.Schema.Tables.Table_Type'Class)
       is
          use Aquarius.Drys, Aquarius.Drys.Declarations;
+         use Aquarius.Drys.Expressions;
          Reference_Name : constant String :=
-           Item.Name & "_Reference";
+                            Item.Ada_Name & "_Reference";
+         To_String      : Subprogram_Declaration'Class :=
+                            New_Function
+                              (Name        => "To_String",
+                               Result_Type => "String",
+                               Result      =>
+                                 New_Function_Call_Expression
+                                   (Reference_Name & "'Image",
+                                    Object ("Item")));
       begin
+         To_String.Add_Formal_Argument
+           (Arg_Name => "Item",
+            Arg_Type => Reference_Name);
+
          Top.Append
            (New_Private_Type_Declaration
               (Reference_Name,
@@ -353,6 +367,8 @@ package body Kit.Generate is
               ("Null_" & Item.Name & "_Reference",
                Reference_Name,
                Literal (0)));
+
+         Top.Append (To_String);
 
          declare
             Table_Index : Declaration'Class :=
