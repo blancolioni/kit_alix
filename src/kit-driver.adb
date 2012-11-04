@@ -15,11 +15,15 @@ with Kit.Import;
 
 with Kit.Schema.Types;
 
+with Kit.Generate.Server;
+
 with GCS.Errors;
 
 procedure Kit.Driver is
    Db : constant Kit.Schema.Databases.Database_Access :=
           new Kit.Schema.Databases.Database_Type;
+   Target_Directory : constant String :=
+                        Ada.Directories.Current_Directory;
 begin
 
    if Ada.Command_Line.Argument_Count /= 1 then
@@ -76,6 +80,9 @@ begin
    begin
       Ada.Text_IO.Put_Line ("Writing source files");
       Aquarius.Drys.Projects.Write_Project (Project, File);
+      Kit.Generate.Server.Copy_Server_Packages
+        (Database_Name    => Db.Ada_Name,
+         Target_Directory => Target_Directory);
    end;
 
    Ada.Text_IO.Put_Line ("Done");
