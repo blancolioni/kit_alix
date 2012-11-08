@@ -66,11 +66,11 @@ package body Kit.Generic_Cache is
          end;
       end if;
 
+      Kit.Cache.Unlock_Cache;
+
       if Lock_Result then
          Result.S_Lock;
       end if;
-
-      Kit.Cache.Unlock_Cache;
 
       return Cache_Access (Result);
 
