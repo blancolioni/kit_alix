@@ -3,18 +3,18 @@ with Ada.Strings.Fixed;
 with Marlowe.Btree_Handles;
 with Marlowe.Key_Storage;
 
-with {Database}.Kit_Enumeration;
-with {Database}.Kit_Field;
-with {Database}.Kit_Key;
-with {Database}.Kit_Key_Field;
-with {Database}.Kit_Literal;
-with {Database}.Kit_Record;
-with {Database}.Kit_Record_Base;
-with {Database}.Kit_Type;
+with {database}.Kit_Enumeration;
+with {database}.Kit_Field;
+with {database}.Kit_Key;
+with {database}.Kit_Key_Field;
+with {database}.Kit_Literal;
+with {database}.Kit_Record;
+with {database}.Kit_Record_Base;
+with {database}.Kit_Type;
 
-with {Database}.Marlowe_Keys;
+with {database}.Marlowe_Keys;
 
-package body {Database}.Tables is
+package body {database}.Tables is
 
    function Storage_To_String
      (Value : System.Storage_Elements.Storage_Array;
@@ -37,6 +37,11 @@ package body {Database}.Tables is
      (Table     : Database_Table'Class;
       Key_Name  : String)
       return Marlowe.Btree_Handles.Btree_Reference;
+
+   function Get_Field_Table
+     (In_Record  : Database_Record'Class;
+      Field_Name : String)
+      return Database_Table'Class;
 
    ---------
    -- Get --
@@ -138,25 +143,116 @@ package body {Database}.Tables is
       Field_Name  : String)
       return String
    is
-      use System.Storage_Elements;
-      Rec   : Kit_Record.Kit_Record_Type :=
-                Kit_Record.Get_By_Table_Index
-                  (Positive (From_Record.Table));
+
+      function Get_Single_Field (Name : String) return String;
+
+      ----------------------
+      -- Get_Single_Field --
+      ----------------------
+
+      function Get_Single_Field (Name : String) return String is
+         use System.Storage_Elements;
+         Rec         : Kit_Record.Kit_Record_Type :=
+                         Kit_Record.Get_By_Table_Index
+                           (Positive (From_Record.Table));
+         pragma Assert (Rec.Has_Element);
+         Field       : Kit_Field.Kit_Field_Type :=
+                         Kit_Field.Get_By_Record_Field
+                           (Rec.Reference, Name);
+         Field_Type  : Kit_Type_Reference;
+         Store_Index : Positive := 1;
+         Start       : Storage_Offset;
+         Last        : Storage_Offset;
+      begin
+         if Field.Has_Element then
+            Start := Storage_Offset (Field.Field_Offset);
+            Last  := Start
+              + Storage_Offset (Field.Field_Length)
+              - 1;
+            Field_Type := Field.Field_Type;
+         else
+            declare
+               Bases : Kit_Record_Base.Selection :=
+                         Kit_Record_Base.Select_By_Derived
+                           (Rec.Reference);
+               Found : Boolean := False;
+            begin
+               Store_Index := 2;
+               for Base of Bases loop
+                  declare
+                     Base_Field : Kit_Field.Kit_Field_Type :=
+                                    Kit_Field.Get_By_Record_Field
+                                      (Base.Base, Name);
+                  begin
+                     if Base_Field.Has_Element then
+                        Start := Storage_Offset (Base_Field.Field_Offset);
+                        Last  := Start
+                          + Storage_Offset (Base_Field.Field_Length)
+                          - 1;
+                        Field_Type := Base_Field.Field_Type;
+                        Found := True;
+                        exit;
+                     end if;
+                  end;
+                  Store_Index := Store_Index + 1;
+               end loop;
+
+               if not Found then
+                  raise Constraint_Error
+                    with "no field '" & Name & "' for record " & Rec.Name;
+               end if;
+            end;
+         end if;
+
+         return Storage_To_String
+           (From_Record.Value.Element (Store_Index) (Start .. Last),
+            Kit_Type.Get (Field_Type));
+      end Get_Single_Field;
+
+      use Ada.Strings.Fixed;
+      First_Point : constant Natural := Index (Field_Name, ".");
+   begin
+      if First_Point = 0 then
+         return Get_Single_Field (Field_Name);
+      else
+         declare
+            Ref_Field : constant String :=
+                          Field_Name (Field_Name'First .. First_Point - 1);
+            Ref_Value : constant String :=
+                          Get_Single_Field (Ref_Field);
+            Ref       : constant Record_Reference :=
+                          Record_Reference'Value (Ref_Value);
+            Child_Table : constant Database_Table'Class :=
+                            Get_Field_Table (From_Record, Ref_Field);
+            Child       : constant Database_Record :=
+                            Child_Table.Get (Ref);
+         begin
+            return Child.Get (Field_Name (First_Point + 1 .. Field_Name'Last));
+         end;
+      end if;
+   end Get;
+
+   ---------------------
+   -- Get_Field_Table --
+   ---------------------
+
+   function Get_Field_Table
+     (In_Record  : Database_Record'Class;
+      Field_Name : String)
+      return Database_Table'Class
+   is
+      Rec         : Kit_Record.Kit_Record_Type :=
+                      Kit_Record.Get_By_Table_Index
+                        (Positive (In_Record.Table));
       pragma Assert (Rec.Has_Element);
-      Field : Kit_Field.Kit_Field_Type :=
-                Kit_Field.Get_By_Record_Field
-                  (Rec.Reference, Field_Name);
-      Field_Type  : Kit_Type_Reference;
-      Store_Index : Positive := 1;
-      Start       : Storage_Offset;
-      Last        : Storage_Offset;
+      Field       : Kit_Field.Kit_Field_Type :=
+                      Kit_Field.Get_By_Record_Field
+                        (Rec.Reference, Field_Name);
+      Field_Type_Ref : Kit_Type_Reference;
+      Store_Index    : Positive := 1;
    begin
       if Field.Has_Element then
-         Start := Storage_Offset (Field.Field_Offset);
-         Last  := Start
-           + Storage_Offset (Field.Field_Length)
-           - 1;
-         Field_Type := Field.Field_Type;
+         Field_Type_Ref := Field.Field_Type;
       else
          declare
             Bases : Kit_Record_Base.Selection :=
@@ -172,11 +268,7 @@ package body {Database}.Tables is
                                    (Base.Base, Field_Name);
                begin
                   if Base_Field.Has_Element then
-                     Start := Storage_Offset (Base_Field.Field_Offset);
-                     Last  := Start
-                       + Storage_Offset (Base_Field.Field_Length)
-                       - 1;
-                     Field_Type := Base_Field.Field_Type;
+                     Field_Type_Ref := Base_Field.Field_Type;
                      Found := True;
                      exit;
                   end if;
@@ -191,10 +283,130 @@ package body {Database}.Tables is
          end;
       end if;
 
-      return Storage_To_String
-        (From_Record.Value.Element (Store_Index) (Start .. Last),
-         Kit_Type.Get (Field_Type));
-   end Get;
+      declare
+         Field_Type : constant Kit_Type.Kit_Type_Type :=
+                        Kit_Type.Get (Field_Type_Ref);
+      begin
+         if Field_Type.Top_Record /= R_Kit_Reference then
+            raise Constraint_Error
+              with "field " & Field_Name & " is not a reference type";
+         end if;
+
+         return Get_Table (Field_Type.Name);
+      end;
+   end Get_Field_Table;
+
+   --------------------
+   -- Get_Field_Type --
+   --------------------
+
+   function Get_Field_Type
+     (From_Record : Database_Record'Class;
+      Field_Name  : String)
+      return Database_Field_Type
+   is
+      Start : Positive := Field_Name'First;
+      First_Dot : Natural :=
+                    Ada.Strings.Fixed.Index (Field_Name, ".");
+      Last      : Positive :=
+                    (if First_Dot = 0 then Field_Name'Last else First_Dot - 1);
+      Rec_Table   : Marlowe.Table_Index := From_Record.Table;
+      Rec_Ref     : Record_Reference := From_Record.Reference;
+      Field_Type_Ref : Kit_Type_Reference;
+   begin
+      loop
+         declare
+         begin
+            if First_Dot > 0 then
+               declare
+                  Table : constant Database_Table := (Index => Rec_Table);
+                  Rec : constant Database_Record'Class :=
+                          Get (Table, Rec_Ref);
+               begin
+                  Rec_Table :=
+                    Get_Field_Table (Rec, Field_Name (Start .. Last)).Index;
+                  Rec_Ref :=
+                    Record_Reference'Value
+                      (Rec.Get (Field_Name (Start .. Last)));
+                  Start := First_Dot + 1;
+                  First_Dot :=
+                    Ada.Strings.Fixed.Index (Field_Name, ".", Start);
+                  Last := (if First_Dot = 0
+                           then Field_Name'Last
+                           else First_Dot - 1);
+               end;
+            else
+               declare
+                  Rec         : Kit_Record.Kit_Record_Type :=
+                                  Kit_Record.Get_By_Table_Index
+                                    (Positive (Rec_Table));
+                  Field       : Kit_Field.Kit_Field_Type :=
+                                  Kit_Field.Get_By_Record_Field
+                                    (Rec.Reference,
+                                     Field_Name (Start .. Last));
+                  Store_Index    : Positive := 1;
+               begin
+                  if Field.Has_Element then
+                     Field_Type_Ref := Field.Field_Type;
+                  else
+                     declare
+                        Bases : Kit_Record_Base.Selection :=
+                                  Kit_Record_Base.Select_By_Derived
+                                    (Rec.Reference);
+                        Found : Boolean := False;
+                     begin
+                        Store_Index := 2;
+                        for Base of Bases loop
+                           declare
+                              Base_Field : Kit_Field.Kit_Field_Type :=
+                                             Kit_Field.Get_By_Record_Field
+                                               (Base.Base,
+                                                Field_Name (Start .. Last));
+                           begin
+                              if Base_Field.Has_Element then
+                                 Field_Type_Ref := Base_Field.Field_Type;
+                                 Found := True;
+                                 exit;
+                              end if;
+                           end;
+                           Store_Index := Store_Index + 1;
+                        end loop;
+
+                        if not Found then
+                           raise Constraint_Error
+                             with "no field '" & Field_Name
+                             & "' for record " & Rec.Name;
+                        end if;
+                     end;
+                  end if;
+               end;
+               exit;
+            end if;
+         end;
+      end loop;
+
+      declare
+         Field_Type : constant Kit_Type.Kit_Type_Type :=
+                        Kit_Type.Get (Field_Type_Ref);
+      begin
+         case Field_Type.Top_Record is
+            when R_Kit_Integer =>
+               return Integer_Type;
+            when R_Kit_Float =>
+               return Float_Type;
+            when R_Kit_Long_Float =>
+               return Long_Float_Type;
+            when R_Kit_String =>
+               return String_Type;
+            when R_Kit_Reference =>
+               return Reference_Type;
+            when others =>
+               raise Constraint_Error
+                 with "bad field type: "
+                 & Record_Type'Image (Field_Type.Top_Record);
+         end case;
+      end;
+   end Get_Field_Type;
 
    -----------------------
    -- Get_Key_Reference --
@@ -248,6 +460,51 @@ package body {Database}.Tables is
    begin
       return Rec.Index /= 0;
    end Has_Element;
+
+   --------------
+   -- Is_Float --
+   --------------
+
+   function Is_Float (Field_Type : Database_Field_Type) return Boolean is
+   begin
+      return Field_Type = Float_Type;
+   end Is_Float;
+
+   ----------------
+   -- Is_Integer --
+   ----------------
+
+   function Is_Integer (Field_Type : Database_Field_Type) return Boolean is
+   begin
+      return Field_Type = Integer_Type;
+   end Is_Integer;
+
+   -------------------
+   -- Is_Long_Float --
+   -------------------
+
+   function Is_Long_Float (Field_Type : Database_Field_Type) return Boolean is
+   begin
+      return Field_Type = Long_Float_Type;
+   end Is_Long_Float;
+
+   ------------------
+   -- Is_Reference --
+   ------------------
+
+   function Is_Reference (Field_Type : Database_Field_Type) return Boolean is
+   begin
+      return Field_Type = Reference_Type;
+   end Is_Reference;
+
+   ---------------
+   -- Is_String --
+   ---------------
+
+   function Is_String (Field_Type : Database_Field_Type) return Boolean is
+   begin
+      return Field_Type = String_Type;
+   end Is_String;
 
    -------------
    -- Iterate --
@@ -572,4 +829,4 @@ package body {Database}.Tables is
       return Result (2 .. Result'Last);
    end To_String;
 
-end {Database}.Tables;
+end {database}.Tables;

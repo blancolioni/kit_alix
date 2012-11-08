@@ -2,7 +2,7 @@ private with Ada.Containers.Indefinite_Vectors;
 private with Ada.Finalization;
 private with System.Storage_Elements;
 
-package {Database}.Tables is
+package {database}.Tables is
 
    type Database_Table is tagged private;
 
@@ -35,6 +35,29 @@ package {Database}.Tables is
      (From_Record : Database_Record'Class;
       Field_Name  : String)
       return String;
+
+   type Database_Field_Type is private;
+
+   function Is_Integer (Field_Type : Database_Field_Type) return Boolean;
+   function Is_Float (Field_Type : Database_Field_Type) return Boolean;
+   function Is_Long_Float (Field_Type : Database_Field_Type) return Boolean;
+   function Is_String (Field_Type : Database_Field_Type) return Boolean;
+   function Is_Reference (Field_Type : Database_Field_Type) return Boolean;
+
+   function Get_Field_Type
+     (From_Record : Database_Record'Class;
+      Field_Name  : String)
+      return Database_Field_Type;
+
+--     function Get_Table
+--       (From_Record : Database_Record'Class;
+--        Field_Name  : String)
+--        return Database_Table;
+--
+--     function Get_Reference
+--       (From_Record : Database_Record'Class;
+--        Field_Name  : String)
+--        return Record_Reference;
 
    procedure Iterate
      (Table        : Database_Table'Class;
@@ -80,4 +103,8 @@ private
          Index   : Marlowe.Database_Index;
          Value   : Storage_Vectors.Vector;
       end record;
-end {Database}.Tables;
+
+   type Database_Field_Type is
+     (Integer_Type, Float_Type, Long_Float_Type, String_Type, Reference_Type);
+
+end {database}.Tables;
