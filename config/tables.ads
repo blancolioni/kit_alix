@@ -18,7 +18,7 @@ package {database}.Tables is
    Null_Record_Reference : constant Record_Reference;
    function To_String (Reference : Record_Reference) return String;
 
-   type Database_Record is tagged limited private;
+   type Database_Record is tagged private;
 
    function Has_Element (Rec : Database_Record'Class) return Boolean;
    function Reference (Rec : Database_Record'Class) return Record_Reference;
@@ -31,6 +31,12 @@ package {database}.Tables is
                  Key_Name     : String;
                  Key_Value    : String)
                  return Database_Record;
+
+   function Field_Count (Rec : Database_Record'Class) return Natural;
+   function Field_Name (Rec : Database_Record'Class;
+                        Index : Positive)
+                        return String;
+
    function Get
      (From_Record : Database_Record'Class;
       Field_Name  : String)
@@ -97,10 +103,11 @@ private
         System.Storage_Elements."=");
 
    type Database_Record is
-     limited new Ada.Finalization.Limited_Controlled with
+     new Ada.Finalization.Controlled with
       record
          Table   : Marlowe.Table_Index;
          Index   : Marlowe.Database_Index;
+         Rec_Ref : Kit_Record_Reference;
          Value   : Storage_Vectors.Vector;
       end record;
 
