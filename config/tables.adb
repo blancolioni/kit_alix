@@ -43,6 +43,68 @@ package body {database}.Tables is
       Field_Name : String)
       return Database_Table'Class;
 
+   -----------------
+   -- Field_Count --
+   -----------------
+
+   function Field_Count (Rec : Database_Record'Class) return Natural is
+      Result : Natural :=
+                 Kit_Field.Select_By_Kit_Record (Rec.Rec_Ref).Length;
+   begin
+      for Base of Kit_Record_Base.Select_By_Derived (Rec.Rec_Ref) loop
+         Result := Result +
+           Kit_Field.Select_By_Kit_Record (Base.Base).Length;
+      end loop;
+      return Result;
+   end Field_Count;
+
+   ----------------
+   -- Field_Name --
+   ----------------
+
+   function Field_Name (Rec : Database_Record'Class;
+                        Index : Positive)
+                        return String
+   is
+      Acc : Natural := Index;
+   begin
+      for Base of Kit_Record_Base.Select_By_Derived (Rec.Rec_Ref) loop
+         declare
+            Fields : constant Kit_Field.Selection :=
+                       Kit_Field.Select_By_Kit_Record (Base.Base);
+            Count  : constant Natural :=
+                       Fields.Length;
+         begin
+            if Acc <= Count then
+               for Field of Fields loop
+                  Acc := Acc - 1;
+                  if Acc = 0 then
+                     return Field.Name;
+                  end if;
+               end loop;
+            end if;
+
+            Acc := Acc - Count;
+         end;
+      end loop;
+
+      declare
+         Fields : constant Kit_Field.Selection :=
+                    Kit_Field.Select_By_Kit_Record (Rec.Rec_Ref);
+      begin
+         pragma Assert (Acc <= Fields.Length);
+         for Field of Fields loop
+            Acc := Acc - 1;
+            if Acc = 0 then
+               return Field.Name;
+            end if;
+         end loop;
+      end;
+
+      return "bad field index";
+
+   end Field_Name;
+
    ---------
    -- Get --
    ---------
@@ -528,8 +590,9 @@ package body {database}.Tables is
                       Marlowe.Key_Storage.To_Database_Index
                         (Marlowe.Btree_Handles.Get_Key
                            (Mark));
-            Rec   : Database_Record := Get (Table,
-                                            Record_Reference (Index));
+            Rec   : constant Database_Record :=
+                      Get (Table,
+                           Record_Reference (Index));
          begin
             Process (Rec);
          end;
@@ -568,8 +631,9 @@ package body {database}.Tables is
                       Marlowe.Key_Storage.To_Database_Index
                         (Marlowe.Btree_Handles.Get_Key
                            (Mark));
-            Rec   : Database_Record := Get (Table,
-                                            Record_Reference (Index));
+            Rec   : constant Database_Record :=
+                      Get (Table,
+                           Record_Reference (Index));
          begin
             Process (Rec);
          end;
@@ -609,8 +673,9 @@ package body {database}.Tables is
                       Marlowe.Key_Storage.To_Database_Index
                         (Marlowe.Btree_Handles.Get_Key
                            (Mark));
-            Rec   : Database_Record := Get (Table,
-                                            Record_Reference (Index));
+            Rec   : constant Database_Record :=
+                      Get (Table,
+                           Record_Reference (Index));
          begin
             Process (Rec);
          end;

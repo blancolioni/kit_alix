@@ -1,100 +1,34 @@
 module Kit where
 
-class DatabaseRecord a where
-  get :: a -> String -> IO String
-  set :: a -> String -> String -> IO ()
-
-class Search a where
-  hasElement :: a -> Bool
-  next :: a -> IO a
-
-newtype Record = Record Int
-
-primTableCount :: Int
-primTableCount = primitive #tableCount
+primGetTable :: String -> Int
+primGetTable = primitive #getTable
 
 primTableName :: Int -> String
 primTableName = primitive #tableName
 
-primGetRecord :: Int -> Int -> Int
-primGetRecord = primitive #getRecord
+primGetBy :: Int -> String -> String -> Int
+primGetBy = primitive #getBy
 
-primCloseRecord :: Int -> ()
-primCloseRecord = primitive #closeRecord
+primTraceIndices :: Int -> String -> String -> Int
+primTraceIndices = primitive #traceIndices
 
-primGetFieldCount :: Int -> Int
-primGetFieldCount = primitive #getFieldCount
+primGetField :: Int -> Int -> String -> String
+primGetField = primitive #getField
 
-primGetFieldName :: Int -> Int -> String
-primGetFieldName = primitive #getFieldName
+getTable :: String -> IO Int
+getTable name = return $ primGetTable name
 
-primGetFieldValue :: Int -> String -> String
-primGetFieldValue = primitive #getFieldValue
+tableName :: Int -> IO String
+tableName t = return $ primTableName t
 
-primExportXML :: String -> Int
-primExportXML = primitive #exportxml
+getBy :: Int -> String -> String -> IO Int
+getBy tableIndex keyName keyValue =
+  return $ primGetBy tableIndex keyName keyValue
 
-tableCount :: Int
-tableCount = primTableCount
+getField :: Int -> Int -> String -> IO String
+getField tableIndex recordIndex fieldName =
+  return $ primGetField tableIndex recordIndex fieldName
 
-tableName :: Int -> String
-tableName = primTableName
-
-getRecord :: Int -> Int -> IO Int
-getRecord x y = return $ primGetRecord x y
-
-closeRecord :: Int -> IO Int
-closeRecord = return . primCloseRecord
-
-getFieldCount :: Int -> IO Int
-getFieldCount r = return $ primGetFieldCount r
-
-getFieldName :: Int -> Int -> IO String
-getFieldName r f = return $ primGetFieldName r f
-
-getFieldValue :: Int -> String -> IO String
-getFieldValue r f = return $ primGetFieldValue r f
-
-tables = map (\x->(tableName x, x)) [1 .. tableCount]
-
-listTables = mapM_ putStrLn $ map (\ (x,y) -> show y ++ " " ++ x) tables
-
-tableIndex n = go tables
-   where go x = if null x then 0
-                else if n == fst (head x)
-                     then snd (head x)
-                     else go (tail x)
-
-   -- where go [] = 0
-   --       go (x:xs) = if n == fst x then snd x else go xs
-
-recNameValue r n = do
-  fieldName <- getFieldName r n
-  fieldValue <- getFieldValue r fieldName
-  return (fieldName, fieldValue)
-
-
---  getFieldName r n >>= \ fn ->
---                   getFieldValue r fn >>= \ v ->
---                   return (fn, v)
-
---  reportRecord r = getFieldCount r >>= \n -> (mapM_ (\x -> recNameValue 1 x >>= \ (a,b) -> putStrLn (a ++ ": " ++ b)) [1 .. n])
-
-reportRecord r = do
-  n <- getFieldCount r
-  mapM_ (\x -> recNameValue r x >>= \ (a,b) -> putStrLn (a ++ ": " ++ b)) [1 .. n]
-
-  -- let putnv x = do (a,b) <- recNameValue r x
-  --                  putStrLn $ a ++ ": " ++ b
-  -- mapM_ putnv [1 .. n]
-
-withRecord tableId recordId action = do
-  rec <- getRecord tableId recordId
-  action rec
-  closeRecord rec
-  return ()
-
-exportXML :: String -> IO ()
-exportXML path =
-  return (primExportXML path) >>= print
-
+traceIndices :: Int -> String -> String -> IO Int
+traceIndices tableIndex keyName keyValue =
+  return $ primTraceIndices tableIndex keyName keyValue
