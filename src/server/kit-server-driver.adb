@@ -3,11 +3,9 @@ with Ada.Text_IO;                       use Ada.Text_IO;
 
 with Kit.Db.Database;
 with Kit.Db.Marlowe_Keys;
+with Kit.Db.SK_Bindings;
 
 with Kit.Paths;
-
-with Kit.Server.SK_Bindings;
-with Kit.Server.Tables;
 
 with Hero.Modules;
 
@@ -32,7 +30,7 @@ begin
       return;
    end if;
 
-   Kit.Server.Tables.Open_Database (Argument (1));
+   Kit.Db.Database.Open (Argument (1));
    Handle := Kit.Db.Marlowe_Keys.Handle;
 
    if False then
@@ -44,7 +42,7 @@ begin
 
    Leander.Initialise (Target);
 
-   SK_Bindings.Create_SK_Bindings;
+   Kit.Db.SK_Bindings.Create_SK_Bindings;
 
    Kit_Module :=
      Hero.Modules.Parse_Module
