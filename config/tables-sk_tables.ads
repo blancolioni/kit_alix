@@ -26,6 +26,20 @@ package {database}.Tables.SK_Tables is
       Field_Name   : SK.Object)
       return SK.Object;
 
+   function Evaluate_Get_Float_Field
+     (Context      : SK.Cells.Managed_Cells;
+      Table_Index  : SK.Object;
+      Record_Index : SK.Object;
+      Field_Name   : SK.Object)
+      return SK.Object;
+
+   function Evaluate_Get_Integer_Field
+     (Context      : SK.Cells.Managed_Cells;
+      Table_Index  : SK.Object;
+      Record_Index : SK.Object;
+      Field_Name   : SK.Object)
+      return SK.Object;
+
    function Evaluate_Select_By
      (Context     : SK.Cells.Managed_Cells;
       Table_Index : SK.Object;

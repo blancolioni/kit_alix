@@ -69,6 +69,54 @@ package body {database}.Tables.SK_Tables is
       return Leander.Builtin.String_To_Object (Context, Result);
    end Evaluate_Get_Field;
 
+   ------------------------------
+   -- Evaluate_Get_Float_Field --
+   ------------------------------
+
+   function Evaluate_Get_Float_Field
+     (Context      : SK.Cells.Managed_Cells;
+      Table_Index  : SK.Object;
+      Record_Index : SK.Object;
+      Field_Name   : SK.Object)
+      return SK.Object
+   is
+      T : constant Database_Table :=
+            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+      R : constant Database_Record :=
+            T.Get (Record_Reference (SK.Get_Integer (Record_Index)));
+      Field : constant String :=
+                Leander.Builtin.Object_To_String
+                  (Context, Field_Name);
+      Result : constant String :=
+                 R.Get (Field);
+   begin
+      return Leander.Builtin.Float_To_Object (Context, Float'Value (Result));
+   end Evaluate_Get_Float_Field;
+
+   --------------------------------
+   -- Evaluate_Get_Integer_Field --
+   --------------------------------
+
+   function Evaluate_Get_Integer_Field
+     (Context      : SK.Cells.Managed_Cells;
+      Table_Index  : SK.Object;
+      Record_Index : SK.Object;
+      Field_Name   : SK.Object)
+      return SK.Object
+   is
+      T : constant Database_Table :=
+            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+      R : constant Database_Record :=
+            T.Get (Record_Reference (SK.Get_Integer (Record_Index)));
+      Field : constant String :=
+                Leander.Builtin.Object_To_String
+                  (Context, Field_Name);
+      Result : constant String :=
+                 R.Get (Field);
+   begin
+      return SK.To_Object (Integer'Value (Result));
+   end Evaluate_Get_Integer_Field;
+
    ------------------------
    -- Evaluate_Get_Table --
    ------------------------
