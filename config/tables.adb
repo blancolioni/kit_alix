@@ -38,6 +38,11 @@ package body {database}.Tables is
       Key_Name  : String)
       return Marlowe.Btree_Handles.Btree_Reference;
 
+   function Get_Kit_Key_Reference
+     (Table     : Database_Table'Class;
+      Key_Name  : String)
+      return Kit_Key_Reference;
+
    function Get_Field_Table
      (In_Record  : Database_Record'Class;
       Field_Name : String)
@@ -485,6 +490,33 @@ package body {database}.Tables is
         (Marlowe_Keys.Handle, Key_Full_Name);
    end Get_Key_Reference;
 
+   ---------------------------
+   -- Get_Kit_Key_Reference --
+   ---------------------------
+
+   function Get_Kit_Key_Reference
+     (Table     : Database_Table'Class;
+      Key_Name  : String)
+      return Kit_Key_Reference
+   is
+      Rec    : constant Kit_Record_Reference :=
+                 Kit_Record.Get_Reference_By_Table_Index
+                   (Positive (Table.Index));
+      Result : Kit_Key_Reference :=
+                 Kit_Key.Get_Reference_By_Record_Key
+                   (Rec, Key_Name);
+   begin
+      if Result = Null_Kit_Key_Reference then
+         for Base of Kit_Record_Base.Select_By_Derived (Rec) loop
+            Result :=
+              Kit_Key.Get_Reference_By_Record_Key
+                (Base.Base, Key_Name);
+            exit when Result /= Null_Kit_Key_Reference;
+         end loop;
+      end if;
+      return Result;
+   end Get_Kit_Key_Reference;
+
    ---------------
    -- Get_Table --
    ---------------
@@ -699,10 +731,10 @@ package body {database}.Tables is
               Kit_Record.Get_By_Table_Index
                 (Positive (Table.Index));
       pragma Assert (Rec.Has_Element);
-      Key : Kit_Key.Kit_Key_Type :=
-              Kit_Key.Get_By_Record_Key
-                (Rec.Reference, Key_Name);
-      pragma Assert (Key.Has_Element);
+      Key_Ref : constant Kit_Key_Reference :=
+                  Get_Kit_Key_Reference (Table, Key_Name);
+      pragma Assert (Key_Ref /= Null_Kit_Key_Reference);
+      Key : Kit_Key.Kit_Key_Type := Kit_Key.Get (Key_Ref);
       Result : Storage_Array (1 .. Storage_Count (Key.Length));
       Start  : Storage_Offset := 1;
       Key_Fields : Kit_Key_Field.Selection :=
