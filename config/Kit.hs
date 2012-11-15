@@ -22,7 +22,7 @@ primGetFloatField :: Int -> Int -> String -> Float
 primGetFloatField = primitive #getFloatField
 
 primGetIntField :: Int -> Int -> String -> Int
-primGetIntField = primitive #getFloatField
+primGetIntField = primitive #getIntField
 
 getTable :: String -> IO Int
 getTable name = return $ primGetTable name

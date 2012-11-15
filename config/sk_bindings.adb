@@ -35,6 +35,16 @@ package body {database}.SK_Bindings is
       Arguments : SK.Array_Of_Objects)
       return SK.Object;
 
+   function Get_Float_Field_Binding
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
+   function Get_Integer_Field_Binding
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object;
+
    ------------------------
    -- Create_SK_Bindings --
    ------------------------
@@ -44,6 +54,8 @@ package body {database}.SK_Bindings is
    begin
       Bind_Function ("#getBy", 3, Get_By_Binding'Access);
       Bind_Function ("#getField", 3, Get_Field_Binding'Access);
+      Bind_Function ("#getFloatField", 3, Get_Float_Field_Binding'Access);
+      Bind_Function ("#getIntField", 3, Get_Integer_Field_Binding'Access);
       Bind_Function ("#getTable", 1, Get_Table_Binding'Access);
       Bind_Function ("#selectBy", 3, Select_By_Binding'Access);
       Bind_Function ("#tableName", 1, Table_Name_Binding'Access);
@@ -83,6 +95,40 @@ package body {database}.SK_Bindings is
          SK.Cells.Evaluate (Context, Arguments (Arguments'First + 1)),
          SK.Cells.Evaluate (Context, Arguments (Arguments'First + 2)));
    end Get_Field_Binding;
+
+   -----------------------------
+   -- Get_Float_Field_Binding --
+   -----------------------------
+
+   function Get_Float_Field_Binding
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+   begin
+      return Tables.SK_Tables.Evaluate_Get_Float_Field
+        (Context,
+         SK.Cells.Evaluate (Context, Arguments (Arguments'First)),
+         SK.Cells.Evaluate (Context, Arguments (Arguments'First + 1)),
+         SK.Cells.Evaluate (Context, Arguments (Arguments'First + 2)));
+   end Get_Float_Field_Binding;
+
+   -------------------------------
+   -- Get_Integer_Field_Binding --
+   -------------------------------
+
+   function Get_Integer_Field_Binding
+     (Context   : SK.Cells.Managed_Cells;
+      Arguments : SK.Array_Of_Objects)
+      return SK.Object
+   is
+   begin
+      return Tables.SK_Tables.Evaluate_Get_Integer_Field
+        (Context,
+         SK.Cells.Evaluate (Context, Arguments (Arguments'First)),
+         SK.Cells.Evaluate (Context, Arguments (Arguments'First + 1)),
+         SK.Cells.Evaluate (Context, Arguments (Arguments'First + 2)));
+   end Get_Integer_Field_Binding;
 
    -----------------------
    -- Get_Table_Binding --

@@ -86,6 +86,14 @@ package {database}.Tables is
       Process      : not null access procedure
         (Item : Database_Record'Class));
 
+   type Array_Of_References is array (Positive range <>) of Record_Reference;
+
+   function Select_By
+     (Table        : Database_Table'Class;
+      Key_Name     : String;
+      Key_Value    : String)
+      return Array_Of_References;
+
 private
 
    type Database_Table is tagged
