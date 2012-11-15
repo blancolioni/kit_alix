@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
 
 with Marlowe.Btree_Handles;
@@ -15,6 +16,9 @@ with {database}.Kit_Type;
 with {database}.Marlowe_Keys;
 
 package body {database}.Tables is
+
+   package Reference_Vectors is
+     new Ada.Containers.Vectors (Positive, Record_Reference);
 
    function Storage_To_String
      (Value : System.Storage_Elements.Storage_Array;
@@ -785,6 +789,53 @@ package body {database}.Tables is
    begin
       return Record_Reference (Rec.Index);
    end Reference;
+
+   ---------------
+   -- Select_By --
+   ---------------
+
+   function Select_By
+     (Table        : Database_Table'Class;
+      Key_Name     : String;
+      Key_Value    : String)
+      return Array_Of_References
+   is
+      Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
+              Get_Key_Reference (Table, Key_Name);
+      First : constant System.Storage_Elements.Storage_Array :=
+        Key_To_Storage (Table, Key_Name, Key_Value, True);
+      Last : constant System.Storage_Elements.Storage_Array :=
+        Key_To_Storage (Table, Key_Name, Key_Value, False);
+      Mark : Marlowe.Btree_Handles.Btree_Mark :=
+               Marlowe.Btree_Handles.Search
+                 (Marlowe_Keys.Handle,
+                  Ref,
+                  First, Last,
+                  Marlowe.Closed, Marlowe.Closed,
+                  Marlowe.Forward);
+      Refs  : Reference_Vectors.Vector;
+   begin
+      while Marlowe.Btree_Handles.Valid (Mark) loop
+         declare
+            Index : constant Marlowe.Database_Index :=
+                      Marlowe.Key_Storage.To_Database_Index
+                        (Marlowe.Btree_Handles.Get_Key
+                           (Mark));
+         begin
+            Refs.Append (Record_Reference (Index));
+         end;
+         Marlowe.Btree_Handles.Next (Mark);
+      end loop;
+
+      declare
+         Result : Array_Of_References (1 .. Refs.Last_Index);
+      begin
+         for I in Result'Range loop
+            Result (I) := Refs (I);
+         end loop;
+         return Result;
+      end;
+   end Select_By;
 
    -----------------------
    -- Storage_To_String --
