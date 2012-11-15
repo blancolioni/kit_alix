@@ -4,6 +4,24 @@ with Leander.Builtin;
 
 package body {database}.Tables.SK_Tables is
 
+   function Integer_To_Object (Cells : SK.Cells.Managed_Cells;
+                               Value : Integer)
+                               return SK.Object
+   is (SK.To_Object (Value));
+
+   function Object_To_Integer (Cells : SK.Cells.Managed_Cells;
+                               Item  : SK.Object)
+                               return Integer
+   is (SK.Get_Integer (Item));
+
+   type Array_Of_Integers is array (Positive range <>) of Integer;
+
+   package Integer_Array_Conversions is
+     new Leander.Builtin.Array_List_Conversions
+       (Integer, Array_Of_Integers,
+        Integer_To_Object,
+        Object_To_Integer);
+
    ---------------------
    -- Evaluate_Get_By --
    ---------------------
@@ -67,6 +85,33 @@ package body {database}.Tables.SK_Tables is
    begin
       return SK.To_Object (Integer (T.Index));
    end Evaluate_Get_Table;
+
+   ------------------------
+   -- Evaluate_Select_By --
+   ------------------------
+
+   function Evaluate_Select_By
+     (Context     : SK.Cells.Managed_Cells;
+      Table_Index : SK.Object;
+      Key_Name    : SK.Object;
+      Key_Value   : SK.Object)
+      return SK.Object
+   is
+      T    : constant Database_Table :=
+               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+      Key  : constant String :=
+               Leander.Builtin.Object_To_String (Context, Key_Name);
+      Value : constant String :=
+                Leander.Builtin.Object_To_String (Context, Key_Value);
+      Refs  : constant Array_Of_References :=
+                T.Select_By (Key, Value);
+      Int_Refs : Array_Of_Integers (Refs'Range);
+   begin
+      for I in Refs'Range loop
+         Int_Refs (I) := Integer (Refs (I));
+      end loop;
+      return Integer_Array_Conversions.To_List (Context, Int_Refs);
+   end Evaluate_Select_By;
 
    -------------------------
    -- Evaluate_Table_Name --
