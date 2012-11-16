@@ -38,6 +38,9 @@ package body Kit.Schema.Types is
    function Default_Value (Item : Integer_Type)
                            return Aquarius.Drys.Expression'Class;
 
+   overriding
+   function Haskell_Type_Name (Item : Integer_Type) return String;
+
    type Float_Type is new Kit_Type with
       record
          Long : Boolean;
@@ -54,6 +57,9 @@ package body Kit.Schema.Types is
    overriding
    function Default_Value (Item : Float_Type)
                            return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Haskell_Type_Name (Item : Float_Type) return String;
 
    overriding
    function To_Storage_Array
@@ -74,6 +80,9 @@ package body Kit.Schema.Types is
    overriding
    function Default_Value (Item : Boolean_Type)
                            return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Haskell_Type_Name (Item : Boolean_Type) return String;
 
    type Table_Reference_Type_Record is
      new Kit_Type with null record;
@@ -217,6 +226,9 @@ package body Kit.Schema.Types is
       Storage_Name  : String;
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Aquarius.Drys.Statement'Class;
+
+   overriding
+   function Haskell_Type_Name (Item : String_Type) return String;
 
    ----------------------
    -- Argument_Subtype --
@@ -592,6 +604,62 @@ package body Kit.Schema.Types is
    begin
       return False;
    end Has_Default_Value;
+
+   -----------------------
+   -- Haskell_Type_Name --
+   -----------------------
+
+   function Haskell_Type_Name (Item : Kit_Type) return String is
+   begin
+      return Item.Haskell_Name;
+   end Haskell_Type_Name;
+
+   -----------------------
+   -- Haskell_Type_Name --
+   -----------------------
+
+   overriding
+   function Haskell_Type_Name (Item : Integer_Type) return String is
+      pragma Unreferenced (Item);
+   begin
+      return "Int";
+   end Haskell_Type_Name;
+
+   -----------------------
+   -- Haskell_Type_Name --
+   -----------------------
+
+   overriding
+   function Haskell_Type_Name (Item : Float_Type) return String is
+   begin
+      if Item.Long then
+         return "Double";
+      else
+         return "Float";
+      end if;
+   end Haskell_Type_Name;
+
+   -----------------------
+   -- Haskell_Type_Name --
+   -----------------------
+
+   overriding
+   function Haskell_Type_Name (Item : Boolean_Type) return String is
+      pragma Unreferenced (Item);
+   begin
+      return "Bool";
+   end Haskell_Type_Name;
+
+   -----------------------
+   -- Haskell_Type_Name --
+   -----------------------
+
+   overriding
+   function Haskell_Type_Name (Item : String_Type) return String is
+      pragma Unreferenced (Item);
+   begin
+      return "String";
+   end Haskell_Type_Name;
 
    ---------------------
    -- Is_Reference_To --

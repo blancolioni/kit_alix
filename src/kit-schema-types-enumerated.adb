@@ -80,6 +80,16 @@ package body Kit.Schema.Types.Enumerated is
         (Kit.Names.Ada_Name (Item.Literals.Element (1)));
    end Default_Value;
 
+   -----------------------
+   -- Haskell_Type_Name --
+   -----------------------
+
+   function Haskell_Type_Name (Item : Enumerated_Type) return String is
+      pragma Unreferenced (Item);
+   begin
+      return "Int";
+   end Haskell_Type_Name;
+
    --------------------
    -- Return_Subtype --
    --------------------

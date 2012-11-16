@@ -45,6 +45,54 @@ package body Kit.Names is
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
    end Create;
 
+   ------------------
+   -- Haskell_Name --
+   ------------------
+
+   function Haskell_Name (Item : Root_Named_Object) return String is
+   begin
+      return Haskell_Name (Name (Root_Named_Object'Class (Item)));
+   end Haskell_Name;
+
+   ------------------
+   -- Haskell_Name --
+   ------------------
+
+   function Haskell_Name (Raw_Name : String) return String is
+      Ada_Text : constant String := Ada_Name (Raw_Name);
+      Haskell_Text : String (Ada_Text'Range);
+      Haskell_Length : Natural := 0;
+   begin
+      for I in Ada_Text'Range loop
+         if Ada_Text (I) /= '_' then
+            Haskell_Length := Haskell_Length + 1;
+            Haskell_Text (Haskell_Length) := Ada_Text (I);
+         end if;
+      end loop;
+      return Haskell_Text (1 .. Haskell_Length);
+   end Haskell_Name;
+
+   ---------------------------
+   -- Haskell_Variable_Name --
+   ---------------------------
+
+   function Haskell_Variable_Name (Item : Root_Named_Object) return String is
+   begin
+      return Haskell_Variable_Name (Name (Root_Named_Object'Class (Item)));
+   end Haskell_Variable_Name;
+
+   ---------------------------
+   -- Haskell_Variable_Name --
+   ---------------------------
+
+   function Haskell_Variable_Name (Raw_Name : String) return String is
+      Result : String := Haskell_Name (Raw_Name);
+   begin
+      Result (Result'First) :=
+        Ada.Characters.Handling.To_Lower (Result (Result'First));
+      return Result;
+   end Haskell_Variable_Name;
+
    ----------
    -- Name --
    ----------
