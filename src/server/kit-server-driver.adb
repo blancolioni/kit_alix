@@ -23,9 +23,9 @@ procedure Kit.Server.Driver is
 
 begin
 
-   if Argument_Count /= 1 then
+   if Argument_Count not in 1 .. 2 then
       Put_Line (Standard_Error,
-                "Usage: kit-server <path to database>");
+                "Usage: kit-server <path to database> [ haskell file ]");
       Set_Exit_Status (1);
       return;
    end if;
@@ -44,14 +44,19 @@ begin
 
    Kit.Db.SK_Bindings.Create_SK_Bindings;
 
-   Kit_Module :=
-     Hero.Modules.Parse_Module
-       (Kit.Paths.Config_Path & "/Kit.hs");
-   Kit_Module.Compile (Target);
+   declare
+      Haskell_Path : constant String :=
+                       (if Argument_Count = 1
+                        then Kit.Paths.Config_Path & "/Kit.hs"
+                        else Argument (2));
+   begin
+      Kit_Module :=
+        Hero.Modules.Parse_Module (Haskell_Path);
+      Kit_Module.Compile (Target);
 
-   Leander.Shell.Start_Shell
-     (Target,
-      Kit.Paths.Config_Path & "/Kit.hs");
+      Leander.Shell.Start_Shell
+        (Target, Haskell_Path);
+   end;
 
    Kit.Db.Database.Close;
 
