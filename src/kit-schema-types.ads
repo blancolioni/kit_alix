@@ -25,6 +25,8 @@ package Kit.Schema.Types is
                            return Aquarius.Drys.Expression'Class
                            is abstract;
 
+   function Haskell_Type_Name (Item : Kit_Type) return String;
+
    function Is_String (Item : Kit_Type) return Boolean;
    function Is_Table_Reference (Item : Kit_Type) return Boolean;
 

@@ -6,6 +6,8 @@ package Kit.Names is
 
    function Name (Item : Root_Named_Object) return String;
    function Ada_Name (Item : Root_Named_Object) return String;
+   function Haskell_Name (Item : Root_Named_Object) return String;
+   function Haskell_Variable_Name (Item : Root_Named_Object) return String;
    function Safe_Ada_Name (Item : Root_Named_Object;
                            Safe_Prefix : String)
                            return String;
@@ -21,6 +23,12 @@ package Kit.Names is
    --  upper case; all others are lower case.
    --  Currently no exceptions supported for identifiers
    --  such as Text_IO
+
+   function Haskell_Name (Raw_Name : String) return String;
+   --  As Ada name, but the underscores are removed
+
+   function Haskell_Variable_Name (Raw_Name : String) return String;
+   --  As Haskell_Name, but first letter is lower case
 
    function Standard_Name (Raw_Name : String) return String;
    --  Equivalent to "To_Lower"

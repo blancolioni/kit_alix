@@ -15,6 +15,7 @@ with Kit.Import;
 
 with Kit.Schema.Types;
 
+with Kit.Generate.Leander_Module;
 with Kit.Generate.Server;
 
 with GCS.Errors;
@@ -83,6 +84,8 @@ begin
       Kit.Generate.Server.Copy_Server_Packages
         (Database_Name    => Db.Ada_Name,
          Target_Directory => Target_Directory);
+      Kit.Generate.Leander_Module.Generate_Leander_Module
+        (Db.all, Target_Directory);
    end;
 
    Ada.Text_IO.Put_Line ("Done");
