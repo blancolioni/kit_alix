@@ -71,6 +71,10 @@ package body Kit.Generate.Leander_Module is
         (Base : Kit.Schema.Tables.Table_Type'Class;
          Key  : Kit.Schema.Keys.Key_Type'Class);
 
+      procedure Put_Key_Select
+        (Base : Kit.Schema.Tables.Table_Type'Class;
+         Key  : Kit.Schema.Keys.Key_Type'Class);
+
       procedure Put_Class_Instance
         (Base : Kit.Schema.Tables.Table_Type'Class);
 
@@ -220,6 +224,48 @@ package body Kit.Generate.Leander_Module is
          end if;
       end Put_Key_Get;
 
+      procedure Put_Key_Select
+        (Base : Kit.Schema.Tables.Table_Type'Class;
+         Key  : Kit.Schema.Keys.Key_Type'Class)
+      is
+         pragma Unreferenced (Base);
+         Type_Name    : constant String :=
+                          Key.Field (1).Get_Field_Type.Haskell_Type_Name;
+         Is_Reference : constant Boolean :=
+                          Key.Field (1).Get_Field_Type.Is_Table_Reference;
+      begin
+         if Key.Field_Count = 1 then
+            Put (File,
+                 Table.Haskell_Variable_Name
+                 & "SelectBy"
+                 & Key.Haskell_Name
+                 & " ");
+            if Is_Reference then
+               Put (File, "(" & Type_Name & " k)");
+            else
+               Put (File, "k");
+            end if;
+            Put (File, " = ");
+            Put (File,
+                 "selectBy " & Table.Index_Image & " """
+                 & Key.Standard_Name & """ ");
+
+            if Type_Name /= "String" then
+               Put (File, "(show k)");
+            else
+               Put (File, "k");
+            end if;
+
+            Put (File,
+                 " >>= (\x -> return (map "
+                 & Table.Haskell_Name
+                 & " x))");
+
+            New_Line (File);
+
+         end if;
+      end Put_Key_Select;
+
    begin
       New_Line (File);
       Put (File, "class ");
@@ -243,6 +289,7 @@ package body Kit.Generate.Leander_Module is
       Table.Iterate (Put_Class_Instance'Access, Inclusive => True);
 
       Table.Scan_Keys (Put_Key_Get'Access);
+      Table.Scan_Keys (Put_Key_Select'Access);
 
    end Create_Table;
 
