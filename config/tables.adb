@@ -1,5 +1,6 @@
 with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
+with Ada.Text_IO;
 
 with Marlowe.Btree_Handles;
 with Marlowe.Key_Storage;
@@ -471,10 +472,20 @@ package body {database}.Tables is
                return String_Type;
             when R_Kit_Reference =>
                return Reference_Type;
+            when R_Kit_Enumeration =>
+               return Enumerated_Type;
             when others =>
-               raise Constraint_Error
-                 with "bad field type: "
-                 & Record_Type'Image (Field_Type.Top_Record);
+               declare
+                  Message : constant String :=
+                              "bad field type: "
+                              & Record_Type'Image (Field_Type.Top_Record);
+               begin
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Standard_Error,
+                     "Get_Field_Type: " & Message);
+                  raise Constraint_Error
+                    with Message;
+               end;
          end case;
       end;
    end Get_Field_Type;

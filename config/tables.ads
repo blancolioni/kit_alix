@@ -120,6 +120,7 @@ private
       end record;
 
    type Database_Field_Type is
-     (Integer_Type, Float_Type, Long_Float_Type, String_Type, Reference_Type);
+     (Integer_Type, Float_Type, Long_Float_Type, String_Type, Reference_Type,
+      Enumerated_Type);
 
 end {database}.Tables;
