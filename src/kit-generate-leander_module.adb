@@ -3,6 +3,7 @@ with Ada.Text_IO;
 with Kit.Paths;
 
 with Kit.Schema.Fields;
+with Kit.Schema.Keys;
 with Kit.Schema.Tables;
 with Kit.Schema.Types;
 
@@ -63,6 +64,12 @@ package body Kit.Generate.Leander_Module is
       procedure Put_Base_Class (Base : Kit.Schema.Tables.Table_Type'Class);
 
       procedure Put_Field (Field : Kit.Schema.Fields.Field_Type'Class);
+
+      procedure Put_Key (Key : Kit.Schema.Keys.Key_Type'Class);
+
+      procedure Put_Key_Get
+        (Base : Kit.Schema.Tables.Table_Type'Class;
+         Key  : Kit.Schema.Keys.Key_Type'Class);
 
       procedure Put_Class_Instance
         (Base : Kit.Schema.Tables.Table_Type'Class);
@@ -149,6 +156,70 @@ package body Kit.Generate.Leander_Module is
             & Kit.Schema.Types.Haskell_Type_Name (Field.Get_Field_Type));
       end Put_Field;
 
+      -------------
+      -- Put_Key --
+      -------------
+
+      procedure Put_Key (Key : Kit.Schema.Keys.Key_Type'Class) is
+      begin
+         if Key.Field_Count = 1 then
+            Put_Line
+              (File,
+               "  " & Table.Haskell_Variable_Name
+               & "GetBy" & Key.Haskell_Name
+               & " :: "
+               & Kit.Schema.Types.Haskell_Type_Name
+                 (Key.Field (1).Get_Field_Type)
+               & " -> IO a");
+         end if;
+      end Put_Key;
+
+      -----------------
+      -- Put_Key_Get --
+      -----------------
+
+      procedure Put_Key_Get
+        (Base : Kit.Schema.Tables.Table_Type'Class;
+         Key  : Kit.Schema.Keys.Key_Type'Class)
+      is
+         pragma Unreferenced (Base);
+         Type_Name    : constant String :=
+                          Key.Field (1).Get_Field_Type.Haskell_Type_Name;
+         Is_Reference : constant Boolean :=
+                          Key.Field (1).Get_Field_Type.Is_Table_Reference;
+      begin
+         if Key.Field_Count = 1 then
+            Put (File,
+                 Table.Haskell_Variable_Name
+                 & "GetBy"
+                 & Key.Haskell_Name
+                 & " ");
+            if Is_Reference then
+               Put (File, "(" & Type_Name & " k)");
+            else
+               Put (File, "k");
+            end if;
+            Put (File, " = ");
+            Put (File,
+                 "getBy " & Table.Index_Image & " """
+                 & Key.Standard_Name & """ ");
+
+            if Type_Name /= "String" then
+               Put (File, "(show k)");
+            else
+               Put (File, "k");
+            end if;
+
+            Put (File,
+                 " >>= (\x -> return ("
+                 & Table.Haskell_Name
+                 & " x))");
+
+            New_Line (File);
+
+         end if;
+      end Put_Key_Get;
+
    begin
       New_Line (File);
       Put (File, "class ");
@@ -160,12 +231,18 @@ package body Kit.Generate.Leander_Module is
 
       Table.Scan_Fields (Put_Field'Access);
 
+      if False then
+         Table.Scan_Keys (Put_Key'Access);
+      end if;
+
       New_Line (File);
       Put_Line (File,
                 "data " & Table.Haskell_Name & " = "
                 & Table.Haskell_Name & " Int");
 
       Table.Iterate (Put_Class_Instance'Access, Inclusive => True);
+
+      Table.Scan_Keys (Put_Key_Get'Access);
 
    end Create_Table;
 
@@ -193,8 +270,6 @@ package body Kit.Generate.Leander_Module is
       Close (Kit_Module_File);
 
       New_Line (Leander_Module_File);
-
---      Create_Record_Type (Db, Leander_Module_File);
 
       declare
          procedure Call_Create_Table
