@@ -215,14 +215,18 @@ package body Kit.Generate.Leander_Module is
             end if;
 
             Put (File,
-                 " >>= (\x -> return ("
+                 " >>= (return . "
                  & Table.Haskell_Name
-                 & " x))");
+                 & ")");
 
             New_Line (File);
 
          end if;
       end Put_Key_Get;
+
+      --------------------
+      -- Put_Key_Select --
+      --------------------
 
       procedure Put_Key_Select
         (Base : Kit.Schema.Tables.Table_Type'Class;
