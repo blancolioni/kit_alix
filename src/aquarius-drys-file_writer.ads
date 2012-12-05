@@ -41,6 +41,8 @@ private
    type File_Writer is
    limited new Writer_Interface with
       record
+         Path            : access String;
+         Temp_Path       : access String;
          Indent          : Natural := 0;
          First_On_Line   : Boolean := True;
          Have_Empty_Line : Boolean := False;

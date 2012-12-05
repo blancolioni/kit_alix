@@ -1,8 +1,18 @@
+with Ada.Directories;
 with Ada.Strings.Fixed;
 
 package body Aquarius.Writer.File_Writer is
 
    Right_Margin : constant := 78;
+
+   function Temporary_File
+     (Path : String)
+      return String;
+
+   function File_Changed
+     (Original_File_Path : String;
+      New_File_Path      : String)
+      return Boolean;
 
    -----------
    -- Close --
@@ -13,6 +23,12 @@ package body Aquarius.Writer.File_Writer is
    begin
       Item.Flush;
       Ada.Text_IO.Close (Item.File);
+
+      if File_Changed (Item.Path.all, Item.Temp_Path.all) then
+         Ada.Directories.Delete_File (Item.Path.all);
+         Ada.Directories.Rename (Item.Temp_Path.all, Item.Path.all);
+      end if;
+
    end Close;
 
    ---------
@@ -35,7 +51,9 @@ package body Aquarius.Writer.File_Writer is
       Path : in     String)
    is
    begin
-      Ada.Text_IO.Create (Item.File, Ada.Text_IO.Out_File, Path);
+      Item.Path := new String'(Path);
+      Item.Temp_Path := new String'(Temporary_File (Path));
+      Ada.Text_IO.Create (Item.File, Ada.Text_IO.Out_File, Item.Temp_Path.all);
       Item.Line_Length := 0;
       Item.Optional_NL := 0;
    end Create;
