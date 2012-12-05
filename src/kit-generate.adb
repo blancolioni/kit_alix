@@ -30,10 +30,12 @@ package body Kit.Generate is
    procedure Create_Field_Type
      (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
+   pragma Unreferenced (Create_Field_Type);
 
    procedure Create_Key_Type
      (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
+   pragma Unreferenced (Create_Key_Type);
 
    procedure Create_Reference_Types
      (Db  : Kit.Schema.Databases.Database_Type;
@@ -287,24 +289,24 @@ package body Kit.Generate is
 --                   ("Record_Interface")),
 --              Named_Subtype ("Record_Type")));
 
-      Top.Append
-        (New_Abstract_Function
-           ("Get",
-            New_Formal_Argument
-              ("Item", Named_Subtype ("Record_Interface")),
-            New_Formal_Argument
-              ("Field", Named_Subtype ("Database_Field")),
-            Named_Subtype ("String")));
-
-      Top.Append
-        (New_Abstract_Procedure
-           ("Set",
-            New_Inout_Argument
-              ("Item", Named_Subtype ("Record_Interface")),
-            New_Formal_Argument
-              ("Field", Named_Subtype ("Database_Field")),
-            New_Formal_Argument
-              ("Value", Named_Subtype ("String"))));
+--        Top.Append
+--          (New_Abstract_Function
+--             ("Get",
+--              New_Formal_Argument
+--                ("Item", Named_Subtype ("Record_Interface")),
+--              New_Formal_Argument
+--                ("Field", Named_Subtype ("Database_Field")),
+--              Named_Subtype ("String")));
+--
+--        Top.Append
+--          (New_Abstract_Procedure
+--             ("Set",
+--              New_Inout_Argument
+--                ("Item", Named_Subtype ("Record_Interface")),
+--              New_Formal_Argument
+--                ("Field", Named_Subtype ("Database_Field")),
+--              New_Formal_Argument
+--                ("Value", Named_Subtype ("String"))));
 
       Top.Add_Separator;
 
@@ -569,8 +571,8 @@ package body Kit.Generate is
 
       --  Create_Handle_Function (Db, Top_Package);
       Create_Table_Type (Db, Top_Package);
-      Create_Key_Type (Db, Top_Package);
-      Create_Field_Type (Db, Top_Package);
+--        Create_Key_Type (Db, Top_Package);
+--        Create_Field_Type (Db, Top_Package);
       Create_Reference_Types (Db, Top_Package);
       Create_Record_Interface (Db, Top_Package);
       Create_Search_Interface (Db, Top_Package);

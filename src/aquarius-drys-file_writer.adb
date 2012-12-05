@@ -1,8 +1,19 @@
+with Ada.Directories;
 with Ada.Strings.Fixed;
 
 package body Aquarius.Drys.File_Writer is
 
    Right_Margin : constant := 78;
+   Next_Temporary : Integer := 0;
+
+   function Temporary_File
+     (Path : String)
+      return String;
+
+   function File_Changed
+     (Original_File_Path : String;
+      New_File_Path      : String)
+      return Boolean;
 
    -----------
    -- Close --
@@ -13,6 +24,15 @@ package body Aquarius.Drys.File_Writer is
    begin
       Item.Flush;
       Ada.Text_IO.Close (Item.File);
+
+      if Item.Path /= Item.Temp_Path then
+         if File_Changed (Item.Path.all, Item.Temp_Path.all) then
+            Ada.Directories.Delete_File (Item.Path.all);
+            Ada.Directories.Rename (Item.Temp_Path.all, Item.Path.all);
+         else
+            Ada.Directories.Delete_File (Item.Temp_Path.all);
+         end if;
+      end if;
    end Close;
 
    ---------
@@ -35,10 +55,56 @@ package body Aquarius.Drys.File_Writer is
       Path : in     String)
    is
    begin
-      Ada.Text_IO.Create (Item.File, Ada.Text_IO.Out_File, Path);
+      Item.Path := new String'(Path);
+      if Ada.Directories.Exists (Path) then
+         Item.Temp_Path := new String'(Temporary_File (Path));
+      else
+         Item.Temp_Path := Item.Path;
+      end if;
+      Ada.Text_IO.Create (Item.File, Ada.Text_IO.Out_File, Item.Temp_Path.all);
       Item.Line_Length := 0;
       Item.Optional_NL := 0;
    end Create;
+
+   ------------------
+   -- File_Changed --
+   ------------------
+
+   function File_Changed
+     (Original_File_Path : String;
+      New_File_Path      : String)
+      return Boolean
+   is
+      use Ada.Text_IO;
+      Old_File, New_File : File_Type;
+      Changed            : Boolean := False;
+   begin
+      Open (Old_File, In_File, Original_File_Path);
+      Open (New_File, In_File, New_File_Path);
+      while not End_Of_File (Old_File) loop
+         if End_Of_File (New_File) then
+            Changed := True;
+            exit;
+         end if;
+
+         declare
+            Old_Line : constant String := Get_Line (Old_File);
+            New_Line : constant String := Get_Line (New_File);
+         begin
+            if Old_Line /= New_Line then
+               Changed := True;
+               exit;
+            end if;
+         end;
+      end loop;
+
+      if not End_Of_File (New_File) then
+         Changed := True;
+      end if;
+      Close (Old_File);
+      Close (New_File);
+      return Changed;
+   end File_Changed;
 
    -----------
    -- Flush --
@@ -194,5 +260,22 @@ package body Aquarius.Drys.File_Writer is
          Writer.Current_Line (Writer.Line_Length) := ' ';
       end loop;
    end Set_Col;
+
+   --------------------
+   -- Temporary_File --
+   --------------------
+
+   function Temporary_File
+     (Path : String)
+      return String
+   is
+      Directory_Path : constant String :=
+                         Ada.Directories.Containing_Directory
+                           (Path);
+   begin
+      Next_Temporary := Next_Temporary - 1;
+      return Ada.Directories.Compose
+        (Directory_Path, "t" & Integer'Image (Next_Temporary) & ".txt");
+   end Temporary_File;
 
 end Aquarius.Drys.File_Writer;

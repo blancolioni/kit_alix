@@ -49,10 +49,12 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Generic_Get
      (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+   pragma Unreferenced (Create_Generic_Get);
 
    procedure Create_Generic_Set
      (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+   pragma Unreferenced (Create_Generic_Set);
 
    -------------------------------
    -- Create_Control_Procedures --
@@ -2437,17 +2439,17 @@ package body Kit.Generate.Public_Interface is
       Public_Get.Create_Get_From_Index (Table, Table_Package);
 
       Create_Identity_Function (Table, Table_Package);
-      Create_Generic_Get (Table, Table_Package);
-      Create_Generic_Set (Table, Table_Package);
+--        Create_Generic_Get (Table, Table_Package);
+--        Create_Generic_Set (Table, Table_Package);
 
       Table.Scan_Keys (Create_Key_Get'Access);
 
-      if Table.Has_Key_Field then
-         Public_Get.Create_Generic_Get_Function
-           (Db, Table, Table_Package, Key_Value => False);
-         Public_Get.Create_Generic_Get_Function
-           (Db, Table, Table_Package, Key_Value => True);
-      end if;
+--        if Table.Has_Key_Field then
+--           Public_Get.Create_Generic_Get_Function
+--             (Db, Table, Table_Package, Key_Value => False);
+--           Public_Get.Create_Generic_Get_Function
+--             (Db, Table, Table_Package, Key_Value => True);
+--        end if;
 
       Public_Get.Create_Reference_Get_Function
         (Db, Table, Table_Package);
