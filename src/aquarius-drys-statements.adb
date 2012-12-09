@@ -1,17 +1,5 @@
 package body Aquarius.Drys.Statements is
 
-   type If_Statement_Record is
-     new Statement with
-      record
-         Condition  : access Expression'Class;
-         True_Part  : Sequence_Of_Statements;
-         False_Part : Sequence_Of_Statements;
-      end record;
-
-   overriding
-   procedure Write (Item        : If_Statement_Record;
-                    Writer      : in out Writer_Interface'Class);
-
    type Loop_Statement_Record is
      new Statement with
       record
@@ -159,6 +147,38 @@ package body Aquarius.Drys.Statements is
       To_Case.Add_Case_Option (Value, Seq);
    end Add_Case_Option;
 
+   ---------------
+   -- Add_Elsif --
+   ---------------
+
+   procedure Add_Elsif
+     (To_Statement    : in out If_Statement_Record'Class;
+      Condition       : in     Expression'Class;
+      Elsif_Statement : in     Statement'Class)
+   is
+      Sequence : Sequence_Of_Statements;
+   begin
+      Sequence.Append (Elsif_Statement);
+      To_Statement.Elsifs.Append
+        ((new Expression'Class'(Condition),
+         Sequence));
+   end Add_Elsif;
+
+   ---------------
+   -- Add_Elsif --
+   ---------------
+
+   procedure Add_Elsif
+     (To_Statement     : in out If_Statement_Record'Class;
+      Condition        : in     Expression'Class;
+      Elsif_Statements : in     Sequence_Of_Statements)
+   is
+   begin
+      To_Statement.Elsifs.Append
+        ((new Expression'Class'(Condition),
+         Elsif_Statements));
+   end Add_Elsif;
+
    -----------------------
    -- Add_Others_Option --
    -----------------------
@@ -232,7 +252,7 @@ package body Aquarius.Drys.Statements is
      (Condition  : Expression'Class;
       True_Part  : Sequence_Of_Statements;
       False_Part : Sequence_Of_Statements)
-      return Statement'Class
+      return If_Statement_Record'Class
    is
    begin
       return Result : If_Statement_Record do
@@ -249,7 +269,7 @@ package body Aquarius.Drys.Statements is
    function If_Statement
      (Condition  : Expression'Class;
       True_Part  : Sequence_Of_Statements)
-      return Statement'Class
+      return If_Statement_Record'Class
    is
    begin
       return Result : If_Statement_Record do
@@ -265,12 +285,30 @@ package body Aquarius.Drys.Statements is
    function If_Statement
      (Condition  : Expression'Class;
       True_Part  : Statement'Class)
-      return Statement'Class
+      return If_Statement_Record'Class
    is
       Sequence : Sequence_Of_Statements;
    begin
       Sequence.Append (True_Part);
       return If_Statement (Condition, Sequence);
+   end If_Statement;
+
+   ------------------
+   -- If_Statement --
+   ------------------
+
+   function If_Statement
+     (Condition  : Expression'Class;
+      True_Part  : Statement'Class;
+      False_Part : Statement'Class)
+      return If_Statement_Record'Class
+   is
+      True_Sequence  : Sequence_Of_Statements;
+      False_Sequence : Sequence_Of_Statements;
+   begin
+      True_Sequence.Append (True_Part);
+      False_Sequence.Append (False_Part);
+      return If_Statement (Condition, True_Sequence, False_Sequence);
    end If_Statement;
 
    -------------
@@ -633,6 +671,12 @@ package body Aquarius.Drys.Statements is
       Item.Condition.Write (Writer);
       Writer.Put_Line (" then");
       Item.True_Part.Write (Writer);
+      for E of Item.Elsifs loop
+         Writer.Put ("elsif ");
+         E.Condition.Write (Writer);
+         Writer.Put_Line (" then");
+         E.Stats.Write (Writer);
+      end loop;
       if Item.False_Part.Sequence.Last_Index > 0 then
          Writer.Put_Line ("else");
          Item.False_Part.Write (Writer);
