@@ -22,21 +22,40 @@ package Aquarius.Drys.Statements is
      (Block : Aquarius.Drys.Blocks.Block_Type'Class)
       return Statement'Class;
 
+   type If_Statement_Record is
+     new Statement with private;
+
    function If_Statement
      (Condition  : Expression'Class;
       True_Part  : Sequence_Of_Statements;
       False_Part : Sequence_Of_Statements)
-      return Statement'Class;
+      return If_Statement_Record'Class;
 
    function If_Statement
      (Condition  : Expression'Class;
       True_Part  : Sequence_Of_Statements)
-      return Statement'Class;
+      return If_Statement_Record'Class;
 
    function If_Statement
      (Condition  : Expression'Class;
       True_Part  : Statement'Class)
-      return Statement'Class;
+      return If_Statement_Record'Class;
+
+   function If_Statement
+     (Condition  : Expression'Class;
+      True_Part  : Statement'Class;
+      False_Part : Statement'Class)
+      return If_Statement_Record'Class;
+
+   procedure Add_Elsif
+     (To_Statement    : in out If_Statement_Record'Class;
+      Condition       : in     Expression'Class;
+      Elsif_Statement : in     Statement'Class);
+
+   procedure Add_Elsif
+     (To_Statement     : in out If_Statement_Record'Class;
+      Condition        : in     Expression'Class;
+      Elsif_Statements : in     Sequence_Of_Statements);
 
    function While_Statement
      (Condition  : Expression'Class;
@@ -195,5 +214,27 @@ private
          Case_Expression : access Expression'Class;
          Case_Options    : Case_Option_Vector.Vector;
       end record;
+
+   type Elsif_Option is
+      record
+         Condition : access Expression'Class;
+         Stats     : Sequence_Of_Statements;
+      end record;
+
+   package Elsif_Option_Vector is
+      new Ada.Containers.Vectors (Positive, Elsif_Option);
+
+   type If_Statement_Record is
+     new Statement with
+      record
+         Condition  : access Expression'Class;
+         True_Part  : Sequence_Of_Statements;
+         Elsifs     : Elsif_Option_Vector.Vector;
+         False_Part : Sequence_Of_Statements;
+      end record;
+
+   overriding
+   procedure Write (Item        : If_Statement_Record;
+                    Writer      : in out Writer_Interface'Class);
 
 end Aquarius.Drys.Statements;
