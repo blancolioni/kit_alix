@@ -20,6 +20,10 @@ package body Kit.Generate.Public_Interface is
       Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
+   procedure Create_Field_Constants
+     (Table : in Kit.Schema.Tables.Table_Type'Class;
+      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+
    procedure Create_Locking_Procedures
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type'Class;
@@ -49,12 +53,10 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Generic_Get
      (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
-   pragma Unreferenced (Create_Generic_Get);
 
    procedure Create_Generic_Set
      (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
-   pragma Unreferenced (Create_Generic_Set);
 
    -------------------------------
    -- Create_Control_Procedures --
@@ -310,6 +312,43 @@ package body Kit.Generate.Public_Interface is
       Create_Initialize;
       Create_Finalize;
    end Create_Control_Procedures;
+
+   ----------------------------
+   -- Create_Field_Constants --
+   ----------------------------
+
+   procedure Create_Field_Constants
+     (Table : in Kit.Schema.Tables.Table_Type'Class;
+      Top : in out Aquarius.Drys.Declarations.Package_Type'Class)
+   is
+      procedure Add_Field_Constant
+        (Base : Kit.Schema.Tables.Table_Type'Class;
+         Item : Kit.Schema.Fields.Field_Type'Class);
+
+      ------------------------
+      -- Add_Field_Constant --
+      ------------------------
+
+      procedure Add_Field_Constant
+        (Base : Kit.Schema.Tables.Table_Type'Class;
+         Item : Kit.Schema.Fields.Field_Type'Class)
+      is
+         pragma Unreferenced (Base);
+         Name : constant String := Item.Ada_Name;
+         Value : constant String := Item.Standard_Name;
+         Defn : constant Aquarius.Drys.Declaration'Class :=
+                  Aquarius.Drys.Declarations.New_Constant_Declaration
+                    (Name        => "F_" & Name,
+                     Object_Type => "String",
+                     Value       => Aquarius.Drys.Literal (Value));
+      begin
+         Top.Append (Defn);
+      end Add_Field_Constant;
+
+   begin
+      Table.Iterate_All (Add_Field_Constant'Access);
+      Top.Append (Aquarius.Drys.Declarations.New_Separator);
+   end Create_Field_Constants;
 
    ----------------------------------
    -- Create_Field_Store_Procedure --
@@ -721,13 +760,21 @@ package body Kit.Generate.Public_Interface is
    is
       use Aquarius.Drys;
       use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Expressions;
       use Aquarius.Drys.Statements;
 
       Got_Field : Boolean := False;
 
       Block  : Aquarius.Drys.Blocks.Block_Type;
-      Choose : Case_Statement_Record'Class :=
-                 Case_Statement ("Field");
+      Choose : If_Statement_Record'Class :=
+                 If_Statement
+                   (Operator ("=", Object ("Field"), Literal ("")),
+                    Raise_Statement
+                      ("Constraint_Error",
+                       "missing field name"),
+                    Raise_Statement
+                      ("Constraint_Error",
+                       "no such field"));
 
       procedure Select_Field
         (Base  : Kit.Schema.Tables.Table_Type'Class;
@@ -759,33 +806,16 @@ package body Kit.Generate.Public_Interface is
                   & " is not readable"));
          end if;
 
-         Choose.Add_Case_Option
-           (Value => "F_" & Field.Ada_Name,
-            Stats => Seq);
+         Choose.Add_Elsif
+           (Operator
+              ("=", Object ("Field"), Literal (Field.Standard_Name)),
+            Seq);
 
       end Select_Field;
 
    begin
 
-      declare
-         None_Seq : Sequence_Of_Statements;
-      begin
-         None_Seq.Append
-           (New_Return_Statement (Literal ("")));
-         Choose.Add_Case_Option ("No_Field", None_Seq);
-      end;
-
       Table.Iterate_All (Select_Field'Access);
-
-      declare
-         Others_Seq : Sequence_Of_Statements;
-      begin
-         Others_Seq.Append
-           (Raise_Statement
-              ("Constraint_Error",
-               "no such field"));
-         Choose.Add_Others_Option (Others_Seq);
-      end;
 
       if not Got_Field then
          Block.Add_Declaration (New_Pragma ("Unreferenced", "Item"));
@@ -806,7 +836,7 @@ package body Kit.Generate.Public_Interface is
             Table.Ada_Name & "_Implementation");
          Fetch.Add_Formal_Argument
            ("Field",
-            "Database_Field");
+            "String");
 
          Fetch.Set_Overriding;
          Top.Append_To_Body (Fetch);
@@ -825,13 +855,21 @@ package body Kit.Generate.Public_Interface is
    is
       use Aquarius.Drys;
       use Aquarius.Drys.Declarations;
+      use Aquarius.Drys.Expressions;
       use Aquarius.Drys.Statements;
 
       Got_Field : Boolean := False;
 
       Block  : Aquarius.Drys.Blocks.Block_Type;
-      Choose : Case_Statement_Record'Class :=
-                 Case_Statement ("Field");
+      Choose : If_Statement_Record'Class :=
+                 If_Statement
+                   (Operator ("=", Object ("Field"), Literal ("")),
+                    Raise_Statement
+                      ("Constraint_Error",
+                       "missing field name"),
+                    Raise_Statement
+                      ("Constraint_Error",
+                       "no such field"));
 
       procedure Set_Field
         (Base  : Kit.Schema.Tables.Table_Type'Class;
@@ -864,32 +902,16 @@ package body Kit.Generate.Public_Interface is
                   & " is not writable"));
          end if;
 
-         Choose.Add_Case_Option
-           (Value => "F_" & Field.Ada_Name,
-            Stats => Seq);
+         Choose.Add_Elsif
+           (Operator
+              ("=", Object ("Field"), Literal (Field.Standard_Name)),
+            Seq);
+
       end Set_Field;
 
    begin
 
-      declare
-         None_Seq : Sequence_Of_Statements;
-         Null_Stat : Null_Statement;
-      begin
-         None_Seq.Append (Null_Stat);
-         Choose.Add_Case_Option ("No_Field", None_Seq);
-      end;
-
       Table.Iterate_All (Set_Field'Access);
-
-      declare
-         Others_Seq : Sequence_Of_Statements;
-      begin
-         Others_Seq.Append
-           (Raise_Statement
-              ("Constraint_Error",
-               "no such field"));
-         Choose.Add_Others_Option (Others_Seq);
-      end;
 
       Block.Append (Choose);
 
@@ -911,7 +933,7 @@ package body Kit.Generate.Public_Interface is
             Table.Ada_Name & "_Implementation");
          Store.Add_Formal_Argument
            ("Field",
-            "Database_Field");
+            "String");
          Store.Add_Formal_Argument
            ("Value",
             "String");
@@ -2379,6 +2401,8 @@ package body Kit.Generate.Public_Interface is
             Body_With => True);
       end if;
 
+      Create_Field_Constants (Table, Table_Package);
+
       Table_Package.Append
         (New_Full_Type_Declaration
            (Table.Interface_Name,
@@ -2439,8 +2463,8 @@ package body Kit.Generate.Public_Interface is
       Public_Get.Create_Get_From_Index (Table, Table_Package);
 
       Create_Identity_Function (Table, Table_Package);
---        Create_Generic_Get (Table, Table_Package);
---        Create_Generic_Set (Table, Table_Package);
+      Create_Generic_Get (Table, Table_Package);
+      Create_Generic_Set (Table, Table_Package);
 
       Table.Scan_Keys (Create_Key_Get'Access);
 

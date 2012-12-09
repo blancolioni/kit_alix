@@ -2,9 +2,6 @@ with Aquarius.Drys.Declarations;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Types;
 
-with Kit.String_Maps;
-
-with Kit.Schema.Fields;
 with Kit.Schema.Keys;
 with Kit.Schema.Tables;
 with Kit.Schema.Types;
@@ -26,11 +23,6 @@ package body Kit.Generate is
    procedure Create_Table_Type
      (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
-
-   procedure Create_Field_Type
-     (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
-   pragma Unreferenced (Create_Field_Type);
 
    procedure Create_Key_Type
      (Db  : Kit.Schema.Databases.Database_Type;
@@ -56,61 +48,6 @@ package body Kit.Generate is
    procedure Create_Locking_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Aquarius.Drys.Declarations.Package_Type);
-
-   -----------------------
-   -- Create_Field_Type --
-   -----------------------
-
-   procedure Create_Field_Type
-     (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
-   is
-
-      Found : Kit.String_Maps.String_Map;
-      Field_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
-
-      procedure Add_Table_Fields
-        (Table : Kit.Schema.Tables.Table_Type'Class);
-
-      procedure Add_Table_Fields
-        (Table : Kit.Schema.Tables.Table_Type'Class)
-      is
-
-         procedure Add_Field_Type_Literal
-           (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Fields.Field_Type'Class);
-
-         --------------------------
-         -- Add_Key_Type_Literal --
-         --------------------------
-
-         procedure Add_Field_Type_Literal
-           (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Fields.Field_Type'Class)
-         is
-            pragma Unreferenced (Base);
-            Name : constant String := Item.Ada_Name;
-         begin
-            if not Found.Contains (Name) then
-               Field_Type_Definition.New_Literal ("F_" & Name);
-               Found.Insert (Name);
-            end if;
-         end Add_Field_Type_Literal;
-
-      begin
-         Table.Iterate_All (Add_Field_Type_Literal'Access);
-      end Add_Table_Fields;
-
-   begin
-
-      Field_Type_Definition.New_Literal ("No_Field");
-      Db.Iterate (Add_Table_Fields'Access);
-
-      Top.Append
-        (Aquarius.Drys.Declarations.New_Full_Type_Declaration
-              ("Database_Field", Field_Type_Definition));
-      Top.Append (Aquarius.Drys.Declarations.New_Separator);
-   end Create_Field_Type;
 
    ----------------------------
    -- Create_Handle_Function --
@@ -289,24 +226,24 @@ package body Kit.Generate is
 --                   ("Record_Interface")),
 --              Named_Subtype ("Record_Type")));
 
---        Top.Append
---          (New_Abstract_Function
---             ("Get",
---              New_Formal_Argument
---                ("Item", Named_Subtype ("Record_Interface")),
---              New_Formal_Argument
---                ("Field", Named_Subtype ("Database_Field")),
---              Named_Subtype ("String")));
---
---        Top.Append
---          (New_Abstract_Procedure
---             ("Set",
---              New_Inout_Argument
---                ("Item", Named_Subtype ("Record_Interface")),
---              New_Formal_Argument
---                ("Field", Named_Subtype ("Database_Field")),
---              New_Formal_Argument
---                ("Value", Named_Subtype ("String"))));
+      Top.Append
+        (New_Abstract_Function
+           ("Get",
+            New_Formal_Argument
+              ("Item", Named_Subtype ("Record_Interface")),
+            New_Formal_Argument
+              ("Field", Named_Subtype ("String")),
+            Named_Subtype ("String")));
+
+      Top.Append
+        (New_Abstract_Procedure
+           ("Set",
+            New_Inout_Argument
+              ("Item", Named_Subtype ("Record_Interface")),
+            New_Formal_Argument
+              ("Field", Named_Subtype ("String")),
+            New_Formal_Argument
+              ("Value", Named_Subtype ("String"))));
 
       Top.Add_Separator;
 
