@@ -14,6 +14,11 @@ package {database}.Tables is
    function Name (Table : Database_Table'Class) return String
    with Pre => Table.Has_Element;
 
+   function Field_Count (Table : Database_Table'Class) return Natural;
+   function Field_Name (Table : Database_Table'Class;
+                        Index : Positive)
+                        return String;
+
    type Record_Reference is private;
    Null_Record_Reference : constant Record_Reference;
    function To_String (Reference : Record_Reference) return String;
@@ -40,6 +45,11 @@ package {database}.Tables is
    function Get
      (From_Record : Database_Record'Class;
       Field_Name  : String)
+      return String;
+
+   function Get
+     (From_Record : Database_Record'Class;
+      Field_Index : Positive)
       return String;
 
    type Database_Field_Type is private;
@@ -96,9 +106,13 @@ package {database}.Tables is
 
 private
 
+   package String_Vectors is
+     new Ada.Containers.Indefinite_Vectors (Positive, String);
+
    type Database_Table is tagged
       record
-         Index : Marlowe.Table_Index;
+         Index      : Marlowe.Table_Index;
+         Fields     : String_Vectors.Vector;
       end record;
 
    type Record_Reference is new Marlowe.Database_Index;

@@ -53,13 +53,25 @@ package body {database}.Tables is
       Field_Name : String)
       return Database_Table'Class;
 
+   function Get_Field_Names
+     (Table_Index : Positive)
+      return String_Vectors.Vector;
+
+   -----------------
+   -- Field_Count --
+   -----------------
+
+   function Field_Count (Table : Database_Table'Class) return Natural is
+   begin
+      return Table.Fields.Last_Index;
+   end Field_Count;
+
    -----------------
    -- Field_Count --
    -----------------
 
    function Field_Count (Rec : Database_Record'Class) return Natural is
-      Result : Natural :=
-                 Kit_Field.Select_By_Kit_Record (Rec.Rec_Ref).Length;
+      Result : Natural := Kit_Field.Select_By_Kit_Record (Rec.Rec_Ref).Length;
    begin
       for Base of Kit_Record_Base.Select_By_Derived (Rec.Rec_Ref) loop
          Result := Result +
@@ -67,6 +79,18 @@ package body {database}.Tables is
       end loop;
       return Result;
    end Field_Count;
+
+   ----------------
+   -- Field_Name --
+   ----------------
+
+   function Field_Name (Table : Database_Table'Class;
+                        Index : Positive)
+                        return String
+   is
+   begin
+      return Table.Fields (Index);
+   end Field_Name;
 
    ----------------
    -- Field_Name --
@@ -135,6 +159,7 @@ package body {database}.Tables is
       return Item : Database_Record do
          Item.Table := Table.Index;
          Item.Index := Marlowe.Database_Index (Reference);
+         Item.Rec_Ref := Kit_Record_Reference (Item.Table);
 
          Marlowe.Btree_Handles.Get_Record
            (Marlowe_Keys.Handle, Table.Index, Item.Index,
@@ -304,6 +329,50 @@ package body {database}.Tables is
       end if;
    end Get;
 
+   ---------
+   -- Get --
+   ---------
+
+   function Get
+     (From_Record : Database_Record'Class;
+      Field_Index : Positive)
+      return String
+   is
+      Field_Name : constant String := From_Record.Field_Name (Field_Index);
+   begin
+      return From_Record.Get (Field_Name);
+   end Get;
+
+   ---------------------
+   -- Get_Field_Names --
+   ---------------------
+
+   function Get_Field_Names
+     (Table_Index : Positive)
+      return String_Vectors.Vector
+   is
+      Result : String_Vectors.Vector;
+      Rec    : {database}.Kit_Record.Kit_Record_Type :=
+                 {database}.Kit_Record.Get_By_Table_Index (Table_Index);
+   begin
+      for Rec_Base of
+        {database}.Kit_Record_Base.Select_By_Derived (Rec.Reference)
+      loop
+         for Field of
+           {database}.Kit_Field.Select_By_Kit_Record (Rec_Base.Base)
+         loop
+            Result.Append (Field.Name);
+         end loop;
+      end loop;
+
+      for Field of
+        {database}.Kit_Field.Select_By_Kit_Record (Rec.Reference)
+      loop
+         Result.Append (Field.Name);
+      end loop;
+      return Result;
+   end Get_Field_Names;
+
    ---------------------
    -- Get_Field_Table --
    ---------------------
@@ -391,7 +460,9 @@ package body {database}.Tables is
          begin
             if First_Dot > 0 then
                declare
-                  Table : constant Database_Table := (Index => Rec_Table);
+                  Table : constant Database_Table :=
+                            (Index => Rec_Table,
+                             Fields => String_Vectors.Empty_Vector);
                   Rec : constant Database_Record'Class :=
                           Get (Table, Rec_Ref);
                begin
@@ -544,9 +615,11 @@ package body {database}.Tables is
               Kit_Record.Get_By_Name (Table_Name);
    begin
       if Rec.Has_Element then
-         return (Index => Marlowe.Table_Index (Rec.Table_Index));
+         return (Index => Marlowe.Table_Index (Rec.Table_Index),
+                 Fields => Get_Field_Names (Rec.Table_Index));
       else
-         return (Index => 0);
+         return (Index => 0,
+                 Fields => String_Vectors.Empty_Vector);
       end if;
    end Get_Table;
 
