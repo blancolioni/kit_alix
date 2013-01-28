@@ -3,13 +3,14 @@ with "marlowe";
 with "gcs";
 with "wlib";
 with "leander";
+with "gtkada";
 
-project Kit_Server is
+project Kit_UI is
 
-   for Source_Dirs use ("src", "src/server", "src/server/generated");
+   for Source_Dirs use ("src", "src/server", "src/server/generated", "src/ui");
    for Object_Dir use "build/obj";
    for Exec_Dir use "build/bin";
-   for Main use ("kit-server-driver");
+   for Main use ("kit-ui-driver");
 
    package Builder is
       for Default_Switches ("ada") use ("-k", "-s", "-g");
@@ -23,5 +24,5 @@ project Kit_Server is
       for Default_Switches ("ada") use ("-g");
    end Linker;
 
-end Kit_Server;
+end Kit_UI;
 
