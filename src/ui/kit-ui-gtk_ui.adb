@@ -2,8 +2,10 @@ with Ada.Containers.Vectors;
 with Ada.Text_IO;
 
 with Glib.Error;
+with Glib.Main;
 
 with Gdk.Pixbuf;
+with Gdk.Threads;
 
 with Gtk.Builder;
 with Gtk.Handlers;
@@ -30,6 +32,12 @@ package body Kit.UI.Gtk_UI is
    package List_Of_Table_Displays is
      new Ada.Containers.Vectors (Positive, Table_Book.Table_Display,
                                  Table_Book."=");
+
+   Local_UI : Kit_UI;
+
+   Timeout_Id : Glib.Main.G_Source_Id;
+
+   function Timeout_Handler return Boolean;
 
    type Root_Gtk_UI is
      new Root_Kit_UI
@@ -73,8 +81,12 @@ package body Kit.UI.Gtk_UI is
      (W : access Gtk.Window.Gtk_Window_Record'Class)
    is
       pragma Unreferenced (W);
+      use type Glib.Main.G_Source_Id;
    begin
       Kit.Db.Database.Close;
+      if Timeout_Id /= 0 then
+         Glib.Main.Remove (Timeout_Id);
+      end if;
       Gtk.Main.Main_Quit;
    end Destroy_Handler;
 
@@ -86,6 +98,9 @@ package body Kit.UI.Gtk_UI is
       Result : Root_Gtk_UI;
       Builder : Gtk.Builder.Gtk_Builder;
    begin
+      Gdk.Threads.G_Init;
+      Gdk.Threads.Init;
+
       Gtk.Main.Init;
       Gtk.Builder.Gtk_New (Builder);
 
@@ -172,6 +187,14 @@ package body Kit.UI.Gtk_UI is
          With_UI.Table_Book.Set_Current_Page;
       end;
 
+      declare
+         use type Glib.Main.G_Source_Id;
+      begin
+         if Timeout_Id = 0 then
+            Timeout_Id := Glib.Main.Idle_Add (Timeout_Handler'Access);
+         end if;
+      end;
+
    end Show_Table;
 
    -----------
@@ -186,8 +209,52 @@ package body Kit.UI.Gtk_UI is
       Kit.Db.Database.Open (Path);
       Kit.UI.Gtk_UI.Table_Lists.Fill_Table_List
         (UI'Unchecked_Access, UI.Table_List);
+      Timeout_Id := Glib.Main.Idle_Add (Timeout_Handler'Access);
+--        Timeout_Id := Glib.Main.Timeout_Add
+--          (Interval => 1000,
+--           Func     => Timeout_Handler'Access);
 
+      Local_UI := UI'Unchecked_Access;
+
+      Gdk.Threads.Enter;
       Gtk.Main.Main;
+      Gdk.Threads.Leave;
+
    end Start;
+
+   -------------------
+   -- Start_Updates --
+   -------------------
+
+   procedure Start_Updates is
+      use type Glib.Main.G_Source_Id;
+   begin
+      if Timeout_Id = 0 then
+         Timeout_Id := Glib.Main.Idle_Add (Timeout_Handler'Access);
+      end if;
+   end Start_Updates;
+
+   ---------------------
+   -- Timeout_Handler --
+   ---------------------
+
+   function Timeout_Handler return Boolean is
+      Continue : Boolean := False;
+   begin
+      for Display of Root_Gtk_UI (Local_UI.all).Table_Displays.all loop
+         declare
+            Changed : Boolean;
+         begin
+            Display.Update (10, Changed);
+            if Changed then
+               Continue := True;
+            end if;
+         end;
+      end loop;
+      if not Continue then
+         Timeout_Id := 0;
+      end if;
+      return Continue;
+   end Timeout_Handler;
 
 end Kit.UI.Gtk_UI;
