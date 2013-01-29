@@ -277,14 +277,16 @@ package body Kit.UI.Gtk_UI.Table_Book is
                             Gtk.List_Store.Gtk_List_Store
                               (Display.Widget.Get_Model);
                begin
-                  Store.Append (Iter);
-                  for I in 1 .. Cell_Count (Row) loop
-                     Store.Set (Iter   => Iter,
-                                Column => Glib.Gint (I - 1),
-                                Value  =>
-                                  Glib.Convert.Locale_To_UTF8
-                                    (Cell_Value (Row, I)));
-                  end loop;
+                  if Cell_Count (Row) > 0 then
+                     Store.Append (Iter);
+                     for I in 1 .. Cell_Count (Row) loop
+                        Store.Set (Iter   => Iter,
+                                   Column => Glib.Gint (I - 1),
+                                   Value  =>
+                                     Glib.Convert.Locale_To_UTF8
+                                       (Cell_Value (Row, I)));
+                     end loop;
+                  end if;
                end;
                Changed := True;
             else
