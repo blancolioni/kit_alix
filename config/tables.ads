@@ -12,7 +12,7 @@ package {database}.Tables is
    function Has_Element (Table : Database_Table'Class) return Boolean;
 
    function Name (Table : Database_Table'Class) return String
-   with Pre => Table.Has_Element;
+   with Pre => Has_Element (Table);
 
    function Field_Count (Table : Database_Table'Class) return Natural;
    function Field_Name (Table : Database_Table'Class;
