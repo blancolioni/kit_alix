@@ -1,5 +1,6 @@
 with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
+with Ada.Long_Float_Text_IO;
 with Ada.Text_IO;
 
 with Marlowe.Btree_Handles;
@@ -942,18 +943,28 @@ package body {database}.Tables is
          when R_Kit_Float =>
             declare
                X : Float;
+               Buffer : String (1 .. 32);
             begin
                Marlowe.Key_Storage.From_Storage (X, Value);
-               return Ada.Strings.Fixed.Trim (Float'Image (X),
-                                              Ada.Strings.Left);
+               Ada.Long_Float_Text_IO.Put
+                 (To   => Buffer,
+                  Item => Long_Float (X),
+                  Aft  => 4,
+                  Exp  => 0);
+               return Ada.Strings.Fixed.Trim (Buffer, Ada.Strings.Left);
             end;
          when R_Kit_Long_Float =>
             declare
                X : Long_Float;
+               Buffer : String (1 .. 32);
             begin
                Marlowe.Key_Storage.From_Storage (X, Value);
-               return Ada.Strings.Fixed.Trim (Long_Float'Image (X),
-                                              Ada.Strings.Left);
+               Ada.Long_Float_Text_IO.Put
+                 (To   => Buffer,
+                  Item => X,
+                  Aft  => 8,
+                  Exp  => 0);
+               return Ada.Strings.Fixed.Trim (Buffer, Ada.Strings.Left);
             end;
          when R_Kit_String =>
             declare
