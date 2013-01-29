@@ -1,6 +1,7 @@
 with Ada.Characters.Handling;
 
 with Glib;
+with Glib.Convert;
 
 with Gtk.Cell_Renderer_Text;
 with Gtk.Handlers;
@@ -11,7 +12,6 @@ with Gtk.Tree_View_Column;
 with Kit.Db.Kit_Key;
 with Kit.Db.Kit_Record;
 with Kit.Db.Kit_Record_Base;
-with Kit.Db.Tables;
 
 package body Kit.UI.Gtk_UI.Table_Book is
 
@@ -45,30 +45,12 @@ package body Kit.UI.Gtk_UI.Table_Book is
       Num         : Glib.Gint;
       pragma Warnings (Off, Num);
 
-      procedure Add_Record (Rec : Kit.Db.Tables.Database_Record'Class);
-
       procedure Initialise_View_From_Record;
 
       function Format_Heading (Database_Name : String) return String;
 
       Result : constant Table_Display := new Root_Table_Display;
 
-
-      ----------------
-      -- Add_Record --
-      ----------------
-
-      procedure Add_Record (Rec : Kit.Db.Tables.Database_Record'Class) is
-         --  pragma Unreferenced (Rec);
-         Iter  : Gtk.Tree_Model.Gtk_Tree_Iter;
-      begin
-         Store.Append (Iter);
-         for I in 1 .. Table.Field_Count loop
-            Store.Set (Iter   => Iter,
-                       Column => Glib.Gint (I - 1),
-                       Value  => Rec.Get (I));
-         end loop;
-      end Add_Record;
 
       --------------------
       -- Format_Heading --
@@ -149,7 +131,8 @@ package body Kit.UI.Gtk_UI.Table_Book is
          if Kit_Key.Has_Element then
             Result.Key_Name :=
               Ada.Strings.Unbounded.To_Unbounded_String (Kit_Key.Name);
-            Table.Iterate (Kit_Key.Name, Add_Record'Access);
+            Kit.Db.Tables.Scanner.Start_Scan
+              (Result.Scan, Table, Kit_Key.Name);
          end if;
       end;
 
@@ -224,6 +207,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
 
          if Found then
             Show_Table (Display);
+            Start_Updates;
          end if;
       end if;
 
@@ -237,6 +221,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
      (Display : Table_Display)
    is
 
+
       Store : constant Gtk.List_Store.Gtk_List_Store :=
                 Gtk.List_Store.Gtk_List_Store
                   (Display.Widget.Get_Model);
@@ -244,30 +229,16 @@ package body Kit.UI.Gtk_UI.Table_Book is
       Table : constant Kit.Db.Tables.Database_Table :=
                 Kit.Db.Tables.Get_Table (Table_Name (Display.all));
 
-      procedure Add_Record (Rec : Kit.Db.Tables.Database_Record'Class);
-
-      ----------------
-      -- Add_Record --
-      ----------------
-
-      procedure Add_Record (Rec : Kit.Db.Tables.Database_Record'Class) is
-         --  pragma Unreferenced (Rec);
-         Iter  : Gtk.Tree_Model.Gtk_Tree_Iter;
-      begin
-         Store.Append (Iter);
-         for I in 1 .. Table.Field_Count loop
-            Store.Set (Iter   => Iter,
-                       Column => Glib.Gint (I - 1),
-                       Value  => Rec.Get (I));
-         end loop;
-      end Add_Record;
-
    begin
+      if Kit.Db.Tables.Scanner.Scanning (Display.Scan) then
+         Kit.Db.Tables.Scanner.Close (Display.Scan);
+      end if;
+
       Store.Clear;
 
-      Table.Iterate
-        (Ada.Strings.Unbounded.To_String (Display.Key_Name),
-         Add_Record'Access);
+      Kit.Db.Tables.Scanner.Start_Scan
+        (Display.Scan, Table,
+         Ada.Strings.Unbounded.To_String (Display.Key_Name));
 
    end Show_Table;
 
@@ -281,6 +252,55 @@ package body Kit.UI.Gtk_UI.Table_Book is
    begin
       return Ada.Strings.Unbounded.To_String (Display.Table_Name);
    end Table_Name;
+
+   ------------
+   -- Update --
+   ------------
+
+   procedure Update (Display  : in out Root_Table_Display'Class;
+                     Max_Rows : Positive;
+                     Changed  : out Boolean)
+   is
+      use Kit.Db.Tables.Scanner;
+      Done : Boolean := False;
+   begin
+      Changed := False;
+      if not Scanning (Display.Scan) then
+         return;
+      else
+         for I in 1 .. Max_Rows loop
+            if More_Rows (Display.Scan) then
+               declare
+                  Row : constant Table_Row := Next_Row (Display.Scan);
+                  Iter  : Gtk.Tree_Model.Gtk_Tree_Iter;
+                  Store : constant Gtk.List_Store.Gtk_List_Store :=
+                            Gtk.List_Store.Gtk_List_Store
+                              (Display.Widget.Get_Model);
+               begin
+                  Store.Append (Iter);
+                  for I in 1 .. Cell_Count (Row) loop
+                     Store.Set (Iter   => Iter,
+                                Column => Glib.Gint (I - 1),
+                                Value  =>
+                                  Glib.Convert.Locale_To_UTF8
+                                    (Cell_Value (Row, I)));
+                  end loop;
+               end;
+               Changed := True;
+            else
+               Done := True;
+               exit;
+            end if;
+         end loop;
+
+         if Done then
+            Close (Display.Scan);
+         end if;
+
+      end if;
+
+   end Update;
+
 
    ------------
    -- Widget --
