@@ -56,7 +56,7 @@ package body Kit.UI.Gtk_UI.Table_Lists is
                                  Glib.Gint (0));
 
       Tree_View_Callback.Connect
-        (View, "row-activated",
+        (View, Gtk.Tree_View.Signal_Row_Activated,
          Select_Table_Handler'Access,
          Kit_UI (UI));
 

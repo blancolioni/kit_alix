@@ -12,7 +12,6 @@ with Gtk.Main;
 with Gtk.Notebook;
 with Gtk.Scrolled_Window;
 with Gtk.Tree_View;
-with Gtk.Widget;
 with Gtk.Window;
 
 with Kit.Db.Database;
@@ -28,14 +27,9 @@ package body Kit.UI.Gtk_UI is
 
    procedure Destroy_Handler (W : access Gtk.Window.Gtk_Window_Record'Class);
 
-   type Table_Display_Record is
-      record
-         Name   : access String;
-         Widget : Gtk.Widget.Gtk_Widget;
-      end record;
-
    package List_Of_Table_Displays is
-     new Ada.Containers.Vectors (Positive, Table_Display_Record);
+     new Ada.Containers.Vectors (Positive, Table_Book.Table_Display,
+                                 Table_Book."=");
 
    type Root_Gtk_UI is
      new Root_Kit_UI
@@ -154,7 +148,7 @@ package body Kit.UI.Gtk_UI is
    begin
       Ada.Text_IO.Put_Line ("Table: " & Table_Name);
       for I in 1 .. With_UI.Table_Displays.Last_Index loop
-         if With_UI.Table_Displays.Element (I).Name.all = Table_Name then
+         if With_UI.Table_Displays.Element (I).Table_Name = Table_Name then
             With_UI.Table_Book.Set_Current_Page (Glib.Gint (I - 1));
             return;
          end if;
@@ -162,20 +156,19 @@ package body Kit.UI.Gtk_UI is
 
       declare
          Scrolled : Gtk.Scrolled_Window.Gtk_Scrolled_Window;
-         Widget : constant Gtk.Widget.Gtk_Widget :=
-                    Kit.UI.Gtk_UI.Table_Book.New_Table_Display
-                      (Table_Name);
+         Display  : constant Kit.UI.Gtk_UI.Table_Book.Table_Display :=
+                      Kit.UI.Gtk_UI.Table_Book.New_Table_Display
+                        (Table_Name);
          Label  : Gtk.Label.Gtk_Label;
       begin
          Gtk.Scrolled_Window.Gtk_New
            (Scrolled);
-         Scrolled.Add (Widget);
+         Scrolled.Add (Display.Widget);
          Scrolled.Show_All;
          Gtk.Label.Gtk_New (Label, Table_Name);
          Label.Show_All;
          With_UI.Table_Book.Append_Page (Scrolled, Label);
-         With_UI.Table_Displays.Append
-           ((new String'(Table_Name), Widget));
+         With_UI.Table_Displays.Append (Display);
          With_UI.Table_Book.Set_Current_Page;
       end;
 
