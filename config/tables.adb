@@ -951,7 +951,24 @@ package body {database}.Tables is
                   Item => Long_Float (X),
                   Aft  => 4,
                   Exp  => 0);
-               return Ada.Strings.Fixed.Trim (Buffer, Ada.Strings.Left);
+
+               declare
+                  Result : constant String :=
+                             Ada.Strings.Fixed.Trim
+                               (Buffer, Ada.Strings.Both);
+                  Last   : Natural := Result'Last;
+               begin
+                  while Last >= Result'First
+                    and then Result (Last) = '0'
+                  loop
+                     Last := Last - 1;
+                  end loop;
+                  if Result (Last) = '.' then
+                     Last := Last - 1;
+                  end if;
+                  return Result (Result'First .. Last);
+               end;
+
             end;
          when R_Kit_Long_Float =>
             declare
@@ -964,7 +981,24 @@ package body {database}.Tables is
                   Item => X,
                   Aft  => 8,
                   Exp  => 0);
-               return Ada.Strings.Fixed.Trim (Buffer, Ada.Strings.Left);
+
+               declare
+                  Result : constant String :=
+                             Ada.Strings.Fixed.Trim
+                               (Buffer, Ada.Strings.Both);
+                  Last   : Natural := Result'Last;
+               begin
+                  while Last >= Result'First
+                    and then Result (Last) = '0'
+                  loop
+                     Last := Last - 1;
+                  end loop;
+                  if Result (Last) = '.' then
+                     Last := Last - 1;
+                  end if;
+                  return Result (Result'First .. Last);
+               end;
+
             end;
          when R_Kit_String =>
             declare
