@@ -99,6 +99,7 @@ package body Kit.Generate.Server is
       Standard_Sub.Insert (Key, Database_Name);
 
       Copy ("Tables");
+      Copy ("Tables.Scanner");
       Copy ("Tables.SK_Tables");
       Copy ("SK_Bindings");
 
