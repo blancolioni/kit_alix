@@ -114,10 +114,16 @@ package body {database}.Tables.Scanner is
       -- Next_Row --
       --------------
 
-      entry Next_Row (Row : out Table_Row) when not Rows.Is_Empty is
+      entry Next_Row (Row : out Table_Row)
+        when Scan_Finished or else not Rows.Is_Empty
+      is
       begin
-         Row := Rows.First_Element;
-         Rows.Delete_First;
+         if Rows.Is_Empty then
+            Row := (Cells => String_Vectors.Empty_Vector);
+         else
+            Row := Rows.First_Element;
+            Rows.Delete_First;
+         end if;
       end Next_Row;
 
 
