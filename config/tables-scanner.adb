@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
@@ -107,7 +108,7 @@ package body {database}.Tables.Scanner is
 
       function Finished return Boolean is
       begin
-         return Scan_Finished;
+         return Scan_Finished and then Rows.Is_Empty;
       end Finished;
 
       --------------
@@ -146,20 +147,22 @@ package body {database}.Tables.Scanner is
       Buf : Buffer_Access;
       Scan_Table : Database_Table;
       Scan_Key   : Ada.Strings.Unbounded.Unbounded_String;
+      Count      : Natural;
 
-      procedure Add_Row (Item : Database_Record'Class);
+      procedure Add_Row (Item : in out Database_Record'Class);
 
       -------------
       -- Add_Row --
       -------------
 
-      procedure Add_Row (Item : Database_Record'Class) is
+      procedure Add_Row (Item : in out Database_Record'Class) is
          Row : Table_Row;
       begin
          for I in 1 .. Item.Field_Count loop
             Row.Cells.Append (Item.Get (I));
          end loop;
          Buf.Add_Row (Row);
+         Count := Count + 1;
       end Add_Row;
 
    begin
@@ -172,10 +175,21 @@ package body {database}.Tables.Scanner is
          Scan_Key   := Ada.Strings.Unbounded.To_Unbounded_String (Key_Name);
       end Start_Scan;
 
-      Ada.Text_IO.Put_Line ("Start scan");
-      Scan_Table.Iterate (Ada.Strings.Unbounded.To_String (Scan_Key),
-                          Add_Row'Access);
-      Ada.Text_IO.Put_Line ("Finished scanning");
+      declare
+         use type Ada.Calendar.Time;
+         Start_Time : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      begin
+         Ada.Text_IO.Put_Line ("Start scan");
+         Count := 0;
+         Scan_Table.Iterate (Ada.Strings.Unbounded.To_String (Scan_Key),
+                             Add_Row'Access);
+         Ada.Text_IO.Put_Line ("Finished scanning"
+                               & Count'Img & " records"
+                               & " in"
+                               & Natural'Image
+                                 (Natural (Ada.Calendar.Clock - Start_Time))
+                               & " seconds");
+      end;
       Buf.Set_Finished;
    end Table_Scanner_Task;
 
