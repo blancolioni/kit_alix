@@ -48,7 +48,7 @@ package body Kit.Schema.Keys is
    ----------------
 
    procedure Create_Key
-     (Item       : in out Key_Type;
+     (Item       : in out Root_Key_Type'Class;
       Name       : in     String;
       Unique     : in     Boolean)
    is
@@ -96,7 +96,7 @@ package body Kit.Schema.Keys is
    -- Unique --
    ------------
 
-   function Unique (Key : Key_Type) return Boolean is
+   function Unique (Key : Root_Key_Type) return Boolean is
    begin
       return Key.Unique;
    end Unique;

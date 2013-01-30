@@ -9,10 +9,6 @@ package body Kit.Generate.Fetch is
    -- Fetch_From_Index --
    ----------------------
 
-   ----------------------
-   -- Fetch_From_Index --
-   ----------------------
-
    procedure Fetch_From_Index
      (Table       : Kit.Schema.Tables.Table_Type'Class;
       Object_Name : String;
@@ -26,6 +22,7 @@ package body Kit.Generate.Fetch is
       --------------
 
       procedure Get_Base (Base   : Kit.Schema.Tables.Table_Type'Class) is
+         use Aquarius.Drys;
          use Aquarius.Drys.Expressions;
          use Aquarius.Drys.Statements;
 
@@ -42,8 +39,10 @@ package body Kit.Generate.Fetch is
               (Base_Target,
                New_Function_Call_Expression
                  (Cache_Package & ".Get",
-                  "Marlowe_Keys.Handle",
-                  Index_Variable)));
+                  Object ("Marlowe_Keys.Handle"),
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Index_Variable))));
       end Get_Base;
 
    begin

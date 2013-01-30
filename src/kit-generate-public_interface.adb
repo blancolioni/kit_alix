@@ -513,7 +513,9 @@ package body Kit.Generate.Public_Interface is
                Key_Storage,
                Aquarius.Drys.Expressions.New_Function_Call_Expression
                  ("Marlowe.Key_Storage.To_Storage_Array",
-                  Table.Database_Index_Component ("Item", Table_Base))));
+                  Aquarius.Drys.Expressions.New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Table.Database_Index_Component ("Item", Table_Base)))));
 
          Store_Block.Add_Statement
            (Aquarius.Drys.Statements.If_Statement
@@ -1466,10 +1468,10 @@ package body Kit.Generate.Public_Interface is
                  (New_Assignment_Statement
                     (Table.Database_Index_Component
                        ("Result", Base, Meta_Base),
-                     Object
-                       (Table.Database_Index_Component
-                          ("Result",
-                           Meta_Base))));
+                        Object
+                          (Table.Database_Index_Component
+                             ("Result",
+                              Meta_Base))));
             end Set_Base_Index;
 
          begin
@@ -1479,9 +1481,11 @@ package body Kit.Generate.Public_Interface is
               (New_Assignment_Statement
                  (Index_Field,
                   New_Function_Call_Expression
-                    ("Marlowe.Btree_Handles.Insert_Record",
-                     Object ("Marlowe_Keys.Handle"),
-                     Literal (Integer (Base.Reference_Index)))));
+                    (Base.Reference_Type,
+                     New_Function_Call_Expression
+                       ("Marlowe.Btree_Handles.Insert_Record",
+                        Object ("Marlowe_Keys.Handle"),
+                        Literal (Integer (Base.Reference_Index))))));
             if Base.Ada_Name /= Table.Ada_Name then
                Base.Iterate (Set_Base_Index'Access, Inclusive   => False);
             end if;
@@ -1490,7 +1494,9 @@ package body Kit.Generate.Public_Interface is
               (New_Procedure_Call_Statement
                  ("Result" & Base.Base_Component_Name & ".Initialise",
                   Literal (Integer (Base.Reference_Index)),
-                  Object (Index_Field)));
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Object (Index_Field))));
 
             Sequence.Append
               (New_Procedure_Call_Statement
@@ -1502,7 +1508,9 @@ package body Kit.Generate.Public_Interface is
             Sequence.Append
               (New_Procedure_Call_Statement
                  (Base.Ada_Name & "_Impl.Write",
-                  Object (Index_Field),
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Object (Index_Field)),
                   Object ("Result" & Base.Base_Component_Name & ".Db")));
 
             Sequence.Append
@@ -1790,7 +1798,7 @@ package body Kit.Generate.Public_Interface is
          --  Record_Defn.Add_Component ("Mark", "Mark_Access");
          Record_Defn.Add_Component ("Key_Ref",
                                     "Marlowe.Btree_Handles.Btree_Reference");
-         Record_Defn.Add_Component ("Index", "Marlowe.Database_Index");
+         Record_Defn.Add_Component ("Index", Table.Reference_Type);
          Record_Defn.Add_Component ("Local",
                                     "Local_Lock_Context");
          Record_Defn.Add_Component ("Link",
@@ -1898,9 +1906,7 @@ package body Kit.Generate.Public_Interface is
                                  New_Function
                                    ("Reference",
                                     Base.Ada_Name & "_Reference",
-                                    New_Function_Call_Expression
-                                      (Base.Ada_Name & "_Reference",
-                                       Index_Expression));
+                                    Object (Index_Expression));
          begin
 
             Get.Add_Formal_Argument
