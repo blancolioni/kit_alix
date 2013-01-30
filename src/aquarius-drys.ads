@@ -153,6 +153,7 @@ package Aquarius.Drys is
 
    function Literal (Value : Integer) return Expression'Class;
    function Literal (Value : String) return Expression'Class;
+   function Literal (Value : Boolean) return Expression'Class;
 
    function Object (Name : String) return Expression'Class;
 

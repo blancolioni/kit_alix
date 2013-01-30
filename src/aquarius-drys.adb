@@ -180,6 +180,17 @@ package body Aquarius.Drys is
       end return;
    end Literal;
 
+   -------------
+   -- Literal --
+   -------------
+
+   function Literal (Value : Boolean) return Expression'Class is
+   begin
+      return Result : Literal_Expression do
+        Result.Literal := new String'((if Value then "True" else "False"));
+      end return;
+   end Literal;
+
    -------------------
    -- Named_Subtype --
    -------------------
