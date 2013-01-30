@@ -37,18 +37,18 @@ package {database}.Tables is
                  Key_Value    : String)
                  return Database_Record;
 
-   function Field_Count (Rec : Database_Record'Class) return Natural;
-   function Field_Name (Rec : Database_Record'Class;
+   function Field_Count (Rec : in out Database_Record'Class) return Natural;
+   function Field_Name (Rec : in out Database_Record'Class;
                         Index : Positive)
                         return String;
 
    function Get
-     (From_Record : Database_Record'Class;
+     (From_Record : in out Database_Record'Class;
       Field_Name  : String)
       return String;
 
    function Get
-     (From_Record : Database_Record'Class;
+     (From_Record : in out Database_Record'Class;
       Field_Index : Positive)
       return String;
 
@@ -79,14 +79,14 @@ package {database}.Tables is
      (Table        : Database_Table'Class;
       Key_Name     : String;
       Process      : not null access procedure
-        (Item : Database_Record'Class));
+        (Item : in out Database_Record'Class));
 
    procedure Iterate
      (Table        : Database_Table'Class;
       Key_Name     : String;
       Key_Value    : String;
       Process      : not null access procedure
-        (Item : Database_Record'Class));
+        (Item : in out Database_Record'Class));
 
    procedure Iterate
      (Table        : Database_Table'Class;
@@ -94,7 +94,7 @@ package {database}.Tables is
       First        : String;
       Last         : String;
       Process      : not null access procedure
-        (Item : Database_Record'Class));
+        (Item : in out Database_Record'Class));
 
    type Array_Of_References is array (Positive range <>) of Record_Reference;
 
@@ -127,10 +127,13 @@ private
    type Database_Record is
      new Ada.Finalization.Controlled with
       record
-         Table   : Marlowe.Table_Index;
-         Index   : Marlowe.Database_Index;
-         Rec_Ref : Kit_Record_Reference;
-         Value   : Storage_Vectors.Vector;
+         Table        : Marlowe.Table_Index;
+         Index        : Marlowe.Database_Index;
+         Rec_Ref      : Kit_Record_Reference;
+         Value        : Storage_Vectors.Vector;
+         Got_Fields   : Boolean := False;
+         Field_Names  : String_Vectors.Vector;
+         Field_Values : String_Vectors.Vector;
       end record;
 
    type Database_Field_Type is
