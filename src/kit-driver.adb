@@ -95,5 +95,4 @@ exception
       Ada.Text_IO.Put_Line
         (Ada.Text_IO.Standard_Error,
          Ada.Exceptions.Exception_Message (E));
-      Ada.Text_IO.Skip_Line;
 end Kit.Driver;
