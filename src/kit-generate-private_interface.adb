@@ -1,13 +1,9 @@
-with Ada.Strings.Fixed;
-
 with System.Storage_Elements;
 
 with Aquarius.Drys.Blocks;
 with Aquarius.Drys.Expressions;
 with Aquarius.Drys.Statements;
 with Aquarius.Drys.Types;
-
-with Marlowe;
 
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
@@ -181,8 +177,10 @@ package body Kit.Generate.Private_Interface is
          Aquarius.Drys.Named_Subtype ("Boolean"),
          Aquarius.Drys.Object ("False"));
 
-      Table.Iterate (Process     => Add_Base_Index'Access,
-                     Inclusive   => False);
+      if False then
+         Table.Iterate (Process     => Add_Base_Index'Access,
+                        Inclusive   => False);
+      end if;
 
       Table.Scan_Fields (Add_Component'Access);
 
@@ -312,38 +310,6 @@ package body Kit.Generate.Private_Interface is
          Block : Aquarius.Drys.Blocks.Block_Type;
 
          procedure Handle_Storage (Field : Kit.Schema.Fields.Field_Type'Class);
-         procedure Handle_Base (Base : Kit.Schema.Tables.Table_Type'Class);
-
-         -----------------
-         -- Handle_Base --
-         -----------------
-
-         procedure Handle_Base
-           (Base : Kit.Schema.Tables.Table_Type'Class)
-         is
-            use Ada.Strings, Ada.Strings.Fixed;
-            use Aquarius.Drys, Aquarius.Drys.Statements;
-            Start  : constant Storage_Offset := Table.Base_Start (Base);
-            Finish : constant Storage_Offset :=
-                       Start +
-                       Marlowe.Database_Index'Size / System.Storage_Unit - 1;
-            Rec    : constant String :=
-                       "T" & Base.Index_Image & "_Idx";
-            S         : constant String :=
-                          Trim (Storage_Offset'Image (Start), Left);
-            F         : constant String :=
-                          Trim (Storage_Offset'Image (Finish), Left);
-            Store     : constant String :=
-                          "Storage" & " (" & S & " .. " & F & ")";
-            Proc_Name : constant String :=
-                          (if Write then "To_Storage" else "From_Storage");
-         begin
-            Block.Append
-              (New_Procedure_Call_Statement
-                 ("Marlowe.Key_Storage." & Proc_Name,
-                  Object ("Item." & Rec),
-                  Object (Store)));
-         end Handle_Base;
 
          --------------------
          -- Handle_Storage --
@@ -380,14 +346,14 @@ package body Kit.Generate.Private_Interface is
 
          if Write then
             Table.Scan_Fields (Handle_Storage'Access);
-            Table.Iterate (Handle_Base'Access, Inclusive => False);
+            --  Table.Iterate (Handle_Base'Access, Inclusive => False);
          end if;
 
          Block.Add_Statement (Call_Marlowe (Write));
 
          if not Write then
             Table.Scan_Fields (Handle_Storage'Access);
-            Table.Iterate (Handle_Base'Access, Inclusive => False);
+            --  Table.Iterate (Handle_Base'Access, Inclusive => False);
          end if;
 
          declare

@@ -2,11 +2,11 @@ with Ada.Strings.Fixed;
 
 with Aquarius.Drys.Expressions;
 
+with Kit.Schema.Types;
+
 package body Kit.Schema.Tables is
 
    Current_Table : Marlowe.Table_Index := 1;
-
-   Recursively_Add_Bases : constant Boolean := False;
 
    function Get_Magic_Number
      (From_Text : String)
@@ -24,22 +24,36 @@ package body Kit.Schema.Tables is
      (Table     : in out Table_Type;
       Item      : in     Table_Type'Class)
    is
+      procedure Update_Base_Layout (Base : Table_Type'Class);
 
-      procedure Increment_Base_Length (Base : Table_Type'Class);
+      ------------------------
+      -- Update_Base_Layout --
+      ------------------------
 
-      ---------------------------
-      -- Increment_Base_Length --
-      ---------------------------
-
-      procedure Increment_Base_Length (Base : Table_Type'Class) is
-         use type System.Storage_Elements.Storage_Offset;
+      procedure Update_Base_Layout (Base : Table_Type'Class) is
+         use type Marlowe.Table_Index;
+         Base_Field : Kit.Schema.Fields.Field_Type;
       begin
-         if not Table.Contains_Base (Base.Name) then
-            Table.Bases_Length := Table.Bases_Length
-              + Marlowe.Database_Index'Size / System.Storage_Unit;
-            Table.Base_Layout.Append (Base.Index);
-         end if;
-      end Increment_Base_Length;
+         for B_Index of Table.Base_Layout loop
+            if Base.Index = B_Index then
+               return;
+            end if;
+         end loop;
+
+         Table.Base_Layout.Append (Base.Index);
+         Base_Field.Create_Field
+           (Base.Internal_Table_Name,
+            Field_Type =>
+              Kit.Schema.Types.Table_Reference_Type
+                (Base.Standard_Name));
+         Base_Field.Set_Field_Options
+           (Created        => False,
+            Readable       => False,
+            Writable       => False,
+            Base_Reference =>  True);
+         Table.Append (Base_Field);
+
+      end Update_Base_Layout;
 
    begin
       if Item.Has_String_Type then
@@ -50,18 +64,11 @@ package body Kit.Schema.Tables is
          Table.Has_Key_Field := True;
       end if;
 
-      Item.Iterate (Increment_Base_Length'Access,
+      Item.Iterate (Update_Base_Layout'Access,
                     Inclusive => True);
 
       Table.Bases.Append (new Table_Type'Class'(Item));
 
-      if Recursively_Add_Bases then
-         for Base of Item.Bases loop
-            if not Table.Contains_Base (Base.Name) then
-               Table.Add_Base (Base.all);
-            end if;
-         end loop;
-      end if;
    end Add_Base;
 
    -------------
@@ -177,6 +184,25 @@ package body Kit.Schema.Tables is
         & ".Db." & Field.Ada_Name;
    end Base_Field_Name;
 
+   ----------------
+   -- Base_Index --
+   ----------------
+
+   function Base_Index (Table : Table_Type;
+                        Base  : Table_Type'Class)
+                        return Positive
+   is
+      use type Marlowe.Table_Index;
+   begin
+      for I in 1 .. Table.Base_Layout.Last_Index loop
+         if Table.Base_Layout.Element (I) = Base.Index then
+            return I;
+         end if;
+      end loop;
+      raise Constraint_Error with
+        Base.Ada_Name & " is not a base of " & Table.Ada_Name;
+   end Base_Index;
+
    ---------------------
    -- Base_Index_Name --
    ---------------------
@@ -188,29 +214,6 @@ package body Kit.Schema.Tables is
    begin
       return ".T" & Table.Index_Image & "_Idx";
    end Base_Index_Name;
-
-   ----------------
-   -- Base_Start --
-   ----------------
-
-   function Base_Start (Table : Table_Type;
-                        Base  : Table_Type'Class)
-                        return System.Storage_Elements.Storage_Offset
-   is
-      use type Marlowe.Table_Index;
-      use System.Storage_Elements;
-      Result : Storage_Offset := Table.Header_Length + Table.Fields_Length;
-   begin
-      for T of Table.Base_Layout loop
-         if Base.Index = T then
-            return Result;
-         end if;
-         Result := Result + Marlowe.Database_Index'Size / System.Storage_Unit;
-      end loop;
-      raise Constraint_Error with
-        "table " & Table.Ada_Name & " is not derived from "
-          & Base.Ada_Name;
-   end Base_Start;
 
    -------------------
    -- Contains_Base --
@@ -269,7 +272,6 @@ package body Kit.Schema.Tables is
       Item.Magic := Get_Magic_Number (Name);
       Item.Index := Current_Table;
       Item.Fields_Length := 0;
-      Item.Bases_Length := 0;
       Item.Header_Length := 4;
       Item.Bases.Clear;
       Item.Base_Layout.Clear;
@@ -562,6 +564,18 @@ package body Kit.Schema.Tables is
       return Item.Ada_Name & "_Interface";
    end Interface_Name;
 
+   -------------------------
+   -- Internal_Table_Name --
+   -------------------------
+
+   function Internal_Table_Name
+     (Table : Table_Type'Class)
+      return String
+   is
+   begin
+      return "T" & Table.Index_Image & "_Idx";
+   end Internal_Table_Name;
+
    -------------
    -- Iterate --
    -------------
@@ -794,7 +808,7 @@ package body Kit.Schema.Tables is
       use type System.Storage_Elements.Storage_Offset;
 
    begin
-      return Item.Header_Length + Item.Bases_Length + Item.Fields_Length;
+      return Item.Header_Length + Item.Fields_Length;
    end Length;
 
    ------------------
@@ -1016,7 +1030,9 @@ package body Kit.Schema.Tables is
       Index_Part : constant Expression'Class :=
                      New_Function_Call_Expression
                        ("Marlowe.Key_Storage.To_Storage_Array",
-                        Object (Key_Index));
+                        New_Function_Call_Expression
+                          ("Marlowe.Database_Index",
+                           Object (Key_Index)));
       Object_Component : constant String :=
                            (if Object_Name = ""
                             then ""

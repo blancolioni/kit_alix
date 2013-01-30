@@ -1,6 +1,15 @@
 package body Kit.Schema.Fields is
 
 
+   --------------------
+   -- Base_Reference --
+   --------------------
+
+   function Base_Reference (Field : Field_Type) return Boolean is
+   begin
+      return Field.Base_Reference;
+   end Base_Reference;
+
    ------------------
    -- Create_Field --
    ------------------
@@ -50,15 +59,17 @@ package body Kit.Schema.Fields is
    -----------------------
 
    procedure Set_Field_Options
-     (Field    : in out Field_Type'Class;
-      Created  : Boolean := False;
-      Readable : Boolean := False;
-      Writable : Boolean := False)
+     (Field          : in out Field_Type'Class;
+      Created        : Boolean := False;
+      Readable       : Boolean := False;
+      Writable       : Boolean := False;
+      Base_Reference : Boolean := False)
    is
    begin
       Field.Created := Created;
       Field.Readable := Readable;
       Field.Writeable := Writable;
+      Field.Base_Reference := Base_Reference;
    end Set_Field_Options;
 
    ----------

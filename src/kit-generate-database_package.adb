@@ -386,7 +386,7 @@ package body Kit.Generate.Database_Package is
                             ("Kit_Record_Base.Create");
          begin
             New_Base.Add_Actual_Argument
-              (Literal (Natural (Table.Base_Start (Base))));
+              (Literal (Natural (Table.Base_Index (Base))));
             New_Base.Add_Actual_Argument
               (Object
                  (Base.Ada_Name & "_Ref"));
@@ -422,6 +422,14 @@ package body Kit.Generate.Database_Package is
               (Literal (Natural (Table.Field_Start (Field))));
             New_Field.Add_Actual_Argument
               (Literal (Field.Get_Field_Type.Size));
+            New_Field.Add_Actual_Argument
+              (Literal (Field.Created));
+            New_Field.Add_Actual_Argument
+              (Literal (Field.Readable));
+            New_Field.Add_Actual_Argument
+              (Literal (Field.Writeable));
+            New_Field.Add_Actual_Argument
+              (Literal (Field.Base_Reference));
             Block.Add_Statement (New_Field);
             Init_Block.Append (Declare_Statement (Block));
          end Create_Field;

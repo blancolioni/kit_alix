@@ -76,17 +76,18 @@ package Kit.Schema.Tables is
                            Name  : String)
                           return Boolean;
 
+   function Base_Index (Table : Table_Type;
+                        Base  : Table_Type'Class)
+                        return Positive;
+
    function Field_Start (Table : Table_Type;
                          Field : Kit.Schema.Fields.Field_Type'Class)
                          return System.Storage_Elements.Storage_Offset;
 
-   function Base_Start (Table : Table_Type;
-                        Base  : Table_Type'Class)
-                        return System.Storage_Elements.Storage_Offset;
-
-   procedure Scan_Keys (Table : Table_Type;
-                        Process  : not null access
-                          procedure (Item : Kit.Schema.Keys.Key_Type'Class));
+   procedure Scan_Keys
+     (Table : Table_Type;
+      Process  : not null access
+        procedure (Item : Kit.Schema.Keys.Key_Type'Class));
 
    procedure Scan_Keys
      (Table : Table_Type;
@@ -172,6 +173,10 @@ package Kit.Schema.Tables is
      (Table : Table_Type'Class)
       return String;
 
+   function Internal_Table_Name
+     (Table : Table_Type'Class)
+      return String;
+
    function Base_Index_Name
      (Table : Table_Type'Class)
       return String;
@@ -247,7 +252,6 @@ private
      new Kit.Names.Root_Named_Object with
       record
          Fields_Length          : System.Storage_Elements.Storage_Count := 0;
-         Bases_Length           : System.Storage_Elements.Storage_Count := 0;
          Header_Length          : System.Storage_Elements.Storage_Count := 4;
          Index                  : Marlowe.Table_Index;
          Bases                  : Table_Vectors.Vector;

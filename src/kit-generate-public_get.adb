@@ -208,7 +208,8 @@ package body Kit.Generate.Public_Get is
       Block.Append
         (New_Assignment_Statement
            ("Element.Index",
-            Object ("Index")));
+            New_Function_Call_Expression
+              (Table.Reference_Type, "Index")));
 
       Fetch.Fetch_From_Index (Table       => Table,
                               Object_Name => "Element",
@@ -378,10 +379,12 @@ package body Kit.Generate.Public_Get is
             New_Assignment_Statement
               ("Item.Index",
                New_Function_Call_Expression
-                 ("Marlowe.Key_Storage.To_Database_Index",
+                 (Table.Reference_Type,
                   New_Function_Call_Expression
-                    ("Marlowe.Btree_Handles.Get_Key",
-                     "Mark.all")))));
+                    ("Marlowe.Key_Storage.To_Database_Index",
+                     New_Function_Call_Expression
+                       ("Marlowe.Btree_Handles.Get_Key",
+                        "Mark.all"))))));
 
       Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
                                 & ".Shared_Unlock");
@@ -759,9 +762,7 @@ package body Kit.Generate.Public_Get is
 
       Return_Sequence.Append
         (New_Assignment_Statement
-           ("Result.Index",
-            New_Function_Call_Expression
-              ("Marlowe.Database_Index", "Ref")));
+           ("Result.Index", Object ("Ref")));
 
       Fetch.Fetch_From_Index (Table       => Table,
                               Object_Name => "Result",
@@ -1176,7 +1177,9 @@ package body Kit.Generate.Public_Get is
                Return_Sequence.Append
                  (New_Assignment_Statement
                     (Target => "Result.Index",
-                     Value  => Object ("Index")));
+                     Value  =>
+                       New_Function_Call_Expression
+                         (Table.Reference_Type, "Index")));
 
                Fetch.Fetch_From_Index (Table       => Table,
                                        Object_Name => "Result",

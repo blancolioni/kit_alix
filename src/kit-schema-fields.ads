@@ -11,10 +11,11 @@ package Kit.Schema.Fields is
       return Natural;
 
    procedure Set_Field_Options
-     (Field    : in out Field_Type'Class;
-      Created  : Boolean := False;
-      Readable : Boolean := False;
-      Writable : Boolean := False);
+     (Field          : in out Field_Type'Class;
+      Created        : Boolean := False;
+      Readable       : Boolean := False;
+      Writable       : Boolean := False;
+      Base_Reference : Boolean := False);
 
    procedure Create_Field
      (Item       : in out Field_Type;
@@ -33,16 +34,19 @@ package Kit.Schema.Fields is
    function Writeable (Field : Field_Type) return Boolean;
    --  return true if Field can be written
 
+   function Base_Reference (Field : Field_Type) return Boolean;
+
 private
 
    type Field_Type is
      new Kit.Names.Root_Named_Object with
       record
-         Size       : Natural;
-         Created    : Boolean  := True;
-         Readable   : Boolean  := True;
-         Writeable  : Boolean  := True;
-         Field_Type : access Kit.Schema.Types.Kit_Type'Class;
+         Size           : Natural;
+         Created        : Boolean  := True;
+         Readable       : Boolean  := True;
+         Writeable      : Boolean  := True;
+         Base_Reference : Boolean := False;
+         Field_Type     : access Kit.Schema.Types.Kit_Type'Class;
       end record;
 
 end Kit.Schema.Fields;

@@ -265,7 +265,7 @@ package body Kit.Schema.Types is
       use Aquarius.Drys.Expressions;
    begin
       return New_Function_Call_Expression
-        (Item.Ada_Name & "_Reference" & "'Value",
+        (Item.Return_Subtype & "'Value",
          Object_Name);
    end Convert_From_String;
 
@@ -308,7 +308,7 @@ package body Kit.Schema.Types is
       use Aquarius.Drys.Expressions;
    begin
       return New_Function_Call_Expression
-        (Item.Ada_Name & "_Reference" & "'Image",
+        (Item.Return_Subtype & "'Image",
          Object_Name);
    end Convert_To_String;
 
@@ -933,7 +933,11 @@ package body Kit.Schema.Types is
       return String
    is
    begin
-      return Item.Ada_Name & "_Reference";
+      if Item.Name = "" then
+         return "Marlowe.Database_Index";
+      else
+         return Item.Ada_Name & "_Reference";
+      end if;
    end Return_Subtype;
 
    ------------------
