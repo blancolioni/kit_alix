@@ -59,6 +59,10 @@ package Kit.Db is
       Field_Type   : Kit_Type;
       Field_Offset : Natural;
       Field_Length : Natural;
+      Created      : Boolean;
+      Readable     : Boolean;
+      Writeable    : Boolean;
+      Base_Ref     : Boolean;
       unique key Record_Field with Kit_Record, Name;
    end Kit_Field;
 
