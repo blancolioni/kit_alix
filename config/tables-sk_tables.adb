@@ -34,7 +34,8 @@ package body {database}.Tables.SK_Tables is
       return SK.Object
    is
       T    : constant Database_Table :=
-               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)),
+                Fields => String_Vectors.Empty_Vector);
       Key  : constant String :=
                Leander.Builtin.Object_To_String (Context, Key_Name);
       Value : constant String :=
@@ -57,7 +58,8 @@ package body {database}.Tables.SK_Tables is
       return SK.Object
    is
       T : constant Database_Table :=
-            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)),
+                Fields => String_Vectors.Empty_Vector);
       R : constant Database_Record :=
             T.Get (Record_Reference (SK.Get_Integer (Record_Index)));
       Field : constant String :=
@@ -81,7 +83,8 @@ package body {database}.Tables.SK_Tables is
       return SK.Object
    is
       T : constant Database_Table :=
-            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)),
+             Fields => String_Vectors.Empty_Vector);
       R : constant Database_Record :=
             T.Get (Record_Reference (SK.Get_Integer (Record_Index)));
       Field : constant String :=
@@ -105,7 +108,8 @@ package body {database}.Tables.SK_Tables is
       return SK.Object
    is
       T : constant Database_Table :=
-            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+            (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)),
+             Fields => String_Vectors.Empty_Vector);
       R : constant Database_Record :=
             T.Get (Record_Reference (SK.Get_Integer (Record_Index)));
       Field : constant String :=
@@ -146,7 +150,8 @@ package body {database}.Tables.SK_Tables is
       return SK.Object
    is
       T    : constant Database_Table :=
-               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)),
+                Fields => String_Vectors.Empty_Vector);
       Key  : constant String :=
                Leander.Builtin.Object_To_String (Context, Key_Name);
       Value : constant String :=
@@ -171,7 +176,8 @@ package body {database}.Tables.SK_Tables is
       return SK.Object
    is
       T    : constant Database_Table :=
-               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)),
+                Fields => String_Vectors.Empty_Vector);
       Name : constant String := T.Name;
    begin
       return Leander.Builtin.String_To_Object (Context, Name);
@@ -189,7 +195,8 @@ package body {database}.Tables.SK_Tables is
       return SK.Object
    is
       T    : constant Database_Table :=
-               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)));
+               (Index => Marlowe.Table_Index (SK.Get_Integer (Table_Index)),
+                Fields => String_Vectors.Empty_Vector);
       Key  : constant String :=
                Leander.Builtin.Object_To_String (Context, Key_Name);
       Value : constant String :=
