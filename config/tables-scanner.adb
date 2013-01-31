@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
@@ -156,8 +157,13 @@ package body {database}.Tables.Scanner is
       -------------
 
       procedure Add_Row (Item : in out Database_Record'Class) is
+         use type Marlowe.Database_Index;
          Row : Table_Row;
       begin
+         Row.Cells.Append
+           (Ada.Strings.Fixed.Trim
+              (Marlowe.Database_Index'Image (Item.Index),
+               Ada.Strings.Left));
          for I in 1 .. Item.Field_Count loop
             Row.Cells.Append (Item.Get (I));
          end loop;
