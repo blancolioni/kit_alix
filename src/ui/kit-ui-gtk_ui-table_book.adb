@@ -78,8 +78,9 @@ package body Kit.UI.Gtk_UI.Table_Book is
       ---------------------------------
 
       procedure Initialise_View_From_Record is
-         use type Glib.Gint;
-         Column_Types : Glib.GType_Array (1 .. Glib.Guint (Table.Field_Count));
+         use Glib;
+         Column_Types : Glib.GType_Array
+           (1 .. Glib.Guint (Table.Field_Count) + 1);
          Index : Glib.Gint := 0;
       begin
          Column_Types := (others => Glib.GType_String);
@@ -88,7 +89,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
 
          View.Set_Model (Gtk.Tree_Model.Gtk_Tree_Model (Store));
 
-         for I in 1 .. Table.Field_Count loop
+         for I in 0 .. Table.Field_Count loop
             Gtk.Cell_Renderer_Text.Gtk_New (Text_Render);
             Gtk.Tree_View_Column.Gtk_New (Text_Column);
             Num := View.Append_Column (Text_Column);
@@ -96,8 +97,12 @@ package body Kit.UI.Gtk_UI.Table_Book is
             Text_Column.Set_Sizing
               (Gtk.Tree_View_Column.Tree_View_Column_Autosize);
 
-            Text_Column.Set_Title
-              (Format_Heading (Table.Field_Name (I)));
+            if I = 0 then
+               Text_Column.Set_Title ("Index");
+            else
+               Text_Column.Set_Title
+                 (Format_Heading (Table.Field_Name (I)));
+            end if;
             Text_Column.Add_Attribute (Text_Render, "text", Index);
             Column_Header_Callback.Connect
               (Text_Column,
@@ -127,12 +132,34 @@ package body Kit.UI.Gtk_UI.Table_Book is
          Kit_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
                         Kit.Db.Kit_Key.Get_By_Kit_Record
                           (Kit_Record.Reference);
+         Found      : Boolean := False;
       begin
          if Kit_Key.Has_Element then
             Result.Key_Name :=
               Ada.Strings.Unbounded.To_Unbounded_String (Kit_Key.Name);
             Kit.Db.Tables.Scanner.Start_Scan
               (Result.Scan, Table, Kit_Key.Name);
+         else
+            for Base of
+              Kit.Db.Kit_Record_Base.Select_By_Derived (Kit_Record.Reference)
+            loop
+               if not Found then
+                  declare
+                     Base_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
+                                     Kit.Db.Kit_Key.Get_By_Kit_Record
+                                       (Base.Base);
+                  begin
+                     if Base_Key.Has_Element then
+                        Result.Key_Name :=
+                          Ada.Strings.Unbounded.To_Unbounded_String
+                            (Base_Key.Name);
+                        Kit.Db.Tables.Scanner.Start_Scan
+                          (Result.Scan, Table, Base_Key.Name);
+                        Found := True;
+                     end if;
+                  end;
+               end if;
+            end loop;
          end if;
       end;
 
