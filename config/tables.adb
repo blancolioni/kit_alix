@@ -213,18 +213,48 @@ package body {database}.Tables is
       Field_Name  : String)
       return String
    is
+      function Get_Single_Field (Name : String) return String;
+
+      ----------------------
+      -- Get_Single_Field --
+      ----------------------
+
+      function Get_Single_Field (Name : String) return String is
+      begin
+         for I in 1 .. From_Record.Field_Names.Last_Index loop
+            if From_Record.Field_Names (I) = Name then
+               return From_Record.Field_Values (I);
+            end if;
+         end loop;
+         raise Constraint_Error with
+           Name & ": no such field";
+      end Get_Single_Field;
+
+      First_Point : constant Natural :=
+                      Ada.Strings.Fixed.Index (Field_Name, ".");
    begin
       if not From_Record.Got_Fields then
          Get_Fields (From_Record);
       end if;
 
-      for I in 1 .. From_Record.Field_Names.Last_Index loop
-         if From_Record.Field_Names (I) = Field_Name then
-            return From_Record.Field_Values (I);
-         end if;
-      end loop;
-      raise Constraint_Error with
-        Field_Name & ": no such field";
+      if First_Point = 0 then
+         return Get_Single_Field (Field_Name);
+      else
+         declare
+            Ref_Field : constant String :=
+                          Field_Name (Field_Name'First .. First_Point - 1);
+            Ref_Value : constant String :=
+                          Get_Single_Field (Ref_Field);
+            Ref       : constant Record_Reference :=
+                          Record_Reference'Value (Ref_Value);
+            Child_Table : constant Database_Table'Class :=
+                            Get_Field_Table (From_Record, Ref_Field);
+            Child       : Database_Record :=
+                            Child_Table.Get (Ref);
+         begin
+            return Child.Get (Field_Name (First_Point + 1 .. Field_Name'Last));
+         end;
+      end if;
    end Get;
 
    ---------
