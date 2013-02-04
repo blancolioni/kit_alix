@@ -93,7 +93,8 @@ package Kit.Schema.Tables is
      (Table : Table_Type;
       Process          : not null access procedure
         (Base   : Table_Type'Class;
-         Key    : Kit.Schema.Keys.Key_Type'Class));
+         Key    : Kit.Schema.Keys.Key_Type'Class);
+      Include_Base_Keys : Boolean := True);
 
    procedure Scan_Keys
      (Table    : Table_Type;
@@ -155,6 +156,9 @@ package Kit.Schema.Tables is
    procedure Add_Base
      (Table     : in out Table_Type;
       Item      : in     Table_Type'Class);
+
+   procedure Add_Base_Keys
+     (Table     : in out Table_Type);
 
    function Database_Index_Component
      (Table       : Table_Type'Class;
@@ -270,5 +274,10 @@ private
         function (K : Kit.Schema.Keys.Key_Type'Class)
       return Boolean)
       return Kit.Schema.Keys.Key_Type'Class;
+
+   function Base_Field
+     (Table : Table_Type'Class;
+      Base  : Table_Type'Class)
+      return Field_Access;
 
 end Kit.Schema.Tables;
