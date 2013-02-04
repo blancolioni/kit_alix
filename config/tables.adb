@@ -949,33 +949,44 @@ package body {database}.Tables is
             end;
          when R_Kit_Float =>
             declare
-               X : Float;
+               X      : Float;
                Buffer : String (1 .. 32);
             begin
                Marlowe.Key_Storage.From_Storage (X, Value);
-               Ada.Long_Float_Text_IO.Put
-                 (To   => Buffer,
-                  Item => Long_Float (X),
-                  Aft  => 4,
-                  Exp  => 0);
+               if X = 0.0 then
+                  return "0";
+               elsif abs X < 1.0E10
+                 and then abs X > 1.0E-5
+               then
+                  Ada.Long_Float_Text_IO.Put
+                    (To   => Buffer,
+                     Item => Long_Float (X),
+                     Aft  => 4,
+                     Exp  => 0);
 
-               declare
-                  Result : constant String :=
-                             Ada.Strings.Fixed.Trim
-                               (Buffer, Ada.Strings.Both);
-                  Last   : Natural := Result'Last;
-               begin
-                  while Last >= Result'First
-                    and then Result (Last) = '0'
-                  loop
-                     Last := Last - 1;
-                  end loop;
-                  if Result (Last) = '.' then
-                     Last := Last - 1;
-                  end if;
-                  return Result (Result'First .. Last);
-               end;
-
+                  declare
+                     Result : constant String :=
+                                Ada.Strings.Fixed.Trim
+                                  (Buffer, Ada.Strings.Both);
+                     Last   : Natural := Result'Last;
+                  begin
+                     while Last >= Result'First
+                       and then Result (Last) = '0'
+                     loop
+                        Last := Last - 1;
+                     end loop;
+                     if Last > 12 then
+                        Last := 12;
+                     end if;
+                     if Result (Last) = '.' then
+                        Last := Last - 1;
+                     end if;
+                     return Result (Result'First .. Last);
+                  end;
+               else
+                  return Ada.Strings.Fixed.Trim (Float'Image (X),
+                                                 Ada.Strings.Left);
+               end if;
             end;
          when R_Kit_Long_Float =>
             declare
@@ -983,29 +994,40 @@ package body {database}.Tables is
                Buffer : String (1 .. 32);
             begin
                Marlowe.Key_Storage.From_Storage (X, Value);
-               Ada.Long_Float_Text_IO.Put
-                 (To   => Buffer,
-                  Item => X,
-                  Aft  => 8,
-                  Exp  => 0);
+               if X = 0.0 then
+                  return "0";
+               elsif abs X < 1.0E10
+                 and then abs X > 1.0E-5
+               then
+                  Ada.Long_Float_Text_IO.Put
+                    (To   => Buffer,
+                     Item => X,
+                     Aft  => 8,
+                     Exp  => 0);
 
-               declare
-                  Result : constant String :=
-                             Ada.Strings.Fixed.Trim
-                               (Buffer, Ada.Strings.Both);
-                  Last   : Natural := Result'Last;
-               begin
-                  while Last >= Result'First
-                    and then Result (Last) = '0'
-                  loop
-                     Last := Last - 1;
-                  end loop;
-                  if Result (Last) = '.' then
-                     Last := Last - 1;
-                  end if;
-                  return Result (Result'First .. Last);
-               end;
-
+                  declare
+                     Result : constant String :=
+                                Ada.Strings.Fixed.Trim
+                                  (Buffer, Ada.Strings.Both);
+                     Last   : Natural := Result'Last;
+                  begin
+                     while Last >= Result'First
+                       and then Result (Last) = '0'
+                     loop
+                        Last := Last - 1;
+                     end loop;
+                     if Last > 12 then
+                        Last := 12;
+                     end if;
+                     if Result (Last) = '.' then
+                        Last := Last - 1;
+                     end if;
+                     return Result (Result'First .. Last);
+                  end;
+               else
+                  return Ada.Strings.Fixed.Trim (Long_Float'Image (X),
+                                                 Ada.Strings.Left);
+               end if;
             end;
          when R_Kit_String =>
             declare
