@@ -3,6 +3,7 @@ with Ada.Strings.Fixed;
 with Aquarius.Drys.Expressions;
 
 with Kit.Schema.Types;
+with Kit.String_Maps;
 
 package body Kit.Schema.Tables is
 
@@ -70,6 +71,43 @@ package body Kit.Schema.Tables is
       Table.Bases.Append (new Table_Type'Class'(Item));
 
    end Add_Base;
+
+   -------------------
+   -- Add_Base_Keys --
+   -------------------
+
+   procedure Add_Base_Keys
+     (Table     : in out Table_Type)
+   is
+   begin
+      for I in 1 .. Table.Bases.Last_Index loop
+         declare
+            Base  : constant Table_Access := Table.Bases (I);
+            Found : Boolean := False;
+         begin
+            for J in 1 .. Table.Bases.Last_Index loop
+               if Table.Bases.Element (J).Contains_Base
+                 (Base.Standard_Name)
+               then
+                  Found := True;
+                  exit;
+               end if;
+            end loop;
+            if not Found then
+               declare
+                  Base_Key : Kit.Schema.Keys.Key_Type;
+               begin
+                  Base_Key.Create_Key (Base.Internal_Table_Name,
+                                       Unique => True);
+                  Kit.Schema.Keys.Add_Field
+                    (Base_Key, Table.Base_Field (Base.all));
+
+                  Table.Add_Key (Base_Key);
+               end;
+            end if;
+         end;
+      end loop;
+   end Add_Base_Keys;
 
    -------------
    -- Add_Key --
@@ -166,6 +204,24 @@ package body Kit.Schema.Tables is
    begin
       return ".Local.T" & Table.Index_Image & "_Data";
    end Base_Component_Name;
+
+   ----------------
+   -- Base_Field --
+   ----------------
+
+   function Base_Field
+     (Table : Table_Type'Class;
+      Base  : Table_Type'Class)
+      return Field_Access
+   is
+   begin
+      for Field of Table.Fields loop
+         if Field.Field.Ada_Name = Base.Internal_Table_Name then
+            return Field.Field;
+         end if;
+      end loop;
+      return null;
+   end Base_Field;
 
    ---------------------
    -- Base_Field_Name --
@@ -392,6 +448,10 @@ package body Kit.Schema.Tables is
       raise Constraint_Error with
         "table " & Table.Ada_Name & ": no such field " & Field.Ada_Name;
    end Field_Start;
+
+   --------------
+   -- Find_Key --
+   --------------
 
    function Find_Key
      (Table : Table_Type'Class;
@@ -957,8 +1017,11 @@ package body Kit.Schema.Tables is
      (Table : Table_Type;
       Process          : not null access procedure
         (Base   : Table_Type'Class;
-         Key    : Kit.Schema.Keys.Key_Type'Class))
+         Key    : Kit.Schema.Keys.Key_Type'Class);
+      Include_Base_Keys : Boolean := True)
    is
+
+      Processed_Keys : Kit.String_Maps.String_Map;
 
       procedure Scan_Base (Base : Table_Type'Class);
 
@@ -969,7 +1032,15 @@ package body Kit.Schema.Tables is
       procedure Scan_Base (Base : Table_Type'Class) is
       begin
          for K of Base.Keys loop
-            Process (Base, K.all);
+            if not Include_Base_Keys
+              and then K.Field_Count = 1
+              and then K.Field (1).Base_Reference
+            then
+               null;
+            elsif not Processed_Keys.Contains (K.Ada_Name) then
+               Process (Base, K.all);
+               Processed_Keys.Insert (K.Ada_Name);
+            end if;
          end loop;
       end Scan_Base;
 
@@ -1062,9 +1133,18 @@ package body Kit.Schema.Tables is
          end;
       else
          declare
+            Field_Value : constant String :=
+                            Object_Component
+                            & (if Key.Field (1).Base_Reference
+                               and then Object_Component /= ""
+                               and then Object_Component
+                                 (Object_Component'Last) /= '_'
+                               then "Local.T" & Table.Index_Image & "_Data.Db."
+                               else "")
+                            & Key.Ada_Name;
             Key_Part : constant Expression'Class :=
                          Key.Field (1).Get_Field_Type.To_Storage_Array
-                           (Object_Component & Key.Ada_Name);
+                           (Field_Value);
          begin
             if With_Index then
                return Long_Operator ("&", Key_Part, Index_Part);

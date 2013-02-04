@@ -2472,7 +2472,8 @@ package body Kit.Generate.Public_Interface is
       Create_Generic_Get (Table, Table_Package);
       Create_Generic_Set (Table, Table_Package);
 
-      Table.Scan_Keys (Create_Key_Get'Access);
+      Table.Scan_Keys (Create_Key_Get'Access,
+                       Include_Base_Keys => False);
 
 --        if Table.Has_Key_Field then
 --           Public_Get.Create_Generic_Get_Function

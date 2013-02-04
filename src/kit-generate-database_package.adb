@@ -126,7 +126,7 @@ package body Kit.Generate.Database_Package is
                Call_Add_Key.Add_Actual_Argument
                  (Object ("Marlowe_Keys.Handle"));
                Call_Add_Key.Add_Actual_Argument
-                 (Literal (Table.Name & "_" & Key.Name));
+                 (Literal (Table.Name & "_" & Key.Standard_Name));
                Call_Add_Key.Add_Actual_Argument
                  (Object (Table.Ada_Name & "_Table_Index"));
                Call_Add_Key.Add_Actual_Argument
@@ -188,7 +188,8 @@ package body Kit.Generate.Database_Package is
                Call_Open_Key.Add_Actual_Argument
                  (Aquarius.Drys.Object ("Marlowe_Keys.Handle"));
                Call_Open_Key.Add_Actual_Argument
-                 (Aquarius.Drys.Literal (Table.Name & "_" & Key.Name));
+                 (Aquarius.Drys.Literal
+                    (Table.Name & "_" & Key.Standard_Name));
 
                Block.Add_Statement
                  (New_Assignment_Statement

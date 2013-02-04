@@ -245,7 +245,7 @@ package body Kit.UI.Gtk_UI is
          declare
             Changed : Boolean;
          begin
-            Display.Update (10, Changed);
+            Display.Update (100, Changed);
             if Changed then
                Continue := True;
             end if;

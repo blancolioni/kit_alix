@@ -340,6 +340,8 @@ package body Kit.Parser is
                Parse_Bases (Db, Table);
             end if;
 
+            Table.Add_Base_Keys;
+
             if Tok = Tok_Is then
                Scan;
                while At_Field loop
