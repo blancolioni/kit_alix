@@ -43,7 +43,7 @@ package body Kit.Schema.Tables is
 
          Table.Base_Layout.Append (Base.Index);
          Base_Field.Create_Field
-           (Base.Internal_Table_Name,
+           (Base.Ada_Name,
             Field_Type =>
               Kit.Schema.Types.Table_Reference_Type
                 (Base.Standard_Name));
@@ -97,8 +97,9 @@ package body Kit.Schema.Tables is
                declare
                   Base_Key : Kit.Schema.Keys.Key_Type;
                begin
-                  Base_Key.Create_Key (Base.Internal_Table_Name,
-                                       Unique => True);
+                  Base_Key.Create_Key (Base.Ada_Name,
+                                       Unique => True,
+                                       Base_Reference => True);
                   Kit.Schema.Keys.Add_Field
                     (Base_Key, Table.Base_Field (Base.all));
 
@@ -216,7 +217,7 @@ package body Kit.Schema.Tables is
    is
    begin
       for Field of Table.Fields loop
-         if Field.Field.Ada_Name = Base.Internal_Table_Name then
+         if Field.Field.Ada_Name = Base.Ada_Name then
             return Field.Field;
          end if;
       end loop;
@@ -268,7 +269,7 @@ package body Kit.Schema.Tables is
       return String
    is
    begin
-      return ".T" & Table.Index_Image & "_Idx";
+      return "." & Table.Ada_Name;
    end Base_Index_Name;
 
    -------------------

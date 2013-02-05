@@ -9,13 +9,15 @@ package Kit.Schema.Keys is
      abstract new Kit.Names.Root_Named_Object with private;
 
    procedure Create_Key
-     (Item       : in out Root_Key_Type'Class;
-      Name       : in     String;
-      Unique     : in     Boolean);
+     (Item           : in out Root_Key_Type'Class;
+      Name           : in     String;
+      Unique         : in     Boolean;
+      Base_Reference : in Boolean := False);
 
    function Size (Key : Root_Key_Type) return Natural is abstract;
 
    function Unique (Key : Root_Key_Type) return Boolean;
+   function Base_Reference (Key : Root_Key_Type) return Boolean;
 
    type Key_Type is new Root_Key_Type with private;
 
@@ -42,7 +44,8 @@ private
      abstract new Kit.Names.Root_Named_Object
    with
       record
-         Unique : Boolean;
+         Unique         : Boolean;
+         Base_Reference : Boolean;
       end record;
 
    type Field_Access is access all Kit.Schema.Fields.Field_Type'Class;
