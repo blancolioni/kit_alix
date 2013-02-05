@@ -1052,11 +1052,15 @@ package body Kit.Generate.Public_Get is
                                 then "First_"
                                 else "Last_");
          begin
-            return "Get_"
-              & Order_Part
-              & Reference_Part
-              & "By_"
-              & Key.Ada_Name;
+            if Key.Base_Reference then
+               return "Get_" & Table.Ada_Name;
+            else
+               return "Get_"
+                 & Order_Part
+                 & Reference_Part
+                 & "By_"
+                 & Key.Ada_Name;
+            end if;
          end Function_Name;
 
          ---------------

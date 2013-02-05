@@ -1829,16 +1829,33 @@ package body Kit.Generate.Public_Interface is
          Key   : Kit.Schema.Keys.Key_Type'Class)
       is
       begin
-         for Use_Key_Value in Boolean loop
-            if Use_Key_Value then
---                and then Key.Unique
---              then
-               Public_Get.Create_Unique_Get_Function
-                 (Table         => Table,
+         if Key.Field_Count = 1
+           and then Key.Field (1).Base_Reference
+         then
+            Public_Get.Create_Unique_Get_Function
+              (Table         => Table,
+               Key_Table     => Base,
+               Table_Package => Table_Package,
+               Key_Name      => Key.Standard_Name);
+         else
+            for Use_Key_Value in Boolean loop
+               if Use_Key_Value then
+                  Public_Get.Create_Unique_Get_Function
+                    (Table         => Table,
+                     Key_Table     => Base,
+                     Table_Package => Table_Package,
+                     Key_Name      => Key.Standard_Name);
+               end if;
+
+               Public_Get.Create_Selection_Function
+                 (Db            => Db,
+                  Table         => Table,
                   Key_Table     => Base,
                   Table_Package => Table_Package,
-                  Key_Name      => Key.Standard_Name);
-            end if;
+                  Key_Name      => Key.Standard_Name,
+                  Key_Value     => Use_Key_Value,
+                  Bounds        => False);
+            end loop;
 
             Public_Get.Create_Selection_Function
               (Db            => Db,
@@ -1846,28 +1863,19 @@ package body Kit.Generate.Public_Interface is
                Key_Table     => Base,
                Table_Package => Table_Package,
                Key_Name      => Key.Standard_Name,
-               Key_Value     => Use_Key_Value,
-               Bounds        => False);
-         end loop;
+               Key_Value     => True,
+               Bounds        => True);
 
-         Public_Get.Create_Selection_Function
-           (Db            => Db,
-            Table         => Table,
-            Key_Table     => Base,
-            Table_Package => Table_Package,
-            Key_Name      => Key.Standard_Name,
-            Key_Value     => True,
-            Bounds        => True);
+            if Base.Ada_Name = Table.Ada_Name
+            --  and then Key.Ada_Name = Table.Ada_Name
+              and then Key.Unique
+            then
+               --  a unique key with the same name as its table is
+               --  understood to be a default key
+               Public_Get.Create_Default_Key_Functions
+                 (Table, Table_Package, Key);
 
-         if Base.Ada_Name = Table.Ada_Name
-           --  and then Key.Ada_Name = Table.Ada_Name
-           and then Key.Unique
-         then
-            --  a unique key with the same name as its table is
-            --  understood to be a default key
-            Public_Get.Create_Default_Key_Functions
-              (Table, Table_Package, Key);
-
+            end if;
          end if;
 
       end Create_Key_Get;
@@ -2473,7 +2481,7 @@ package body Kit.Generate.Public_Interface is
       Create_Generic_Set (Table, Table_Package);
 
       Table.Scan_Keys (Create_Key_Get'Access,
-                       Include_Base_Keys => False);
+                       Include_Base_Keys => True);
 
 --        if Table.Has_Key_Field then
 --           Public_Get.Create_Generic_Get_Function

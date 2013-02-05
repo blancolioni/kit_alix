@@ -12,6 +12,15 @@ package body Kit.Schema.Keys is
       Key.Fields.Append (Field_Access (Field));
    end Add_Field;
 
+   --------------------
+   -- Base_Reference --
+   --------------------
+
+   function Base_Reference (Key : Root_Key_Type) return Boolean is
+   begin
+      return Key.Base_Reference;
+   end Base_Reference;
+
    --------------
    -- Contains --
    --------------
@@ -48,13 +57,15 @@ package body Kit.Schema.Keys is
    ----------------
 
    procedure Create_Key
-     (Item       : in out Root_Key_Type'Class;
-      Name       : in     String;
-      Unique     : in     Boolean)
+     (Item           : in out Root_Key_Type'Class;
+      Name           : in     String;
+      Unique         : in     Boolean;
+      Base_Reference : in Boolean := False)
    is
    begin
       Kit.Names.Root_Named_Object (Item).Create (Name);
       Item.Unique := Unique;
+      Item.Base_Reference := Base_Reference;
    end Create_Key;
 
    -----------
