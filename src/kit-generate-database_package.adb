@@ -430,6 +430,8 @@ package body Kit.Generate.Database_Package is
             New_Field.Add_Actual_Argument
               (Literal (Field.Writeable));
             New_Field.Add_Actual_Argument
+              (Literal (Field.Display));
+            New_Field.Add_Actual_Argument
               (Literal (Field.Base_Reference));
             Block.Add_Statement (New_Field);
             Init_Block.Append (Declare_Statement (Block));
