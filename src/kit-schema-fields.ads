@@ -17,6 +17,9 @@ package Kit.Schema.Fields is
       Writable       : Boolean := False;
       Base_Reference : Boolean := False);
 
+   procedure Set_Display_Field
+     (Field : in out Field_Type'Class);
+
    procedure Create_Field
      (Item       : in out Field_Type;
       Name       : in     String;
@@ -34,6 +37,10 @@ package Kit.Schema.Fields is
    function Writeable (Field : Field_Type) return Boolean;
    --  return true if Field can be written
 
+   function Display (Field : Field_Type) return Boolean;
+   --  return true if Field should be used to represent its record
+   --  instead of the record's database index.
+
    function Base_Reference (Field : Field_Type) return Boolean;
 
 private
@@ -42,9 +49,10 @@ private
      new Kit.Names.Root_Named_Object with
       record
          Size           : Natural;
-         Created        : Boolean  := True;
-         Readable       : Boolean  := True;
-         Writeable      : Boolean  := True;
+         Created        : Boolean := True;
+         Readable       : Boolean := True;
+         Writeable      : Boolean := True;
+         Display        : Boolean := False;
          Base_Reference : Boolean := False;
          Field_Type     : access Kit.Schema.Types.Kit_Type'Class;
       end record;

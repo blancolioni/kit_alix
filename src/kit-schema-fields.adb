@@ -34,6 +34,15 @@ package body Kit.Schema.Fields is
       return Field.Created;
    end Created;
 
+   -------------
+   -- Display --
+   -------------
+
+   function Display (Field : Field_Type) return Boolean is
+   begin
+      return Field.Display;
+   end Display;
+
    --------------------
    -- Get_Field_Type --
    --------------------
@@ -53,6 +62,17 @@ package body Kit.Schema.Fields is
    begin
       return Field.Readable;
    end Readable;
+
+   -----------------------
+   -- Set_Display_Field --
+   -----------------------
+
+   procedure Set_Display_Field
+     (Field : in out Field_Type'Class)
+   is
+   begin
+      Field.Display := True;
+   end Set_Display_Field;
 
    -----------------------
    -- Set_Field_Options --

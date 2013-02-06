@@ -278,6 +278,8 @@ package body Kit.Parser is
                   Writeable := True;
                elsif Option_Name = "created" then
                   Created := True;
+               elsif Option_Name = "display" then
+                  Field.Set_Display_Field;
                else
                   Error (Tok_Raw_Text & ": unknown field option");
                end if;
@@ -288,7 +290,9 @@ package body Kit.Parser is
          end if;
       end loop;
 
-      Field.Set_Field_Options (Created, Readable, Writeable);
+      if Readable or else Writeable or else Created then
+         Field.Set_Field_Options (Created, Readable, Writeable);
+      end if;
    end Parse_Field_Options;
 
    --------------------------------

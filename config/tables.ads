@@ -9,6 +9,9 @@ package {database}.Tables is
    function Get_Table (Table_Name : String)
                        return Database_Table;
 
+   function Get_Table (Table_Index : Marlowe.Table_Index)
+                       return Database_Table;
+
    function Has_Element (Table : Database_Table'Class) return Boolean;
 
    function Name (Table : Database_Table'Class) return String

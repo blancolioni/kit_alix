@@ -62,8 +62,10 @@ package Kit.Db is
       Created      : Boolean;
       Readable     : Boolean;
       Writeable    : Boolean;
+      Display      : Boolean;
       Base_Ref     : Boolean;
       unique key Record_Field with Kit_Record, Name;
+      key Display_Field with Kit_Record, Display;
    end Kit_Field;
 
    record Kit_Key is

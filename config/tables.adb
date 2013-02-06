@@ -13,6 +13,7 @@ with {database}.Kit_Key_Field;
 with {database}.Kit_Literal;
 with {database}.Kit_Record;
 with {database}.Kit_Record_Base;
+with {database}.Kit_Reference;
 with {database}.Kit_Type;
 
 with {database}.Marlowe_Keys;
@@ -631,6 +632,20 @@ package body {database}.Tables is
       end if;
    end Get_Table;
 
+   ---------------
+   -- Get_Table --
+   ---------------
+
+   function Get_Table (Table_Index : Marlowe.Table_Index)
+                       return Database_Table
+   is
+   begin
+      return (Index => Table_Index,
+              Fields =>
+                Get_Field_Names
+                  (Positive (Table_Index)));
+   end Get_Table;
+
    -----------------
    -- Has_Element --
    -----------------
@@ -1057,10 +1072,38 @@ package body {database}.Tables is
             end;
          when R_Kit_Reference =>
             declare
+               use type Marlowe.Database_Index;
+               Type_Reference : constant {database}.Kit_Type_Reference :=
+                                  Value_Type.Reference;
+               Ref            : {database}.Kit_Reference.Kit_Reference_Type :=
+                       {database}.Kit_Reference.Get_Kit_Reference (Type_Reference);
+               Display_Field : {database}.Kit_Field.Kit_Field_Type :=
+                                 {database}.Kit_Field.Get_By_Display_Field
+                                   (Ref.Reference, True);
                Index      : Marlowe.Database_Index;
             begin
                Marlowe.Key_Storage.From_Storage (Index, Value);
-               return Marlowe.Database_Index'Image (Index);
+               if Display_Field.Has_Element then
+                  if Index = 0 then
+                     return "";
+                  else
+                     declare
+                        Dependent_Rec : constant Kit_Record.Kit_Record_Type :=
+                                          Kit_Record.Get
+                                            (Ref.Reference);
+                        Table : constant Database_Table :=
+                                          Get_Table
+                                            (Marlowe.Table_Index
+                                               (Dependent_Rec.Table_Index));
+                        Rec   : Database_Record :=
+                                  Table.Get (Record_Reference (Index));
+                     begin
+                        return Rec.Get (Display_Field.Name);
+                     end;
+                  end if;
+               else
+                  return Marlowe.Database_Index'Image (Index);
+               end if;
             end;
 
          when others =>
