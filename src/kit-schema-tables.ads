@@ -180,6 +180,11 @@ package Kit.Schema.Tables is
    function Internal_Table_Name
      (Table : Table_Type'Class)
       return String;
+   --  Returns a short name for use internally.
+   --  Currently, this is Tn_Idx, where n is the table index,
+   --  which ranges from 1 .. #tables
+   --  It's "Idx" because it used to be used only for
+   --  database index fields
 
    function Base_Index_Name
      (Table : Table_Type'Class)

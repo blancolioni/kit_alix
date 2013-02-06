@@ -97,7 +97,7 @@ package body Kit.Schema.Tables is
                declare
                   Base_Key : Kit.Schema.Keys.Key_Type;
                begin
-                  Base_Key.Create_Key (Base.Ada_Name,
+                  Base_Key.Create_Key (Base.Internal_Table_Name,
                                        Unique => True,
                                        Base_Reference => True);
                   Kit.Schema.Keys.Add_Field
@@ -1142,7 +1142,7 @@ package body Kit.Schema.Tables is
                                  (Object_Component'Last) /= '_'
                                then "Local.T" & Table.Index_Image & "_Data.Db."
                                else "")
-                            & Key.Ada_Name;
+                            & Key.Field (1).Ada_Name;
             Key_Part : constant Expression'Class :=
                          Key.Field (1).Get_Field_Type.To_Storage_Array
                            (Field_Value);
