@@ -152,7 +152,6 @@ package body Kit.Generate.Database_Package is
             Block.Add_Statement (Proc);
 
             Table.Scan_Keys (Create_Key'Access);
-
          end Create_Table;
 
          ----------------
@@ -273,6 +272,12 @@ package body Kit.Generate.Database_Package is
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Field",
                            Body_With => True);
+
+      if Db.Has_Display_Field then
+         Result.With_Package (Db.Ada_Name & ".Kit_Display_Field",
+                              Body_With => True);
+      end if;
+
       Result.With_Package (Db.Ada_Name & ".Kit_Type",
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Float",
@@ -376,6 +381,10 @@ package body Kit.Generate.Database_Package is
 
          procedure Create_Key
            (Key : Kit.Schema.Keys.Key_Type'Class);
+
+         procedure Insert_Display_Field
+           (Base  : Kit.Schema.Tables.Table_Type'Class;
+            Field : Kit.Schema.Fields.Field_Type'Class);
 
          -----------------
          -- Create_Base --
@@ -490,10 +499,34 @@ package body Kit.Generate.Database_Package is
             Init_Block.Append (Declare_Statement (Block));
          end Create_Key;
 
+         --------------------------
+         -- Insert_Display_Field --
+         --------------------------
+
+         procedure Insert_Display_Field
+           (Base  : Kit.Schema.Tables.Table_Type'Class;
+            Field : Kit.Schema.Fields.Field_Type'Class)
+         is
+         begin
+            if Field.Display then
+               Init_Block.Append
+                 (New_Procedure_Call_Statement
+                    (Procedure_Name => "Kit_Display_Field.Create",
+                     Argument_1     =>
+                       Object (Table.Ada_Name & "_Ref"),
+                     Argument_2     =>
+                       New_Function_Call_Expression
+                         ("Kit_Field.Get_Reference_By_Record_Field",
+                          Object (Base.Ada_Name & "_Ref"),
+                          Literal (Field.Standard_Name))));
+            end if;
+         end Insert_Display_Field;
+
       begin
          Table.Scan_Fields (Create_Field'Access);
          Table.Scan_Keys (Create_Key'Access);
          Table.Iterate (Create_Base'Access, Inclusive => False);
+         Table.Iterate_All (Insert_Display_Field'Access);
       end Create_Table_Fields;
 
       -----------------

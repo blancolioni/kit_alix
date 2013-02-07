@@ -191,6 +191,9 @@ package body Kit.Schema.Tables is
          Table.Has_String_Type := True;
       end if;
 
+      Table.Has_Display_Field := Table.Has_Display_Field
+        or else Item.Display;
+
       Table.Fields.Append (Field);
    end Append;
 
@@ -542,6 +545,15 @@ package body Kit.Schema.Tables is
    begin
       return Item.Has_Compound_Key_Field;
    end Has_Compound_Key_Field;
+
+   -----------------------
+   -- Has_Display_Field --
+   -----------------------
+
+   function Has_Display_Field (Item : Table_Type) return Boolean is
+   begin
+      return Item.Has_Display_Field;
+   end Has_Display_Field;
 
    -------------------
    -- Has_Key_Field --

@@ -6,6 +6,7 @@ with Ada.Text_IO;
 with Marlowe.Btree_Handles;
 with Marlowe.Key_Storage;
 
+with {database}.Kit_Display_Field;
 with {database}.Kit_Enumeration;
 with {database}.Kit_Field;
 with {database}.Kit_Key;
@@ -1077,9 +1078,9 @@ package body {database}.Tables is
                                   Value_Type.Reference;
                Ref            : {database}.Kit_Reference.Kit_Reference_Type :=
                        {database}.Kit_Reference.Get_Kit_Reference (Type_Reference);
-               Display_Field : {database}.Kit_Field.Kit_Field_Type :=
-                                 {database}.Kit_Field.Get_By_Display_Field
-                                   (Ref.Reference, True);
+               Display_Field : Kit_Display_Field.Kit_Display_Field_Type :=
+                                 Kit_Display_Field.Get_By_Kit_Record
+                                   (Ref.Reference);
                Index      : Marlowe.Database_Index;
             begin
                Marlowe.Key_Storage.From_Storage (Index, Value);
@@ -1096,9 +1097,12 @@ package body {database}.Tables is
                                             (Marlowe.Table_Index
                                                (Dependent_Rec.Table_Index));
                         Rec   : Database_Record :=
-                                  Table.Get (Record_Reference (Index));
+                                          Table.Get (Record_Reference (Index));
+                        Field         : constant Kit_Field.Kit_Field_Type :=
+                                          Kit_Field.Get
+                                            (Display_Field.Kit_Field);
                      begin
-                        return Rec.Get (Display_Field.Name);
+                        return Rec.Get (Field.Name);
                      end;
                   end if;
                else

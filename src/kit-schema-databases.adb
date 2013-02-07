@@ -102,6 +102,20 @@ package body Kit.Schema.Databases is
       return Table_Cursor (Database.Tables.First);
    end First_Table;
 
+   -----------------------
+   -- Has_Display_Field --
+   -----------------------
+
+   function Has_Display_Field (Db : Database_Type) return Boolean is
+   begin
+      for T of Db.Tables loop
+         if T.Has_Display_Field then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Display_Field;
+
    -----------------
    -- Has_Element --
    -----------------
