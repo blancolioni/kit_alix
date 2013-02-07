@@ -58,6 +58,7 @@ package Kit.Schema.Tables is
    function Has_String_Type (Item : Table_Type) return Boolean;
    function Has_Key_Field (Item : Table_Type) return Boolean;
    function Has_Compound_Key_Field (Item : Table_Type) return Boolean;
+   function Has_Display_Field (Item : Table_Type) return Boolean;
 
    procedure Scan_Fields
      (Table    : Table_Type;
@@ -271,6 +272,7 @@ private
          Has_String_Type        : Boolean := False;
          Has_Key_Field          : Boolean := False;
          Has_Compound_Key_Field : Boolean := False;
+         Has_Display_Field      : Boolean := False;
       end record;
 
    function Find_Key

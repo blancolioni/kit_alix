@@ -50,6 +50,8 @@ package Kit.Schema.Databases is
    procedure Write (Db     : Database_Type;
                     Writer : in out Aquarius.Writer.Writer_Interface'Class);
 
+   function Has_Display_Field (Db : Database_Type) return Boolean;
+
    type Database_Access is access Database_Type;
 
 private

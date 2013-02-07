@@ -68,6 +68,11 @@ package Kit.Db is
       key Display_Field with Kit_Record, Display;
    end Kit_Field;
 
+   record Kit_Display_Field is
+      key Kit_Record;
+      key Kit_Field;
+   end Kit_Display_Field;
+
    record Kit_Key is
       Name : String (64);
       key Kit_Record;
