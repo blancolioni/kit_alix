@@ -1,5 +1,8 @@
 project_name = Kit
 source_dir = src
+source_dir = src/aquarius
+source_dir = src/generator
+source_dir = src/schema
 depend = { project = XML version = any }
 depend = { project = Marlowe version = any }
 depend = { project = GCS version = any }
