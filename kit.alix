@@ -7,6 +7,7 @@ depend = { project = XML version = any }
 depend = { project = Marlowe version = any }
 depend = { project = GCS version = any }
 depend = { project = WLib version = any }
+depend = { project = Leander version = any }
 main_unit = kit-driver
 exec_name = kit
 config_dir = config
