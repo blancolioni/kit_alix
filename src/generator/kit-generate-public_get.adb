@@ -207,7 +207,7 @@ package body Kit.Generate.Public_Get is
 
       Block.Append
         (New_Assignment_Statement
-           ("Element.Index",
+           ("Element.M_Index",
             New_Function_Call_Expression
               (Table.Reference_Type, "Index")));
 
@@ -377,7 +377,7 @@ package body Kit.Generate.Public_Get is
         (If_Statement
            (Object ("Got_Valid_Index"),
             New_Assignment_Statement
-              ("Item.Index",
+              ("Item.M_Index",
                New_Function_Call_Expression
                  (Table.Reference_Type,
                   New_Function_Call_Expression
@@ -396,7 +396,7 @@ package body Kit.Generate.Public_Get is
          Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
          Fetch_Found.Append
            ("Item.Link.S_Locked := True");
-         Not_Found.Append ("Item.Index := 0");
+         Not_Found.Append ("Item.M_Index := 0");
          Next_Block.Add_Statement
            (If_Statement
               (Object ("Got_Valid_Index"),
@@ -762,7 +762,7 @@ package body Kit.Generate.Public_Get is
 
       Return_Sequence.Append
         (New_Assignment_Statement
-           ("Result.Index", Object ("Ref")));
+           ("Result.M_Index", Object ("Ref")));
 
       Fetch.Fetch_From_Index (Table       => Table,
                               Object_Name => "Result",
@@ -1087,7 +1087,7 @@ package body Kit.Generate.Public_Get is
            (Use_Type ("Marlowe.Database_Index"));
          Block.Add_Declaration
            (Aquarius.Drys.Declarations.New_Object_Declaration
-              ("Index", "Marlowe.Database_Index", Literal (0)));
+              ("Db_Index", "Marlowe.Database_Index", Literal (0)));
 
          Block.Add_Statement
            (New_Procedure_Call_Statement
@@ -1151,7 +1151,7 @@ package body Kit.Generate.Public_Get is
                     ("Marlowe.Btree_Handles.Valid",
                      Object ("M")),
                   New_Assignment_Statement
-                    ("Index",
+                    ("Db_Index",
                      New_Function_Call_Expression
                        ("Marlowe.Key_Storage.To_Database_Index",
                         New_Function_Call_Expression
@@ -1169,7 +1169,7 @@ package body Kit.Generate.Public_Get is
               (New_Return_Statement
                  (New_Function_Call_Expression
                     (Table.Ada_Name & "_Reference",
-                     Object ("Index"))));
+                     Object ("Db_Index"))));
          else
 
             declare
@@ -1180,10 +1180,10 @@ package body Kit.Generate.Public_Get is
 
                Return_Sequence.Append
                  (New_Assignment_Statement
-                    (Target => "Result.Index",
+                    (Target => "Result.M_Index",
                      Value  =>
                        New_Function_Call_Expression
-                         (Table.Reference_Type, "Index")));
+                         (Table.Reference_Type, "Db_Index")));
 
                Fetch.Fetch_From_Index (Table       => Table,
                                        Object_Name => "Result",
@@ -1201,7 +1201,7 @@ package body Kit.Generate.Public_Get is
 
                Return_Sequence.Append
                  (If_Statement
-                    (Operator ("/=", Object ("Index"), Literal (0)),
+                    (Operator ("/=", Object ("Db_Index"), Literal (0)),
                      Valid_Sequence,
                      Invalid_Sequence));
                Return_Sequence.Append

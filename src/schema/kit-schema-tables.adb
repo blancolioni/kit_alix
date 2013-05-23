@@ -404,7 +404,7 @@ package body Kit.Schema.Tables is
    is
    begin
       if Table.Ada_Name = Base.Ada_Name then
-         return Object_Name & ".Index";
+         return Object_Name & ".M_Index";
       else
          return Object_Name
            & Table.Base_Component_Name & ".Db"

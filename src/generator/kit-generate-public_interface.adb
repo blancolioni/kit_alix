@@ -146,7 +146,7 @@ package body Kit.Generate.Public_Interface is
 
          Finalize_Block.Add_Statement
            (If_Statement
-              (Operator ("=", Object ("Item.Index"), Literal (0)),
+              (Operator ("=", Object ("Item.M_Index"), Literal (0)),
                New_Return_Statement));
 
          Insert_Keys.Append
@@ -163,7 +163,7 @@ package body Kit.Generate.Public_Interface is
                        ("Finalize " & Table.Ada_Name & ":"),
                      New_Function_Call_Expression
                        ("Marlowe.Database_Index'Image",
-                        Object ("Item.Index")))));
+                        Object ("Item.M_Index")))));
          end if;
 
          Table.Iterate (Insert_Table_Keys'Access,
@@ -210,7 +210,7 @@ package body Kit.Generate.Public_Interface is
 
          Finalize_Block.Add_Statement
            (New_Assignment_Statement
-              ("Item.Index", Literal (0)));
+              ("Item.M_Index", Literal (0)));
          Finalize_Block.Add_Statement
            (New_Assignment_Statement
               ("Item.Created", Object ("False")));
@@ -293,7 +293,7 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Has_Finish", "False");
          Set_Field ("Subclassed", "False");
          Set_Field ("Using_Key", "False");
-         Set_Field ("Index", "0");
+         Set_Field ("M_Index", "0");
 
          Set_Field ("Local.X_Locked", "False");
          Set_Field ("Local.S_Locked", "False");
@@ -1176,7 +1176,7 @@ package body Kit.Generate.Public_Interface is
            (Use_Type ("Marlowe.Database_Index"));
          Has_Element_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Return_Statement
-              (Operator ("/=", Object ("Item.Index"),
+              (Operator ("/=", Object ("Item.M_Index"),
                Object ("0"))));
 
          declare
@@ -1234,7 +1234,7 @@ package body Kit.Generate.Public_Interface is
            (If_Statement
               (Object ("Got_Valid_Index"),
                New_Assignment_Statement
-                 ("Item.Index",
+                 ("Item.M_Index",
                   New_Function_Call_Expression
                     ("Marlowe.Key_Storage.To_Database_Index",
                      New_Function_Call_Expression
@@ -1249,7 +1249,7 @@ package body Kit.Generate.Public_Interface is
             Not_Found   : Sequence_Of_Statements;
          begin
             Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
-            Not_Found.Append ("Item.Index := 0");
+            Not_Found.Append ("Item.M_Index := 0");
             Next_Block.Add_Statement
               (If_Statement
                  (Object ("Got_Valid_Index"),
@@ -1561,7 +1561,7 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Link.X_Locked", "True");
          Set_Field ("Link.S_Locked", "False");
          Set_Field ("Using_Key", "False");
-         Set_Field ("Index", "0");
+         Set_Field ("M_Index", "0");
 
          Sequence.Append
            (New_Procedure_Call_Statement ("Memory_Mutex.Lock"));
@@ -1798,7 +1798,7 @@ package body Kit.Generate.Public_Interface is
          --  Record_Defn.Add_Component ("Mark", "Mark_Access");
          Record_Defn.Add_Component ("Key_Ref",
                                     "Marlowe.Btree_Handles.Btree_Reference");
-         Record_Defn.Add_Component ("Index", Table.Reference_Type);
+         Record_Defn.Add_Component ("M_Index", Table.Reference_Type);
          Record_Defn.Add_Component ("Local",
                                     "Local_Lock_Context");
          Record_Defn.Add_Component ("Link",
