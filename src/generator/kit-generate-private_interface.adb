@@ -120,6 +120,7 @@ package body Kit.Generate.Private_Interface is
    is
 
       Have_String_With : Boolean := False;
+      Have_Text_With   : Boolean := False;
 
       Record_Defn : Aquarius.Drys.Types.Record_Type_Definition;
 
@@ -161,6 +162,13 @@ package body Kit.Generate.Private_Interface is
          then
             Impl.With_Package ("Kit.Strings");
             Have_String_With := True;
+         end if;
+
+         if not Have_Text_With
+           and then Field.Get_Field_Type.Is_Text
+         then
+            Impl.With_Package ("Kit.Text");
+            Have_Text_With := True;
          end if;
 
       end Add_Component;

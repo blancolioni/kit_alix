@@ -190,6 +190,11 @@ package body Kit.Parser is
                   Table.Append (Field);
 
                   if Is_Key then
+                     if not Field_Type.Key_OK then
+                        Error (Field_Name & ": type " & Field_Type.Name
+                               & " cannot be used as a key");
+                     end if;
+
                      declare
                         Key : Kit.Schema.Keys.Key_Type;
                      begin

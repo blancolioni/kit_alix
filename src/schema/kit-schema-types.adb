@@ -12,6 +12,8 @@ with Kit.Schema.Types.Enumerated;
 
 package body Kit.Schema.Types is
 
+   Text_Type_Record_Size : constant := 32;
+
    package Type_Maps is
      new Ada.Containers.Indefinite_Hashed_Maps
        (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
@@ -230,6 +232,60 @@ package body Kit.Schema.Types is
    overriding
    function Haskell_Type_Name (Item : String_Type) return String;
 
+   type Text_Type is new Kit_Type with null record;
+
+   overriding function Key_OK (Item : Text_Type) return Boolean
+   is (False);
+
+   overriding function Is_Text (Item : Text_Type) return Boolean is (True);
+
+   overriding function Record_Subtype (Item : Text_Type) return String;
+
+   overriding function Return_Subtype (Item : Text_Type) return String;
+
+   overriding function Return_Value
+     (Value_Type  : Text_Type;
+      Target_Name : String)
+      return Aquarius.Drys.Expression'Class;
+
+   overriding function Has_Default_Value
+     (Item : Text_Type)
+      return Boolean
+   is (False);
+
+   overriding
+   function Default_Value (Item : Text_Type)
+                           return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Convert_To_String
+     (Item   : Text_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class;
+
+   overriding
+   function Convert_From_String (Item   : Text_Type;
+                                 Object_Name : String)
+                                 return Aquarius.Drys.Expression'Class;
+
+   overriding function Create_Database_Record
+     (For_Type : Text_Type)
+      return Aquarius.Drys.Statement'Class;
+
+   overriding procedure Set_Value
+     (Value_Type  : Text_Type;
+      Target_Name : String;
+      Value_Name  : String;
+      Sequence    : in out Aquarius.Drys.Statement_Sequencer'Class);
+
+   overriding function Storage_Array_Transfer
+     (Item          : Text_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class;
+
    ----------------------
    -- Argument_Subtype --
    ----------------------
@@ -258,9 +314,10 @@ package body Kit.Schema.Types is
    -- Convert_From_String --
    -------------------------
 
-   function Convert_From_String (Item   : Table_Reference_Type_Record;
-                                 Object_Name : String)
-                                 return Aquarius.Drys.Expression'Class
+   overriding function Convert_From_String
+     (Item   : Table_Reference_Type_Record;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
    is
       use Aquarius.Drys.Expressions;
    begin
@@ -273,9 +330,23 @@ package body Kit.Schema.Types is
    -- Convert_From_String --
    -------------------------
 
-   function Convert_From_String (Item   : String_Type;
+   overriding function Convert_From_String (Item   : String_Type;
                                  Object_Name : String)
                                  return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object (Object_Name);
+   end Convert_From_String;
+
+   -------------------------
+   -- Convert_From_String --
+   -------------------------
+
+   overriding function Convert_From_String
+     (Item   : Text_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -301,7 +372,7 @@ package body Kit.Schema.Types is
    -- Convert_To_String --
    -----------------------
 
-   function Convert_To_String (Item   : Table_Reference_Type_Record;
+   overriding function Convert_To_String (Item   : Table_Reference_Type_Record;
                                Object_Name : String)
                                return Aquarius.Drys.Expression'Class
    is
@@ -316,9 +387,25 @@ package body Kit.Schema.Types is
    -- Convert_To_String --
    -----------------------
 
-   function Convert_To_String (Item   : String_Type;
-                               Object_Name : String)
-                               return Aquarius.Drys.Expression'Class
+   overriding function Convert_To_String
+     (Item   : String_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object (Object_Name);
+   end Convert_To_String;
+
+   -----------------------
+   -- Convert_To_String --
+   -----------------------
+
+   overriding
+   function Convert_To_String
+     (Item   : Text_Type;
+      Object_Name : String)
+      return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -372,7 +459,7 @@ package body Kit.Schema.Types is
    -- Create_Database_Record --
    ----------------------------
 
-   function Create_Database_Record
+   overriding function Create_Database_Record
      (For_Type : Boolean_Type)
       return Aquarius.Drys.Statement'Class
    is
@@ -442,7 +529,7 @@ package body Kit.Schema.Types is
    -- Create_Database_Record --
    ----------------------------
 
-   function Create_Database_Record
+   overriding function Create_Database_Record
      (For_Type : String_Type)
       return Aquarius.Drys.Statement'Class
    is
@@ -454,6 +541,25 @@ package body Kit.Schema.Types is
       Result.Add_Actual_Argument (Literal (For_Type.Size));
       Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       Result.Add_Actual_Argument (Literal (For_Type.Length));
+      return Result;
+   end Create_Database_Record;
+
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   overriding
+   function Create_Database_Record
+     (For_Type : Text_Type)
+      return Aquarius.Drys.Statement'Class
+   is
+      use Aquarius.Drys;
+      Result : Aquarius.Drys.Statements.Procedure_Call_Statement'Class :=
+                 Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                   ("Kit_Type.Create");
+   begin
+      Result.Add_Actual_Argument (Literal (Text_Type_Record_Size));
+      Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       return Result;
    end Create_Database_Record;
 
@@ -470,6 +576,7 @@ package body Kit.Schema.Types is
       New_Type (Standard_Long_Float);
       New_Type (Standard_Boolean);
       New_Type (Standard_Record_Type);
+      New_Type (Standard_Text);
    end Create_Standard_Types;
 
    -------------------
@@ -530,6 +637,18 @@ package body Kit.Schema.Types is
       pragma Unreferenced (Item);
    begin
       return Aquarius.Drys.Object ("((others => Character'Val (0)), 0)");
+   end Default_Value;
+
+   -------------------
+   -- Default_Value --
+   -------------------
+
+   function Default_Value (Item : Text_Type)
+                           return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Aquarius.Drys.Object ("(0, 0, (others => Character'Val (0)))");
    end Default_Value;
 
    -----------------
@@ -850,6 +969,17 @@ package body Kit.Schema.Types is
       return "Kit.Strings.String_Type (" & L & ")";
    end Record_Subtype;
 
+   --------------------
+   -- Record_Subtype --
+   --------------------
+
+   overriding
+   function Record_Subtype (Item : Text_Type) return String is
+      pragma Unreferenced (Item);
+   begin
+      return "Kit.Text.Text_Type";
+   end Record_Subtype;
+
    -----------------------------
    -- Reference_Database_Type --
    -----------------------------
@@ -940,6 +1070,17 @@ package body Kit.Schema.Types is
       end if;
    end Return_Subtype;
 
+   --------------------
+   -- Return_Subtype --
+   --------------------
+
+   overriding
+   function Return_Subtype (Item : Text_Type) return String is
+      pragma Unreferenced (Item);
+   begin
+      return "String";
+   end Return_Subtype;
+
    ------------------
    -- Return_Value --
    ------------------
@@ -968,6 +1109,21 @@ package body Kit.Schema.Types is
    begin
       return Aquarius.Drys.Object
         (Target_Name & ".Text (1 .. " & Target_Name & ".Length)");
+   end Return_Value;
+
+   ------------------
+   -- Return_Value --
+   ------------------
+
+   overriding function Return_Value
+     (Value_Type  : Text_Type;
+      Target_Name : String)
+      return Aquarius.Drys.Expression'Class
+   is
+      pragma Unreferenced (Value_Type);
+   begin
+      return Aquarius.Drys.Object
+        ("Kit.Text.To_String (Marlowe_Keys.Handle, " & Target_Name & ")");
    end Return_Value;
 
    ---------------
@@ -1009,6 +1165,27 @@ package body Kit.Schema.Types is
         (Aquarius.Drys.Statements.New_Assignment_Statement
            (Target_Name & ".Text (1 .. " & Value_Name & "'Length)",
             Aquarius.Drys.Object (Value_Name)));
+   end Set_Value;
+
+   ---------------
+   -- Set_Value --
+   ---------------
+
+   overriding procedure Set_Value
+     (Value_Type  : Text_Type;
+      Target_Name : String;
+      Value_Name  : String;
+      Sequence    : in out Aquarius.Drys.Statement_Sequencer'Class)
+   is
+      pragma Unreferenced (Value_Type);
+      use Aquarius.Drys;
+   begin
+      Sequence.Append
+        (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           ("Kit.Text.Set_Text",
+            Object ("Marlowe_Keys.Handle"),
+            Object (Value_Name),
+            Object (Target_Name)));
    end Set_Value;
 
    ----------
@@ -1154,6 +1331,26 @@ package body Kit.Schema.Types is
       return "String" & Length_Image;
    end Standard_String_Name;
 
+   -------------------
+   -- Standard_Text --
+   -------------------
+
+   function Standard_Text return Kit_Type'Class is
+      use Ada.Strings.Unbounded;
+      Name : constant String := "text";
+      U_Name : constant Unbounded_String := To_Unbounded_String (Name);
+   begin
+      if Type_Table.Contains (U_Name) then
+         return Type_Table.Element (U_Name);
+      else
+         return Result : Text_Type do
+            Result.Create (Name);
+            Result.User_Defined := False;
+            Result.Size := Text_Type_Record_Size;
+         end return;
+      end if;
+   end Standard_Text;
+
    ----------------------------
    -- Storage_Array_Transfer --
    ----------------------------
@@ -1284,6 +1481,40 @@ package body Kit.Schema.Types is
          end;
       end if;
 
+   end Storage_Array_Transfer;
+
+   ----------------------------
+   -- Storage_Array_Transfer --
+   ----------------------------
+
+   overriding function Storage_Array_Transfer
+     (Item          : Text_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Aquarius.Drys.Statement'Class
+   is
+      pragma Unreferenced (Item);
+      use System.Storage_Elements;
+      use Ada.Strings, Ada.Strings.Fixed;
+      use Aquarius.Drys, Aquarius.Drys.Statements;
+      S         : constant String :=
+                    Trim (Storage_Offset'Image (Start), Left);
+      F         : constant String :=
+                    Trim (Storage_Offset'Image (Finish), Left);
+      Store     : constant String :=
+                    Storage_Name & " (" & S & " .. " & F & ")";
+   begin
+      if To_Storage then
+         return New_Procedure_Call_Statement
+           ("Kit.Text.To_Storage",
+            Object (Object_Name), Object (Store));
+      else
+         return New_Procedure_Call_Statement
+           ("Kit.Text.From_Storage",
+            Object (Object_Name), Object (Store));
+      end if;
    end Storage_Array_Transfer;
 
    --------------------------

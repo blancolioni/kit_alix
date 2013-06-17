@@ -56,6 +56,7 @@ package Kit.Schema.Tables is
    function Implementation_Record_Type (Item : Table_Type) return String;
 
    function Has_String_Type (Item : Table_Type) return Boolean;
+   function Has_Text_Type (Item : Table_Type) return Boolean;
    function Has_Key_Field (Item : Table_Type) return Boolean;
    function Has_Compound_Key_Field (Item : Table_Type) return Boolean;
    function Has_Display_Field (Item : Table_Type) return Boolean;
@@ -270,6 +271,7 @@ private
          Keys                   : Key_Vectors.Vector;
          Magic                  : Natural;
          Has_String_Type        : Boolean := False;
+         Has_Text_Type          : Boolean := False;
          Has_Key_Field          : Boolean := False;
          Has_Compound_Key_Field : Boolean := False;
          Has_Display_Field      : Boolean := False;
