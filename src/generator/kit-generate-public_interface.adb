@@ -2388,6 +2388,11 @@ package body Kit.Generate.Public_Interface is
                                      Body_With => True);
       end if;
 
+      if Table.Has_Text_Type then
+         Table_Package.With_Package ("Kit.Text",
+                                     Body_With => True);
+      end if;
+
       Table_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                                   Body_With => True);
 

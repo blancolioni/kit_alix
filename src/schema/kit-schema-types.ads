@@ -27,8 +27,13 @@ package Kit.Schema.Types is
 
    function Haskell_Type_Name (Item : Kit_Type) return String;
 
+   function Is_Text (Item : Kit_Type) return Boolean is (False);
+
    function Is_String (Item : Kit_Type) return Boolean;
    function Is_Table_Reference (Item : Kit_Type) return Boolean;
+
+   function Key_OK (Item : Kit_Type) return Boolean
+   is (True);
 
    function Size (Item : Kit_Type) return Natural;
 
@@ -84,6 +89,7 @@ package Kit.Schema.Types is
    function Standard_Record_Type    return Kit_Type'Class;
 
    function Standard_String (Length : Positive) return Kit_Type'Class;
+   function Standard_Text return Kit_Type'Class;
 
    function Table_Reference_Type
      (Table_Name : String)

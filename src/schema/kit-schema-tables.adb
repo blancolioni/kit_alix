@@ -61,6 +61,10 @@ package body Kit.Schema.Tables is
          Table.Has_String_Type := True;
       end if;
 
+      if Item.Has_Text_Type then
+         Table.Has_Text_Type := True;
+      end if;
+
       if Item.Has_Key_Field then
          Table.Has_Key_Field := True;
       end if;
@@ -189,6 +193,9 @@ package body Kit.Schema.Tables is
       Table.Fields_Length := Table.Fields_Length + Field.Length;
       if Item.Get_Field_Type.Is_String then
          Table.Has_String_Type := True;
+      end if;
+      if Item.Get_Field_Type.Is_Text then
+         Table.Has_Text_Type := True;
       end if;
 
       Table.Has_Display_Field := Table.Has_Display_Field
@@ -336,6 +343,7 @@ package body Kit.Schema.Tables is
       Item.Bases.Clear;
       Item.Base_Layout.Clear;
       Item.Has_String_Type := False;
+      Item.Has_Text_Type := False;
       Item.Has_Key_Field := False;
       Item.Has_Compound_Key_Field := False;
       Item.Fields.Clear;
@@ -458,7 +466,7 @@ package body Kit.Schema.Tables is
    --------------
 
    function Find_Key
-     (Table : Table_Type'Class;
+     (Table    : Table_Type'Class;
       Property : not null access
         function (K : Kit.Schema.Keys.Key_Type'Class)
       return Boolean)
@@ -527,7 +535,7 @@ package body Kit.Schema.Tables is
      (From_Text : String)
       return Natural
    is
-      type Magic_Number is mod 2**31;
+      type Magic_Number is mod 2 ** 31;
       Result : Magic_Number := 312345;
    begin
       for I in From_Text'Range loop
@@ -572,6 +580,15 @@ package body Kit.Schema.Tables is
    begin
       return Item.Has_String_Type;
    end Has_String_Type;
+
+   -------------------
+   -- Has_Text_Type --
+   -------------------
+
+   function Has_Text_Type (Item : Table_Type) return Boolean is
+   begin
+      return Item.Has_Text_Type;
+   end Has_Text_Type;
 
    -------------------------
    -- Implementation_Name --
