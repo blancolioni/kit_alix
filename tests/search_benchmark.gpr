@@ -1,0 +1,24 @@
+with "marlowe";
+with "wlib";
+
+project Search_Benchmark is
+
+   for Source_Dirs use (".", "temp", "..\src");
+   for Object_Dir use "build";
+   for Exec_Dir use ".";
+   for Main use ("search_benchmark");
+
+   package Builder is
+      for Default_Switches ("ada") use ("-g", "-k", "-s");
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012", "-gnata", "-gnato", "-fstack-check");
+   end Compiler;
+
+   package Linker is
+      for Default_Switches ("ada") use ("-g");
+   end Linker;
+
+end Search_Benchmark;
+
