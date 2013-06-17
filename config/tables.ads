@@ -2,6 +2,8 @@ private with Ada.Containers.Indefinite_Vectors;
 private with Ada.Finalization;
 private with System.Storage_Elements;
 
+with Marlowe;
+
 package {database}.Tables is
 
    type Database_Table is tagged private;
@@ -46,12 +48,12 @@ package {database}.Tables is
                         return String;
 
    function Get
-     (From_Record : in out Database_Record'Class;
+     (From_Record : Database_Record'Class;
       Field_Name  : String)
       return String;
 
    function Get
-     (From_Record : in out Database_Record'Class;
+     (From_Record : Database_Record'Class;
       Field_Index : Positive)
       return String;
 
@@ -82,14 +84,14 @@ package {database}.Tables is
      (Table        : Database_Table'Class;
       Key_Name     : String;
       Process      : not null access procedure
-        (Item : in out Database_Record'Class));
+        (Item : Database_Record'Class));
 
    procedure Iterate
      (Table        : Database_Table'Class;
       Key_Name     : String;
       Key_Value    : String;
       Process      : not null access procedure
-        (Item : in out Database_Record'Class));
+        (Item : Database_Record'Class));
 
    procedure Iterate
      (Table        : Database_Table'Class;
@@ -97,7 +99,7 @@ package {database}.Tables is
       First        : String;
       Last         : String;
       Process      : not null access procedure
-        (Item : in out Database_Record'Class));
+        (Item : Database_Record'Class));
 
    type Array_Of_References is array (Positive range <>) of Record_Reference;
 
@@ -127,6 +129,19 @@ private
         System.Storage_Elements.Storage_Array,
         System.Storage_Elements."=");
 
+   type Database_Fields is
+      record
+         Got_Fields   : Boolean := False;
+         Field_Names  : String_Vectors.Vector;
+         Field_Values : String_Vectors.Vector;
+      end record;
+
+   type Database_Fields_Access is
+     access Database_Fields;
+
+   type String_Vector_Access is
+     access String_Vectors.Vector;
+
    type Database_Record is
      new Ada.Finalization.Controlled with
       record
@@ -134,10 +149,12 @@ private
          Index        : Marlowe.Database_Index;
          Rec_Ref      : Kit_Record_Reference;
          Value        : Storage_Vectors.Vector;
-         Got_Fields   : Boolean := False;
-         Field_Names  : String_Vectors.Vector;
-         Field_Values : String_Vectors.Vector;
+         Fields       : Database_Fields_Access;
       end record;
+
+   overriding procedure Initialize (Item : in out Database_Record);
+   overriding procedure Finalize (Item : in out Database_Record);
+   overriding procedure Adjust (Item : in out Database_Record);
 
    type Database_Field_Type is
      (Integer_Type, Float_Type, Long_Float_Type, String_Type, Reference_Type,

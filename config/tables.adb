@@ -2,6 +2,7 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
 with Ada.Long_Float_Text_IO;
 with Ada.Text_IO;
+with Ada.Unchecked_Deallocation;
 
 with Marlowe.Btree_Handles;
 with Marlowe.Key_Storage;
@@ -61,7 +62,16 @@ package body {database}.Tables is
       return String_Vectors.Vector;
 
    procedure Get_Fields
-     (From_Record : in out Database_Record'Class);
+     (From_Record : Database_Record'Class);
+
+   ------------
+   -- Adjust --
+   ------------
+
+   overriding procedure Adjust (Item : in out Database_Record) is
+   begin
+      Item.Fields := new Database_Fields'(Item.Fields.all);
+   end Adjust;
 
    -----------------
    -- Field_Count --
@@ -81,10 +91,10 @@ package body {database}.Tables is
       return Natural
    is
    begin
-      if not Rec.Got_Fields then
+      if not Rec.Fields.Got_Fields then
          Get_Fields (Rec);
       end if;
-      return Rec.Field_Values.Last_Index;
+      return Rec.Fields.Field_Values.Last_Index;
    end Field_Count;
 
    ----------------
@@ -108,11 +118,23 @@ package body {database}.Tables is
                         return String
    is
    begin
-      if not Rec.Got_Fields then
+      if not Rec.Fields.Got_Fields then
          Get_Fields (Rec);
       end if;
-      return Rec.Field_Names.Element (Index);
+      return Rec.Fields.Field_Names.Element (Index);
    end Field_Name;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize (Item : in out Database_Record) is
+      procedure Free is
+        new Ada.Unchecked_Deallocation (Database_Fields,
+                                        Database_Fields_Access);
+   begin
+      Free (Item.Fields);
+   end Finalize;
 
    ---------
    -- Get --
@@ -211,7 +233,7 @@ package body {database}.Tables is
    ---------
 
    function Get
-     (From_Record : in out Database_Record'Class;
+     (From_Record : Database_Record'Class;
       Field_Name  : String)
       return String
    is
@@ -223,9 +245,9 @@ package body {database}.Tables is
 
       function Get_Single_Field (Name : String) return String is
       begin
-         for I in 1 .. From_Record.Field_Names.Last_Index loop
-            if From_Record.Field_Names (I) = Name then
-               return From_Record.Field_Values (I);
+         for I in 1 .. From_Record.Fields.Field_Names.Last_Index loop
+            if From_Record.Fields.Field_Names (I) = Name then
+               return From_Record.Fields.Field_Values (I);
             end if;
          end loop;
          raise Constraint_Error with
@@ -235,7 +257,7 @@ package body {database}.Tables is
       First_Point : constant Natural :=
                       Ada.Strings.Fixed.Index (Field_Name, ".");
    begin
-      if not From_Record.Got_Fields then
+      if not From_Record.Fields.Got_Fields then
          Get_Fields (From_Record);
       end if;
 
@@ -251,7 +273,7 @@ package body {database}.Tables is
                           Record_Reference'Value (Ref_Value);
             Child_Table : constant Database_Table'Class :=
                             Get_Field_Table (From_Record, Ref_Field);
-            Child       : Database_Record :=
+            Child       : constant Database_Record :=
                             Child_Table.Get (Ref);
          begin
             return Child.Get (Field_Name (First_Point + 1 .. Field_Name'Last));
@@ -264,16 +286,16 @@ package body {database}.Tables is
    ---------
 
    function Get
-     (From_Record : in out Database_Record'Class;
+     (From_Record : Database_Record'Class;
       Field_Index : Positive)
       return String
    is
    begin
-      if not From_Record.Got_Fields then
+      if not From_Record.Fields.Got_Fields then
          Get_Fields (From_Record);
       end if;
 
-      return From_Record.Field_Values (Field_Index);
+      return From_Record.Fields.Field_Values (Field_Index);
    end Get;
 
    ---------------------
@@ -404,7 +426,7 @@ package body {database}.Tables is
                   Table : constant Database_Table :=
                             (Index => Rec_Table,
                              Fields => String_Vectors.Empty_Vector);
-                  Rec : Database_Record'Class :=
+                  Rec : constant Database_Record'Class :=
                           Get (Table, Rec_Ref);
                begin
                   Rec_Table :=
@@ -507,7 +529,7 @@ package body {database}.Tables is
    ----------------
 
    procedure Get_Fields
-     (From_Record : in out Database_Record'Class)
+     (From_Record : Database_Record'Class)
    is
 
       use System.Storage_Elements;
@@ -538,8 +560,8 @@ package body {database}.Tables is
                                        (Store_Index) (Start .. Last),
                                      Kit_Type.Get (Field_Type));
                begin
-                  From_Record.Field_Names.Append (Field.Name);
-                  From_Record.Field_Values.Append (Field_Value);
+                  From_Record.Fields.Field_Names.Append (Field.Name);
+                  From_Record.Fields.Field_Values.Append (Field_Value);
                end;
             end if;
          end loop;
@@ -563,12 +585,12 @@ package body {database}.Tables is
                                     (1) (Start .. Last),
                                   Kit_Type.Get (Field_Type));
             begin
-               From_Record.Field_Names.Append (Field.Name);
-               From_Record.Field_Values.Append (Field_Value);
+               From_Record.Fields.Field_Names.Append (Field.Name);
+               From_Record.Fields.Field_Values.Append (Field_Value);
             end;
          end if;
       end loop;
-      From_Record.Got_Fields := True;
+      From_Record.Fields.Got_Fields := True;
    end Get_Fields;
 
    -----------------------
@@ -667,6 +689,15 @@ package body {database}.Tables is
       return Rec.Index /= 0;
    end Has_Element;
 
+   ----------------
+   -- Initialize --
+   ----------------
+
+   overriding procedure Initialize (Item : in out Database_Record) is
+   begin
+      Item.Fields := new Database_Fields;
+   end Initialize;
+
    --------------
    -- Is_Float --
    --------------
@@ -720,7 +751,7 @@ package body {database}.Tables is
      (Table        : Database_Table'Class;
       Key_Name     : String;
       Process      : not null access procedure
-        (Item : in out Database_Record'Class))
+        (Item : Database_Record'Class))
    is
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
               Get_Key_Reference (Table, Key_Name);
@@ -734,7 +765,7 @@ package body {database}.Tables is
                       Marlowe.Key_Storage.To_Database_Index
                         (Marlowe.Btree_Handles.Get_Key
                            (Mark));
-            Rec   : Database_Record :=
+            Rec   : constant Database_Record :=
                       Get (Table,
                            Record_Reference (Index));
          begin
@@ -753,7 +784,7 @@ package body {database}.Tables is
       Key_Name     : String;
       Key_Value    : String;
       Process      : not null access procedure
-        (Item : in out Database_Record'Class))
+        (Item : Database_Record'Class))
    is
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
               Get_Key_Reference (Table, Key_Name);
@@ -775,7 +806,7 @@ package body {database}.Tables is
                       Marlowe.Key_Storage.To_Database_Index
                         (Marlowe.Btree_Handles.Get_Key
                            (Mark));
-            Rec   : Database_Record :=
+            Rec   : constant Database_Record :=
                       Get (Table,
                            Record_Reference (Index));
          begin
@@ -795,7 +826,7 @@ package body {database}.Tables is
       First        : String;
       Last         : String;
       Process      : not null access procedure
-        (Item : in out Database_Record'Class))
+        (Item : Database_Record'Class))
    is
       Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
               Get_Key_Reference (Table, Key_Name);
@@ -817,7 +848,7 @@ package body {database}.Tables is
                       Marlowe.Key_Storage.To_Database_Index
                         (Marlowe.Btree_Handles.Get_Key
                            (Mark));
-            Rec   : Database_Record :=
+            Rec   : constant Database_Record :=
                       Get (Table,
                            Record_Reference (Index));
          begin
@@ -1077,7 +1108,8 @@ package body {database}.Tables is
                Type_Reference : constant {database}.Kit_Type_Reference :=
                                   Value_Type.Reference;
                Ref            : {database}.Kit_Reference.Kit_Reference_Type :=
-                       {database}.Kit_Reference.Get_Kit_Reference (Type_Reference);
+                                  {database}.Kit_Reference.Get_Kit_Reference
+                                    (Type_Reference);
                Display_Field : Kit_Display_Field.Kit_Display_Field_Type :=
                                  Kit_Display_Field.Get_By_Kit_Record
                                    (Ref.Reference);
@@ -1096,7 +1128,7 @@ package body {database}.Tables is
                                           Get_Table
                                             (Marlowe.Table_Index
                                                (Dependent_Rec.Table_Index));
-                        Rec   : Database_Record :=
+                        Rec   : constant Database_Record :=
                                           Table.Get (Record_Reference (Index));
                         Field         : constant Kit_Field.Kit_Field_Type :=
                                           Kit_Field.Get
