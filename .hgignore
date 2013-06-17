@@ -12,6 +12,7 @@ tests/test_reference_1-driver
 tests/*.marlowe
 tests/*.ad[bs]
 tests/generated/*
+tests/temp/*
 src/server/generated
 src/server/leander
 *.orig
