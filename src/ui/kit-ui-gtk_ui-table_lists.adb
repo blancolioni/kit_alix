@@ -44,7 +44,7 @@ package body Kit.UI.Gtk_UI.Table_Lists is
          Store.Append (Iter);
          Store.Set (Iter, 0, Table.Name);
       end loop;
-      View.Set_Model (Gtk.Tree_Model.Gtk_Tree_Model (Store));
+      View.Set_Model (Store.To_Interface);
       Gtk.Cell_Renderer_Text.Gtk_New (Text_Render);
       Gtk.Tree_View_Column.Gtk_New (Text_Column);
       Num := View.Append_Column (Text_Column);
@@ -76,7 +76,7 @@ package body Kit.UI.Gtk_UI.Table_Lists is
       Iter      : Gtk.Tree_Model.Gtk_Tree_Iter;
    begin
       Gtk.Tree_Selection.Get_Selected (Selection, Model, Iter);
-      UI.Show_Table (Model.Get_String (Iter, 0));
+      UI.Show_Table (Gtk.Tree_Model.Get_String (Model, Iter, 0));
    end Select_Table_Handler;
 
 end Kit.UI.Gtk_UI.Table_Lists;

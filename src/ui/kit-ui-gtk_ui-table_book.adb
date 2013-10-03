@@ -87,7 +87,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
          Gtk.List_Store.Gtk_New
            (Store, Column_Types);
 
-         View.Set_Model (Gtk.Tree_Model.Gtk_Tree_Model (Store));
+         View.Set_Model (Store.To_Interface);
 
          for I in 0 .. Table.Field_Count loop
             Gtk.Cell_Renderer_Text.Gtk_New (Text_Render);
@@ -251,7 +251,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
 
       Store : constant Gtk.List_Store.Gtk_List_Store :=
                 Gtk.List_Store.Gtk_List_Store
-                  (Display.Widget.Get_Model);
+                  (Gtk.Tree_Model."-" (Display.Widget.Get_Model));
 
       Table : constant Kit.Db.Tables.Database_Table :=
                 Kit.Db.Tables.Get_Table (Table_Name (Display.all));
@@ -302,7 +302,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
                   Iter  : Gtk.Tree_Model.Gtk_Tree_Iter;
                   Store : constant Gtk.List_Store.Gtk_List_Store :=
                             Gtk.List_Store.Gtk_List_Store
-                              (Display.Widget.Get_Model);
+                              (Gtk.Tree_Model."-" (Display.Widget.Get_Model));
                begin
                   if Cell_Count (Row) > 0 then
                      Store.Append (Iter);
