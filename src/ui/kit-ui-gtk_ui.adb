@@ -105,16 +105,19 @@ package body Kit.UI.Gtk_UI is
       Gtk.Builder.Gtk_New (Builder);
 
       declare
-         use type Glib.Error.GError;
+         use type Glib.Guint;
          Path  : constant String :=
                    Kit.Paths.Config_Path & "/ui.glade";
-         Error : constant Glib.Error.GError :=
-                   Builder.Add_From_File
-                     (Filename => Path);
+         Error : aliased Glib.Error.GError;
+         Result : constant Glib.Guint :=
+                    Builder.Add_From_File
+                      (Filename => Path,
+                       Error    => Error'Access);
       begin
-         if Error /= null then
+         if Result = 0 then
             raise Program_Error with
-              "Error opening GUI definition: " & Path;
+              "Error opening GUI definition: " & Path
+              & ": " & Glib.Error.Get_Message (Error);
          end if;
       end;
 
