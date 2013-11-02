@@ -419,7 +419,7 @@ package body Kit.Generate.Public_Interface is
          Store : Subprogram_Declaration'Class :=
                    New_Abstract_Procedure
                      ("Set_" & Field.Ada_Name,
-                      New_Inout_Argument ("Item",
+                      New_In_Argument ("Item",
                         Aquarius.Drys.Named_Subtype
                           (Table.Interface_Name)));
       begin
@@ -437,7 +437,7 @@ package body Kit.Generate.Public_Interface is
                Store : Subprogram_Declaration'Class :=
                          New_Abstract_Procedure
                            ("Set_" & Field.Ada_Name,
-                            New_Inout_Argument ("Item",
+                            New_In_Argument ("Item",
                               Aquarius.Drys.Named_Subtype
                                 (Table.Interface_Name)));
             begin
@@ -708,7 +708,7 @@ package body Kit.Generate.Public_Interface is
          Store : Subprogram_Declaration'Class :=
                    New_Procedure
                      ("Set_" & Field.Ada_Name,
-                      New_Inout_Argument ("Item",
+                      New_In_Argument ("Item",
                         Aquarius.Drys.Named_Subtype
                           (Table.Ada_Name & "_Implementation")),
                       Store_Block);
@@ -732,7 +732,7 @@ package body Kit.Generate.Public_Interface is
             Store     : Subprogram_Declaration'Class :=
                           New_Procedure
                             ("Set_" & Field.Ada_Name,
-                             New_Inout_Argument ("Item",
+                             New_In_Argument ("Item",
                                Aquarius.Drys.Named_Subtype
                                  (Table.Ada_Name & "_Implementation")),
                              Aquarius.Drys.Blocks.Create_Block
@@ -1138,7 +1138,7 @@ package body Kit.Generate.Public_Interface is
       begin
          X_Lock.Add_Formal_Argument
            ("Item",
-            Inout_Argument,
+            In_Argument,
             Table.Ada_Name & "_Implementation");
          X_Lock.Set_Overriding;
          Top.Append_To_Body (X_Lock);

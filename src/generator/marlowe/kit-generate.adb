@@ -214,7 +214,7 @@ package body Kit.Generate is
       Top.Append
         (New_Abstract_Procedure
            ("X_Lock",
-            New_Inout_Argument
+            New_In_Argument
               ("Item", Named_Subtype ("Record_Interface"))));
 
 --        Top.Append
