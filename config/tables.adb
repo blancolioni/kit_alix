@@ -87,7 +87,7 @@ package body {database}.Tables is
    -----------------
 
    function Field_Count
-     (Rec : in out Database_Record'Class)
+     (Rec : Database_Record'Class)
       return Natural
    is
    begin
@@ -113,7 +113,7 @@ package body {database}.Tables is
    -- Field_Name --
    ----------------
 
-   function Field_Name (Rec : in out Database_Record'Class;
+   function Field_Name (Rec : Database_Record'Class;
                         Index : Positive)
                         return String
    is

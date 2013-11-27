@@ -42,8 +42,8 @@ package {database}.Tables is
                  Key_Value    : String)
                  return Database_Record;
 
-   function Field_Count (Rec : in out Database_Record'Class) return Natural;
-   function Field_Name (Rec : in out Database_Record'Class;
+   function Field_Count (Rec : Database_Record'Class) return Natural;
+   function Field_Name (Rec : Database_Record'Class;
                         Index : Positive)
                         return String;
 
