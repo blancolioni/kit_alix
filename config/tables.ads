@@ -24,6 +24,10 @@ package {database}.Tables is
                         Index : Positive)
                         return String;
 
+   function Is_Key (Table : Database_Table'Class;
+                    Name  : String)
+                    return Boolean;
+
    type Record_Reference is private;
    Null_Record_Reference : constant Record_Reference;
    function To_String (Reference : Record_Reference) return String;
@@ -118,6 +122,7 @@ private
       record
          Index      : Marlowe.Table_Index;
          Fields     : String_Vectors.Vector;
+         Keys       : String_Vectors.Vector;
       end record;
 
    type Record_Reference is new Marlowe.Database_Index;
