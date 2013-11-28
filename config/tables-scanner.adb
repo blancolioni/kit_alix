@@ -150,13 +150,13 @@ package body {database}.Tables.Scanner is
       Scan_Key   : Ada.Strings.Unbounded.Unbounded_String;
       Count      : Natural;
 
-      procedure Add_Row (Item : in out Database_Record'Class);
+      procedure Add_Row (Item : Database_Record'Class);
 
       -------------
       -- Add_Row --
       -------------
 
-      procedure Add_Row (Item : in out Database_Record'Class) is
+      procedure Add_Row (Item : Database_Record'Class) is
          use type Marlowe.Database_Index;
          Row : Table_Row;
       begin

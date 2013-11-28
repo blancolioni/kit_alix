@@ -70,7 +70,11 @@ package body Kit.UI.Gtk_UI.Table_Book is
                First := True;
             end if;
          end loop;
-         return Result;
+         if Table.Is_Key (Database_Name) then
+            return Result & "*";
+         else
+            return Result;
+         end if;
       end Format_Heading;
 
       ---------------------------------
@@ -180,7 +184,8 @@ package body Kit.UI.Gtk_UI.Table_Book is
       Display   : Table_Display)
    is
 
-      function Deformat_Heading (Heading : String) return String;
+      function Deformat_Heading (Heading : String) return String
+        with Pre => Heading'Length > 0;
 
       ----------------------
       -- Deformat_Heading --
@@ -196,7 +201,11 @@ package body Kit.UI.Gtk_UI.Table_Book is
                Result (I) := Ada.Characters.Handling.To_Lower (Result (I));
             end if;
          end loop;
-         return Result;
+         if Result (Result'Last) = '*' then
+            return Result (Result'First .. Result'Last - 1);
+         else
+            return Result;
+         end if;
       end Deformat_Heading;
 
       Nice_Title : constant String := Tree_View.Get_Title;
@@ -232,10 +241,11 @@ package body Kit.UI.Gtk_UI.Table_Book is
             end;
          end loop;
 
-         if Found then
-            Show_Table (Display);
-            Start_Updates;
-         end if;
+      end if;
+
+      if Found then
+         Show_Table (Display);
+         Start_Updates;
       end if;
 
    end On_Column_Click;
