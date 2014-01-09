@@ -14,7 +14,7 @@ package body Kit.Generic_Cache is
    ---------
 
    function Get
-     (Handle      : Marlowe.Btree_Handles.Btree_Handle;
+     (Handle      : in out Marlowe.Data_Stores.Data_Store_Interface'Class;
       Index       : Marlowe.Database_Index;
       Lock_Result : Boolean := True)
       return Cache_Access

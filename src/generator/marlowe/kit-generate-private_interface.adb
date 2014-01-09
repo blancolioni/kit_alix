@@ -298,9 +298,8 @@ package body Kit.Generate.Private_Interface is
                                     else "Get_Record");
          Stat : Procedure_Call_Statement :=
                   New_Procedure_Call_Statement
-                    ("Marlowe.Btree_Handles." & Name);
+                    ("Marlowe_Keys.Handle." & Name);
       begin
-         Stat.Add_Actual_Argument ("Marlowe_Keys.Handle");
          Stat.Add_Actual_Argument (Table.Ada_Name & "_Table_Index");
          Stat.Add_Actual_Argument ("Ref");
          Stat.Add_Actual_Argument ("Storage'Address");
@@ -406,7 +405,6 @@ package body Kit.Generate.Private_Interface is
       --  Impl_Package.With_Package ("Kit.Cache");
       Impl_Package.With_Package ("Kit.Mutex");
       Impl_Package.With_Package ("System.Storage_Elements");
-      Impl_Package.With_Package ("Marlowe.Btree_Handles", Body_With => True);
       Impl_Package.With_Package ("Marlowe.Key_Storage",
                                  Body_With => True);
       Impl_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",

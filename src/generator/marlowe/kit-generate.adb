@@ -422,7 +422,42 @@ package body Kit.Generate is
       Kit.Schema.Types.Iterate_User_Defined_Types (Create_Type'Access);
    end Create_User_Defined_Types;
 
+   ----------------------------
+   -- Data_Store_Cursor_Name --
+   ----------------------------
 
+   function Data_Store_Cursor_Name return String is
+   begin
+      return "Marlowe.Data_Stores.Data_Store_Cursor";
+   end Data_Store_Cursor_Name;
+
+   -----------------------------
+   -- Data_Store_Package_Name --
+   -----------------------------
+
+   function Data_Store_Package_Name return String is
+   begin
+      case Generated_Database is
+         when Btree_Marlowe =>
+            return "Marlowe.Data_Stores.Btrees";
+         when Memory_Marlowe =>
+            return "Marlowe.Data_Stores.Memory";
+      end case;
+   end Data_Store_Package_Name;
+
+   --------------------------
+   -- Data_Store_Type_Name --
+   --------------------------
+
+   function Data_Store_Type_Name return String is
+   begin
+      case Generated_Database is
+         when Btree_Marlowe =>
+            return "Marlowe.Data_Stores.Btrees.Btree_Data_Store";
+         when Memory_Marlowe =>
+            return "Marlowe.Data_Stores.Memory.Memory_Data_Store";
+      end case;
+   end Data_Store_Type_Name;
 
    -----------------------
    -- Generate_Database --
@@ -528,5 +563,14 @@ package body Kit.Generate is
       Db.Iterate (Private_Interface'Access);
       return Project;
    end Generate_Database;
+
+   ------------------------
+   -- Generated_Database --
+   ------------------------
+
+   function Generated_Database return Generated_Database_Type is
+   begin
+      return Btree_Marlowe;
+   end Generated_Database;
 
 end Kit.Generate;

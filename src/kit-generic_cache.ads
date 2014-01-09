@@ -1,4 +1,4 @@
-with Marlowe.Btree_Handles;
+with Marlowe.Data_Stores;
 with Kit.Cache;
 
 generic
@@ -23,7 +23,7 @@ package Kit.Generic_Cache is
    type Cache_Access is access all Cache_Record'Class;
 
    function Get
-     (Handle      : Marlowe.Btree_Handles.Btree_Handle;
+     (Handle      : in out Marlowe.Data_Stores.Data_Store_Interface'Class;
       Index       : Marlowe.Database_Index;
       Lock_Result : Boolean := True)
       return Cache_Access;

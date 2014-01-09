@@ -39,7 +39,6 @@ package body Kit.Generate.Fetch is
               (Base_Target,
                New_Function_Call_Expression
                  (Cache_Package & ".Get",
-                  Object ("Marlowe_Keys.Handle"),
                   New_Function_Call_Expression
                     ("Marlowe.Database_Index",
                      Index_Variable))));

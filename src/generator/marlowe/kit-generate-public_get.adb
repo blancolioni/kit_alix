@@ -366,13 +366,13 @@ package body Kit.Generate.Public_Get is
 
       Next_Block.Add_Statement
         (New_Procedure_Call_Statement
-           ("Marlowe.Btree_Handles.Next",
-            Object ("Mark.all")));
+           ("Mark.Next"));
+
       Next_Block.Add_Statement
         (New_Assignment_Statement
            ("Got_Valid_Index",
-            New_Function_Call_Expression
-              ("Marlowe.Btree_Handles.Valid", "Mark.all")));
+            New_Function_Call_Expression ("Mark.Valid")));
+
       Next_Block.Add_Statement
         (If_Statement
            (Object ("Got_Valid_Index"),
@@ -383,8 +383,7 @@ package body Kit.Generate.Public_Get is
                   New_Function_Call_Expression
                     ("Marlowe.Key_Storage.To_Database_Index",
                      New_Function_Call_Expression
-                       ("Marlowe.Btree_Handles.Get_Key",
-                        "Mark.all"))))));
+                       ("Mark.Get_Key"))))));
 
       Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
                                 & ".Shared_Unlock");
@@ -529,7 +528,7 @@ package body Kit.Generate.Public_Get is
             Object_Type => "Mark_Access",
             Value       =>
               New_Allocation_Expression
-                ("Marlowe.Btree_Handles.Btree_Mark'(M)")));
+                (Data_Store_Cursor_Name & "'(M)")));
 
       if Container then
          Valid_Block.Add_Statement
@@ -560,8 +559,7 @@ package body Kit.Generate.Public_Get is
            ("Get",
             New_Function_Call_Expression
               ("Marlowe.Key_Storage.To_Database_Index",
-               New_Function_Call_Expression
-                 ("Marlowe.Btree_Handles.Get_Key", "M")),
+               Object ("M.Get_Key")),
             Object ("Element.all")));
       if Container then
          Valid_Block.Add_Statement
@@ -596,10 +594,8 @@ package body Kit.Generate.Public_Get is
          Mark_Block : Aquarius.Drys.Blocks.Block_Type;
          Initialiser      : Function_Call_Expression :=
                               New_Function_Call_Expression
-                                ("Marlowe.Btree_Handles.Search");
+                                ("Marlowe_Keys.Handle.Search");
       begin
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe_Keys.Handle"));
          if Container then
             Initialiser.Add_Actual_Argument
               (Object ("Container.Key_Ref"));
@@ -629,7 +625,7 @@ package body Kit.Generate.Public_Get is
          end if;
          Mark_Block.Add_Declaration
            (New_Constant_Declaration
-              ("M", "Marlowe.Btree_Handles.Btree_Mark",
+              ("M", Data_Store_Cursor_Name,
                Initialiser));
          declare
             Valid_Sequence : Sequence_Of_Statements;
@@ -639,8 +635,7 @@ package body Kit.Generate.Public_Get is
 
             Mark_Block.Append
               (If_Statement
-                 (New_Function_Call_Expression
-                    ("Marlowe.Btree_Handles.Valid", "M"),
+                 (Object ("M.Valid"),
                   Valid_Sequence,
                   Invalid_Sequence));
          end;
@@ -1097,10 +1092,8 @@ package body Kit.Generate.Public_Get is
             Mark_Block       : Aquarius.Drys.Blocks.Block_Type;
             Initialiser      : Function_Call_Expression :=
                                  New_Function_Call_Expression
-                                   ("Marlowe.Btree_Handles.Search");
+                                   ("Marlowe_Keys.Handle.Search");
          begin
-            Initialiser.Add_Actual_Argument
-              (Object ("Marlowe_Keys.Handle"));
             Initialiser.Add_Actual_Argument
               (Object ("Marlowe_Keys." & Table.Key_Reference_Name (Key)));
             declare
@@ -1143,20 +1136,16 @@ package body Kit.Generate.Public_Get is
 
             Mark_Block.Add_Declaration
               (New_Constant_Declaration
-                 ("M", "Marlowe.Btree_Handles.Btree_Mark",
+                 ("M", Data_Store_Cursor_Name,
                   Initialiser));
             Mark_Block.Add_Statement
               (If_Statement
-                 (New_Function_Call_Expression
-                    ("Marlowe.Btree_Handles.Valid",
-                     Object ("M")),
+                 (Object ("M.Valid"),
                   New_Assignment_Statement
                     ("Db_Index",
                      New_Function_Call_Expression
                        ("Marlowe.Key_Storage.To_Database_Index",
-                        New_Function_Call_Expression
-                          ("Marlowe.Btree_Handles.Get_Key",
-                           "M")))));
+                        Object ("M.Get_Key")))));
             Block.Add_Statement
               (Declare_Statement (Mark_Block));
          end;

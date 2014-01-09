@@ -67,8 +67,7 @@ package body Kit.Generate.Database_Package is
               ("Database_Mutex.Lock"));
          Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
-              ("Marlowe.Btree_Handles.Close",
-               Object ("Marlowe_Keys.Handle")));
+              ("Marlowe_Keys.Handle.Close"));
          Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
               ("Database_Mutex.Unlock"));
@@ -121,10 +120,8 @@ package body Kit.Generate.Database_Package is
                Call_Add_Key : Function_Call_Expression :=
                                 New_Function_Call_Expression
                                   (Procedure_Name =>
-                                      "Marlowe.Btree_Handles.Add_Key");
+                                      "Marlowe_Keys.Handle.Add_Key");
             begin
-               Call_Add_Key.Add_Actual_Argument
-                 (Object ("Marlowe_Keys.Handle"));
                Call_Add_Key.Add_Actual_Argument
                  (Literal (Table.Name & "_" & Key.Standard_Name));
                Call_Add_Key.Add_Actual_Argument
@@ -141,10 +138,8 @@ package body Kit.Generate.Database_Package is
 
             Proc  : Procedure_Call_Statement :=
                       New_Procedure_Call_Statement
-                        ("Marlowe.Btree_Handles.Add_Table");
+                        ("Marlowe_Keys.Handle.Add_Table");
          begin
-            Proc.Add_Actual_Argument
-              (Aquarius.Drys.Object ("Marlowe_Keys.Handle"));
             Proc.Add_Actual_Argument
               (Aquarius.Drys.Literal (Table.Standard_Name));
             Proc.Add_Actual_Argument
@@ -182,10 +177,8 @@ package body Kit.Generate.Database_Package is
                Call_Open_Key : Function_Call_Expression :=
                                  New_Function_Call_Expression
                                    (Procedure_Name =>
-                                      "Marlowe.Btree_Handles.Get_Reference");
+                                      "Marlowe_Keys.Handle.Get_Reference");
             begin
-               Call_Open_Key.Add_Actual_Argument
-                 (Aquarius.Drys.Object ("Marlowe_Keys.Handle"));
                Call_Open_Key.Add_Actual_Argument
                  (Aquarius.Drys.Literal
                     (Table.Name & "_" & Key.Standard_Name));
@@ -205,7 +198,7 @@ package body Kit.Generate.Database_Package is
 
          Access_Db  : Aquarius.Drys.Statements.Procedure_Call_Statement :=
                         Aquarius.Drys.Statements.New_Procedure_Call_Statement
-                          ("Marlowe.Btree_Handles." &
+                          ("Marlowe_Keys.Handle." &
                            Operation_Name (Operation));
       begin
 
@@ -217,8 +210,13 @@ package body Kit.Generate.Database_Package is
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
               ("Database_Mutex.Lock"));
 
-         Access_Db.Add_Actual_Argument
-           (Aquarius.Drys.Object ("Marlowe_Keys.Handle"));
+         Block.Add_Statement
+           (Aquarius.Drys.Statements.New_Assignment_Statement
+              (Target => "Marlowe_Keys.Handle",
+               Value  =>
+                 Aquarius.Drys.Expressions.New_Allocation_Expression
+                   (Allocated_Type => Data_Store_Type_Name)));
+
          Access_Db.Add_Actual_Argument
            (Aquarius.Drys.Object ("Path"));
          Access_Db.Add_Actual_Argument
@@ -258,7 +256,8 @@ package body Kit.Generate.Database_Package is
 
    begin
 
-      Result.With_Package ("Marlowe.Btree_Handles", Body_With => True);
+      Result.With_Package (Data_Store_Package_Name, Body_With => True);
+
       Result.With_Package ("Kit.Cache",    Body_With => True);
 
       Result.With_Package (Db.Ada_Name & ".Marlowe_Keys",
