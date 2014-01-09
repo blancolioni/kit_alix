@@ -14,12 +14,10 @@ package body Kit.Generic_Cache is
    ---------
 
    function Get
-     (Handle      : in out Marlowe.Data_Stores.Data_Store_Interface'Class;
-      Index       : Marlowe.Database_Index;
+     (Index       : Marlowe.Database_Index;
       Lock_Result : Boolean := True)
       return Cache_Access
    is
-      pragma Unreferenced (Handle);
       use type Kit.Cache.Cache_Entry;
       Result : Kit.Cache.Cache_Entry;
    begin
