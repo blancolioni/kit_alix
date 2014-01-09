@@ -43,7 +43,7 @@ package body Kit.Generate.Marlowe_Keys_Package is
                     Aquarius.Drys.Declarations.New_Object_Declaration
                       (Table.Key_Reference_Name (Key),
                        Aquarius.Drys.Named_Subtype
-                         ("Marlowe.Btree_Handles.Btree_Reference"));
+                         ("Marlowe.Data_Stores.Key_Reference"));
          begin
             Result.Append (Dec);
          end Generate_Key;
@@ -53,12 +53,13 @@ package body Kit.Generate.Marlowe_Keys_Package is
       end Generate_Table_Keys;
 
    begin
-      Result.With_Package ("Marlowe.Btree_Handles");
+      Result.With_Package ("Marlowe.Data_Stores");
+
       Result.Append
         (Aquarius.Drys.Declarations.New_Object_Declaration
            ("Handle",
             Aquarius.Drys.Named_Subtype
-              ("Marlowe.Btree_Handles.Btree_Handle")));
+              ("Marlowe.Data_Stores.Data_Store")));
 
       Db.Iterate (Generate_Table_Keys'Access);
 

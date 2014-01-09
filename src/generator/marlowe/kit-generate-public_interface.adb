@@ -115,9 +115,8 @@ package body Kit.Generate.Public_Interface is
             is
                Insert : Procedure_Call_Statement :=
                           New_Procedure_Call_Statement
-                            ("Marlowe.Btree_Handles.Insert");
+                            ("Marlowe_Keys.Handle.Insert");
             begin
-               Insert.Add_Actual_Argument ("Marlowe_Keys.Handle");
                Insert.Add_Actual_Argument ("Marlowe_Keys."
                                            & Base.Key_Reference_Name
                                              (Key));
@@ -492,7 +491,7 @@ package body Kit.Generate.Public_Interface is
       is
          S : Aquarius.Drys.Statements.Procedure_Call_Statement :=
                Aquarius.Drys.Statements.New_Procedure_Call_Statement
-                 ("Marlowe.Btree_Handles." & Operation);
+                 ("Marlowe_Keys.Handle." & Operation);
          Key_Storage : constant Aquarius.Drys.Expression'Class :=
                          Table.To_Storage
                            (Base_Table  => Table_Base,
@@ -502,8 +501,6 @@ package body Kit.Generate.Public_Interface is
                             With_Index  => False);
       begin
 
-         S.Add_Actual_Argument
-           ("Marlowe_Keys.Handle");
          S.Add_Actual_Argument
            ("Marlowe_Keys."
             & Table_Base.Key_Reference_Name (Key));
@@ -622,8 +619,7 @@ package body Kit.Generate.Public_Interface is
                                Object (Key_Ref));
          Release        : constant Statement'Class :=
                             New_Procedure_Call_Statement
-                              ("Marlowe.Btree_Handles.Release",
-                               Object ("Item.Mark.all"));
+                              ("Item.Mark.Release");
       begin
          Store_Block.Add_Statement
            (If_Statement
@@ -660,7 +656,7 @@ package body Kit.Generate.Public_Interface is
       if Table.Has_Key_Field then
          Store_Block.Add_Declaration
            (Aquarius.Drys.Declarations.Use_Type
-              ("Marlowe.Btree_Handles.Btree_Reference"));
+              ("Marlowe.Data_Stores.Key_Reference"));
       end if;
 
       Store_Block.Add_Declaration
@@ -1223,13 +1219,11 @@ package body Kit.Generate.Public_Interface is
 
          Next_Block.Add_Statement
            (New_Procedure_Call_Statement
-              ("Marlowe.Btree_Handles.Next",
-               Object ("Item.Mark.all")));
+              ("Item.Mark.Next"));
          Next_Block.Add_Statement
            (New_Assignment_Statement
               ("Got_Valid_Index",
-               New_Function_Call_Expression
-                 ("Marlowe.Btree_Handles.Valid", "Item.Mark.all")));
+               Object ("Item.Mark.Valid")));
          Next_Block.Add_Statement
            (If_Statement
               (Object ("Got_Valid_Index"),
@@ -1237,9 +1231,7 @@ package body Kit.Generate.Public_Interface is
                  ("Item.M_Index",
                   New_Function_Call_Expression
                     ("Marlowe.Key_Storage.To_Database_Index",
-                     New_Function_Call_Expression
-                       ("Marlowe.Btree_Handles.Get_Key",
-                        "Item.Mark.all")))));
+                     Object ("Item.Mark.Get_Key")))));
 
          Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
                                    & ".Shared_Unlock");
@@ -1483,8 +1475,7 @@ package body Kit.Generate.Public_Interface is
                   New_Function_Call_Expression
                     (Base.Reference_Type,
                      New_Function_Call_Expression
-                       ("Marlowe.Btree_Handles.Insert_Record",
-                        Object ("Marlowe_Keys.Handle"),
+                       ("Marlowe_Keys.Handle.Insert_Record",
                         Literal (Integer (Base.Reference_Index))))));
             if Base.Ada_Name /= Table.Ada_Name then
                Base.Iterate (Set_Base_Index'Access, Inclusive   => False);
@@ -1797,7 +1788,7 @@ package body Kit.Generate.Public_Interface is
          Record_Defn.Add_Component ("Using_Key_Value", "Boolean");
          --  Record_Defn.Add_Component ("Mark", "Mark_Access");
          Record_Defn.Add_Component ("Key_Ref",
-                                    "Marlowe.Btree_Handles.Btree_Reference");
+                                    "Marlowe.Data_Stores.Key_Reference");
          Record_Defn.Add_Component ("M_Index", Table.Reference_Type);
          Record_Defn.Add_Component ("Local",
                                     "Local_Lock_Context");
@@ -1948,7 +1939,7 @@ package body Kit.Generate.Public_Interface is
                         (if Mark_Package then "Mark" else "Element");
                Type_Name : constant String :=
                              (if Mark_Package
-                              then "Marlowe.Btree_Handles.Btree_Mark"
+                              then Data_Store_Cursor_Name
                               else Table.Type_Name);
                List_Package   : Aquarius.Drys.Declarations.Package_Type :=
                                   Aquarius.Drys.Declarations.New_Package_Type
@@ -1999,11 +1990,8 @@ package body Kit.Generate.Public_Interface is
                          ("List_Of_Marks.Has_Element",
                           Object ("Item.Current_Mark")),
                      Right =>
-                       New_Function_Call_Expression
-                         ("Marlowe.Btree_Handles.Valid",
                           Object
-                            ("List_Of_Marks.Element (Item.Current_Mark).all")
-                         )
+                            ("List_Of_Marks.Element (Item.Current_Mark).Valid")
                     )
                  )
               );
@@ -2086,7 +2074,7 @@ package body Kit.Generate.Public_Interface is
             "System.Storage_Elements.Storage_Array (1 .. Key_Length)");
          Selection.Add_Component
            ("Key_Ref",
-            "Marlowe.Btree_Handles.Btree_Reference");
+            "Marlowe.Data_Stores.Key_Reference");
          Selection.Add_Component
            ("State", "Selection_State_Access");
 
@@ -2371,7 +2359,7 @@ package body Kit.Generate.Public_Interface is
       Table_Package.With_Package ("System.Storage_Elements",
                                   Private_With => True);
 
-      Table_Package.With_Package ("Marlowe.Btree_Handles",
+      Table_Package.With_Package ("Marlowe.Data_Stores",
                                   Private_With => True);
 
       Table_Package.With_Package ("Ada.Iterator_Interfaces");
@@ -2439,9 +2427,9 @@ package body Kit.Generate.Public_Interface is
       --  Create_Key_Context_Type (Db, Table, Table_Package);
 
       declare
---           Mark_Access : constant Access_Type_Definition :=
---                           New_Access_Type
---                             ("Marlowe.Btree_Handles.Btree_Mark",
+         --           Mark_Access : constant Access_Type_Definition :=
+         --                           New_Access_Type
+         --                             ("Marlowe.Btree_Handles.Btree_Mark",
 --                              False);
          Free        : Subprogram_Declaration'Class :=
                          Instantiate_Generic_Procedure
@@ -2454,7 +2442,7 @@ package body Kit.Generate.Public_Interface is
 --                ("Mark_Access", Mark_Access));
 
          Free.Add_Generic_Actual_Argument
-           ("Marlowe.Btree_Handles.Btree_Mark");
+           (Data_Store_Cursor_Name);
          Free.Add_Generic_Actual_Argument
            ("Mark_Access");
 
