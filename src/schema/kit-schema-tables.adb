@@ -438,6 +438,28 @@ package body Kit.Schema.Tables is
         & Base_2.Base_Index_Name;
    end Database_Index_Component;
 
+   ------------------------
+   -- Enable_Map_Package --
+   ------------------------
+
+   procedure Enable_Map_Package
+     (Item : in out Table_Type)
+   is
+   begin
+      Item.With_Map_Package := True;
+   end Enable_Map_Package;
+
+   ---------------------------
+   -- Enable_Vector_Package --
+   ---------------------------
+
+   procedure Enable_Vector_Package
+     (Item : in out Table_Type)
+   is
+   begin
+      Item.With_Vector_Package := True;
+   end Enable_Vector_Package;
+
    -----------------
    -- Field_Start --
    -----------------
@@ -1233,5 +1255,24 @@ package body Kit.Schema.Tables is
    begin
       return Item.Ada_Name & "_Type";
    end Type_Name;
+
+   ----------------------
+   -- With_Map_Package --
+   ----------------------
+
+   function With_Map_Package (Item : Table_Type) return Boolean is
+   begin
+      return Item.With_Map_Package;
+   end With_Map_Package;
+
+   -------------------------
+   -- With_Vector_Package --
+   -------------------------
+
+   function With_Vector_Package (Item : Table_Type) return Boolean is
+   begin
+      return Item.With_Vector_Package;
+   end With_Vector_Package;
+
 
 end Kit.Schema.Tables;

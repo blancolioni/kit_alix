@@ -17,6 +17,7 @@ with Kit.Schema.Types;
 
 with Kit.Generate.Leander_Module;
 with Kit.Generate.Server;
+with Kit.Generate.Templates;
 
 with GCS.Errors;
 
@@ -84,6 +85,8 @@ begin
       Kit.Generate.Server.Copy_Server_Packages
         (Database_Name    => Db.Ada_Name,
          Target_Directory => Target_Directory);
+      Kit.Generate.Templates.Copy_Template_Packages
+        (Db, Target_Directory);
       Kit.Generate.Leander_Module.Generate_Leander_Module
         (Db.all, Target_Directory);
    end;
