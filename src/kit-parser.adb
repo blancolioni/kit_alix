@@ -351,6 +351,28 @@ package body Kit.Parser is
 
             Table.Add_Base_Keys;
 
+            if Tok = Tok_With then
+               Scan;
+               while Tok = Tok_Identifier loop
+                  if Tok_Text = "vector" then
+                     Table.Enable_Vector_Package;
+                  elsif Tok_Text = "map" then
+                     Table.Enable_Map_Package;
+                  else
+                     Error (Tok_Raw_Text & ": unknown table feature");
+                  end if;
+                  Scan;
+                  if Tok = Tok_Comma then
+                     Scan;
+                     if Tok = Tok_Is or else Tok = Tok_Semi then
+                        Error ("extra ',' ignored");
+                     elsif Tok /= Tok_Identifier then
+                        Error ("expected table feature identifier");
+                     end if;
+                  end if;
+               end loop;
+            end if;
+
             if Tok = Tok_Is then
                Scan;
                while At_Field loop

@@ -61,6 +61,15 @@ package Kit.Schema.Tables is
    function Has_Compound_Key_Field (Item : Table_Type) return Boolean;
    function Has_Display_Field (Item : Table_Type) return Boolean;
 
+   function With_Vector_Package (Item : Table_Type) return Boolean;
+   function With_Map_Package (Item : Table_Type) return Boolean;
+
+   procedure Enable_Vector_Package
+     (Item : in out Table_Type);
+
+   procedure Enable_Map_Package
+     (Item : in out Table_Type);
+
    procedure Scan_Fields
      (Table    : Table_Type;
       Process : not null access procedure
@@ -275,6 +284,8 @@ private
          Has_Key_Field          : Boolean := False;
          Has_Compound_Key_Field : Boolean := False;
          Has_Display_Field      : Boolean := False;
+         With_Vector_Package    : Boolean := False;
+         With_Map_Package       : Boolean := False;
       end record;
 
    function Find_Key
