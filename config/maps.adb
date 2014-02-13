@@ -46,6 +46,19 @@ package body {database}.{table}_Maps is
       end if;
    end Element;
 
+   ------------
+   -- Insert --
+   ------------
+
+   procedure Insert
+     (Container : in out Map;
+      {table} : {table}_Reference;
+      Element   : Element_Type)
+   is
+   begin
+      Container.Map.Insert ({table}, Element);
+   end Insert;
+
    -------------
    -- Iterate --
    -------------
