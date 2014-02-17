@@ -4,7 +4,7 @@ with Ada.Long_Float_Text_IO;
 with Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
-with Marlowe.Btree_Handles;
+with Marlowe.Data_Stores;
 with Marlowe.Key_Storage;
 
 with {database}.Kit_Display_Field;
@@ -45,7 +45,7 @@ package body {database}.Tables is
    function Get_Key_Reference
      (Table     : Database_Table'Class;
       Key_Name  : String)
-      return Marlowe.Btree_Handles.Btree_Reference;
+      return Marlowe.Data_Stores.Key_Reference;
 
    function Get_Kit_Key_Reference
      (Table     : Database_Table'Class;
@@ -162,9 +162,8 @@ package body {database}.Tables is
          Item.Index := Marlowe.Database_Index (Reference);
          Item.Rec_Ref := Kit_Record_Reference (Item.Table);
 
-         Marlowe.Btree_Handles.Get_Record
-           (Marlowe_Keys.Handle, Table.Index, Item.Index,
-            Storage'Address);
+         Marlowe_Keys.Handle.Get_Record
+           (Table.Index, Item.Index, Storage'Address);
          Item.Value.Append (Storage);
 
          for Base of Kit_Record_Base.Select_By_Derived (Rec.Reference) loop
@@ -180,9 +179,8 @@ package body {database}.Tables is
             begin
                Marlowe.Key_Storage.From_Storage
                  (Index, Storage (Base_Offset .. Base_Offset + 7));
-               Marlowe.Btree_Handles.Get_Record
-                 (Marlowe_Keys.Handle,
-                  Marlowe.Table_Index (Base_Record.Table_Index),
+               Marlowe_Keys.Handle.Get_Record
+                 (Marlowe.Table_Index (Base_Record.Table_Index),
                   Index,
                   Base_Storage'Address);
                Item.Value.Append (Base_Storage);
@@ -201,25 +199,24 @@ package body {database}.Tables is
       Key_Value    : String)
       return Database_Record
    is
-      Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
+      Ref : constant Marlowe.Data_Stores.Key_Reference :=
         Get_Key_Reference (Table, Key_Name);
       First : constant System.Storage_Elements.Storage_Array :=
         Key_To_Storage (Table, Key_Name, Key_Value, True);
       Last  : constant System.Storage_Elements.Storage_Array :=
         Key_To_Storage (Table, Key_Name, Key_Value, False);
-      Mark : constant Marlowe.Btree_Handles.Btree_Mark :=
-        Marlowe.Btree_Handles.Search
-          (Marlowe_Keys.Handle, Ref,
-           First, Last,
-           Marlowe.Closed, Marlowe.Closed,
-           Marlowe.Forward);
+      Mark  : constant Marlowe.Data_Stores.Data_Store_Cursor :=
+                Marlowe_Keys.Handle.Search
+                  (Ref,
+                   First, Last,
+                   Marlowe.Closed, Marlowe.Closed,
+                   Marlowe.Forward);
    begin
-      if Marlowe.Btree_Handles.Valid (Mark) then
+      if Mark.Valid then
          declare
             Index : constant Marlowe.Database_Index :=
                       Marlowe.Key_Storage.To_Database_Index
-                        (Marlowe.Btree_Handles.Get_Key
-                           (Mark));
+                        (Mark.Get_Key);
          begin
             return Get (Table,
                         Record_Reference (Index));
@@ -637,12 +634,11 @@ package body {database}.Tables is
    function Get_Key_Reference
      (Table     : Database_Table'Class;
       Key_Name  : String)
-      return Marlowe.Btree_Handles.Btree_Reference
+      return Marlowe.Data_Stores.Key_Reference
    is
       Key_Full_Name : constant String := Table.Name & "_" & Key_Name;
    begin
-      return Marlowe.Btree_Handles.Get_Reference
-        (Marlowe_Keys.Handle, Key_Full_Name);
+      return Marlowe_Keys.Handle.Get_Reference (Key_Full_Name);
    end Get_Key_Reference;
 
    ---------------------------
@@ -807,25 +803,23 @@ package body {database}.Tables is
       Process      : not null access procedure
         (Item : Database_Record'Class))
    is
-      Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
+      Ref : constant Marlowe.Data_Stores.Key_Reference :=
               Get_Key_Reference (Table, Key_Name);
-      Mark : Marlowe.Btree_Handles.Btree_Mark :=
-               Marlowe.Btree_Handles.Search (Marlowe_Keys.Handle,
-                                             Ref, Marlowe.Forward);
+      Mark : Marlowe.Data_Stores.Data_Store_Cursor :=
+               Marlowe_Keys.Handle.Search (Ref, Marlowe.Forward);
    begin
-      while Marlowe.Btree_Handles.Valid (Mark) loop
+      while Mark.Valid loop
          declare
             Index : constant Marlowe.Database_Index :=
                       Marlowe.Key_Storage.To_Database_Index
-                        (Marlowe.Btree_Handles.Get_Key
-                           (Mark));
+                        (Mark.Get_Key);
             Rec   : constant Database_Record :=
                       Get (Table,
                            Record_Reference (Index));
          begin
             Process (Rec);
          end;
-         Marlowe.Btree_Handles.Next (Mark);
+         Mark.Next;
       end loop;
    end Iterate;
 
@@ -840,33 +834,31 @@ package body {database}.Tables is
       Process      : not null access procedure
         (Item : Database_Record'Class))
    is
-      Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
+      Ref : constant Marlowe.Data_Stores.Key_Reference :=
               Get_Key_Reference (Table, Key_Name);
       First : constant System.Storage_Elements.Storage_Array :=
         Key_To_Storage (Table, Key_Name, Key_Value, True);
       Last : constant System.Storage_Elements.Storage_Array :=
-        Key_To_Storage (Table, Key_Name, Key_Value, False);
-      Mark : Marlowe.Btree_Handles.Btree_Mark :=
-               Marlowe.Btree_Handles.Search
-                 (Marlowe_Keys.Handle,
-                  Ref,
-                  First, Last,
-                  Marlowe.Closed, Marlowe.Closed,
-                  Marlowe.Forward);
+                Key_To_Storage (Table, Key_Name, Key_Value, False);
+      Mark  : Marlowe.Data_Stores.Data_Store_Cursor :=
+                Marlowe_Keys.Handle.Search
+                  (Ref,
+                   First, Last,
+                   Marlowe.Closed, Marlowe.Closed,
+                   Marlowe.Forward);
    begin
-      while Marlowe.Btree_Handles.Valid (Mark) loop
+      while Mark.Valid loop
          declare
             Index : constant Marlowe.Database_Index :=
                       Marlowe.Key_Storage.To_Database_Index
-                        (Marlowe.Btree_Handles.Get_Key
-                           (Mark));
+                        (Mark.Get_Key);
             Rec   : constant Database_Record :=
                       Get (Table,
                            Record_Reference (Index));
          begin
             Process (Rec);
          end;
-         Marlowe.Btree_Handles.Next (Mark);
+         Mark.Next;
       end loop;
    end Iterate;
 
@@ -882,33 +874,31 @@ package body {database}.Tables is
       Process      : not null access procedure
         (Item : Database_Record'Class))
    is
-      Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
+      Ref : constant Marlowe.Data_Stores.Key_Reference :=
               Get_Key_Reference (Table, Key_Name);
       First_Storage : constant System.Storage_Elements.Storage_Array :=
                         Key_To_Storage (Table, Key_Name, First, True);
       Last_Storage : constant System.Storage_Elements.Storage_Array :=
                         Key_To_Storage (Table, Key_Name, Last, False);
-      Mark : Marlowe.Btree_Handles.Btree_Mark :=
-               Marlowe.Btree_Handles.Search
-                 (Marlowe_Keys.Handle,
-                  Ref,
-                  First_Storage, Last_Storage,
-                  Marlowe.Closed, Marlowe.Closed,
-                  Marlowe.Forward);
+      Mark  : Marlowe.Data_Stores.Data_Store_Cursor :=
+                Marlowe_Keys.Handle.Search
+                  (Ref,
+                   First_Storage, Last_Storage,
+                   Marlowe.Closed, Marlowe.Closed,
+                   Marlowe.Forward);
    begin
-      while Marlowe.Btree_Handles.Valid (Mark) loop
+      while Mark.Valid loop
          declare
             Index : constant Marlowe.Database_Index :=
                       Marlowe.Key_Storage.To_Database_Index
-                        (Marlowe.Btree_Handles.Get_Key
-                           (Mark));
+                        (Mark.Get_Key);
             Rec   : constant Database_Record :=
                       Get (Table,
                            Record_Reference (Index));
          begin
             Process (Rec);
          end;
-         Marlowe.Btree_Handles.Next (Mark);
+         Mark.Next;
       end loop;
    end Iterate;
 
@@ -993,31 +983,29 @@ package body {database}.Tables is
       Key_Value    : String)
       return Array_Of_References
    is
-      Ref : constant Marlowe.Btree_Handles.Btree_Reference :=
+      Ref : constant Marlowe.Data_Stores.Key_Reference :=
               Get_Key_Reference (Table, Key_Name);
       First : constant System.Storage_Elements.Storage_Array :=
         Key_To_Storage (Table, Key_Name, Key_Value, True);
       Last : constant System.Storage_Elements.Storage_Array :=
         Key_To_Storage (Table, Key_Name, Key_Value, False);
-      Mark : Marlowe.Btree_Handles.Btree_Mark :=
-               Marlowe.Btree_Handles.Search
-                 (Marlowe_Keys.Handle,
-                  Ref,
-                  First, Last,
-                  Marlowe.Closed, Marlowe.Closed,
-                  Marlowe.Forward);
+      Mark  : Marlowe.Data_Stores.Data_Store_Cursor :=
+                Marlowe_Keys.Handle.Search
+                  (Ref,
+                   First, Last,
+                   Marlowe.Closed, Marlowe.Closed,
+                   Marlowe.Forward);
       Refs  : Reference_Vectors.Vector;
    begin
-      while Marlowe.Btree_Handles.Valid (Mark) loop
+      while Mark.Valid loop
          declare
             Index : constant Marlowe.Database_Index :=
                       Marlowe.Key_Storage.To_Database_Index
-                        (Marlowe.Btree_Handles.Get_Key
-                           (Mark));
+                        (Mark.Get_Key);
          begin
             Refs.Append (Record_Reference (Index));
          end;
-         Marlowe.Btree_Handles.Next (Mark);
+         Mark.Next;
       end loop;
 
       declare
