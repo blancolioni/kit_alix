@@ -135,6 +135,7 @@ package body Kit.UI.Gtk_UI is
             Kit.Paths.Config_Path & "/kit.png",
             Error);
          Main_Window.Set_Icon (Pixbuf);
+         Main_Window.Maximize;
          Result.Top_Level := Main_Window;
          Window_Callback.Connect
            (Main_Window,
