@@ -1,5 +1,7 @@
 with GCS.Positions;
 
+with Kit.Names;
+
 with Kit.Parser.Tokens;                use Kit.Parser.Tokens;
 with Kit.Parser.Lexical;               use Kit.Parser.Lexical;
 with Kit.Paths;
@@ -387,8 +389,13 @@ package body Kit.Parser is
 
                if Tok = Tok_Identifier then
                   if Tok_Text /= Record_Name then
-                     Error ("Expected " & Record_Name);
+                     Error ("Expected " & Kit.Names.Ada_Name (Record_Name));
                   end if;
+                  Scan;
+               elsif Tok = Tok_Record then
+                  Error ("Use 'end "
+                         & Kit.Names.Ada_Name (Record_Name)
+                         & "' instead of 'end record'");
                   Scan;
                end if;
             end if;
@@ -397,6 +404,15 @@ package body Kit.Parser is
                Scan;
             else
                Error ("missing ';'");
+               while Tok /= Tok_Semi
+                 and then Tok /= Tok_Record
+                 and then Tok /= Tok_End_Of_File
+               loop
+                  Scan;
+               end loop;
+               if Tok = Tok_Semi then
+                  Scan;
+               end if;
             end if;
 
             Db.Append (Table);
