@@ -30,7 +30,7 @@ package body Kit.Generic_Cache is
 
       if Result = null then
          declare
-            New_Cached_Record : Cache_Access :=
+            New_Cached_Record : constant Cache_Access :=
                                   new Cache_Record;
          begin
             Kit.Cache.Initialise (New_Cached_Record.all,
