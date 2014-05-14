@@ -666,11 +666,19 @@ package body Aquarius.Drys.Statements is
    procedure Write (Item        : If_Statement_Record;
                     Writer      : in out Writer_Interface'Class)
    is
+      Line : constant Positive := Writer.Line;
    begin
       Writer.Put ("if ");
       Item.Condition.Write (Writer);
-      Writer.Put_Line (" then");
+      if Writer.Line /= Line then
+         Writer.New_Line;
+      else
+         Writer.Put (" ");
+      end if;
+
+      Writer.Put_Line ("then");
       Item.True_Part.Write (Writer);
+
       for E of Item.Elsifs loop
          Writer.Put ("elsif ");
          E.Condition.Write (Writer);

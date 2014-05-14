@@ -29,6 +29,9 @@ package Aquarius.Drys is
                       Value  : in     Positive)
      is abstract;
 
+   function Line (Writer : Writer_Interface) return Positive
+      is abstract;
+
    function Indent (Writer : Writer_Interface) return Natural
       is abstract;
 

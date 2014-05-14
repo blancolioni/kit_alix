@@ -139,6 +139,18 @@ package body Aquarius.Drys.File_Writer is
       Writer.Indent := Value;
    end Indent;
 
+   ----------
+   -- Line --
+   ----------
+
+   overriding function Line
+     (Writer : File_Writer)
+      return Positive
+   is
+   begin
+      return Positive (Ada.Text_IO.Line (Writer.File));
+   end Line;
+
    --------------
    -- New_Line --
    --------------

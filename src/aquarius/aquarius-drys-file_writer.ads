@@ -22,6 +22,9 @@ package Aquarius.Drys.File_Writer is
    function Col (Writer : File_Writer) return Positive;
 
    overriding
+   function Line (Writer : File_Writer) return Positive;
+
+   overriding
    procedure Set_Col (Writer : in out File_Writer;
                       Value  : in     Positive);
 
