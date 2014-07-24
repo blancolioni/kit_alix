@@ -26,8 +26,9 @@ package body Kit.Cache is
                                      Hash            => Database_Index_Hash,
                                      Equivalent_Keys => "=");
 
+   LRU : List_Of_Cache_Entries.List;
+
    Local_Cache : Cache_Map.Map;
-   LRU         : List_Of_Cache_Entries.List;
    Hash_Mutex  : Mutex.Mutex_Type;
 
    Max_Cache_Size : Natural := 100_000;
@@ -164,6 +165,7 @@ package body Kit.Cache is
    ------------
 
    procedure Insert   (New_Entry : in Cache_Entry) is
+      LRU_Locked : Boolean := False;
    begin
 
       if Debug_Locking then
@@ -178,7 +180,11 @@ package body Kit.Cache is
       Hash_Mutex.Lock;
 
       while Current_Cache_Size >= Max_Cache_Size loop
-         LRU_Mutex.Lock;
+         if not LRU_Locked then
+            LRU_Mutex.Lock;
+            LRU_Locked := True;
+         end if;
+
          declare
             use List_Of_Cache_Entries;
             Item : Cursor := LRU.Last;
@@ -203,8 +209,11 @@ package body Kit.Cache is
             Free (E);
             Current_Cache_Size := Current_Cache_Size - 1;
          end;
-         LRU_Mutex.Unlock;
       end loop;
+
+      if LRU_Locked then
+         LRU_Mutex.Unlock;
+      end if;
 
       Local_Cache.Insert (Key      => (New_Entry.Rec, New_Entry.Index),
                           New_Item => New_Entry);
