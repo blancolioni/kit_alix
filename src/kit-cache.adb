@@ -178,6 +178,7 @@ package body Kit.Cache is
       Hash_Mutex.Lock;
 
       while Current_Cache_Size >= Max_Cache_Size loop
+         LRU_Mutex.Lock;
          declare
             use List_Of_Cache_Entries;
             Item : Cursor := LRU.Last;
@@ -202,6 +203,7 @@ package body Kit.Cache is
             Free (E);
             Current_Cache_Size := Current_Cache_Size - 1;
          end;
+         LRU_Mutex.Unlock;
       end loop;
 
       Local_Cache.Insert (Key      => (New_Entry.Rec, New_Entry.Index),
