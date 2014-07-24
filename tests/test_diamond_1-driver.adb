@@ -26,29 +26,17 @@ begin
 
    Database.Open;
 
-   declare
-      use Intermediate;
-      Item : Intermediate_Type := First_By_G;
-   begin
-      while Item.Has_Element loop
-         Item.Set_F (Integer'Image (Integer'Value (Item.F) * 1000));
-         Item.Next;
-      end loop;
-   end;
+   for Item of Intermediate.Select_By_G loop
+      Item.Set_F (Integer'Image (Integer'Value (Item.F) * 1000));
+   end loop;
 
    Database.Close;
 
    Database.Open;
 
-   declare
-      use Concrete;
-      Item : Concrete_Type := First_By_F;
-   begin
-      while Item.Has_Element loop
-         Ada.Text_IO.Put_Line (Item.F & Item.G & Item.H);
-         Item.Next;
-      end loop;
-   end;
+   for Item of Concrete.Select_By_F loop
+      Ada.Text_IO.Put_Line (Item.F & Item.G & Item.H);
+   end loop;
 
    Database.Close;
 
