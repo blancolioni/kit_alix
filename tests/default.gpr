@@ -2,13 +2,11 @@ with "marlowe";
 
 project Default is
 
-   for Source_Dirs use (".", "./generated", "../src");
-   for Main use ("test_diamond_1-driver.adb",
-                 "test_diamond_1-driver_2.adb",
-                 "test_reference_1-driver.adb");
+   for Source_Dirs use (".", "generated", "..\src");
+   for Main use ("company_driver.adb");
 
    package Compiler is
-      for Default_Switches ("ada") use ("-gnatwa", "-g", "-gnatyaAbCefhicBklnM78oOprsStuxd", "-gnato", "-gnata");
+      for Default_Switches ("ada") use ("-gnatwa", "-g", "-gnatyaAbCefhicBklnM78oOprsStux", "-gnato", "-gnata");
    end Compiler;
 
    package Builder is
