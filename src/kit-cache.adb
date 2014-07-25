@@ -165,7 +165,6 @@ package body Kit.Cache is
    ------------
 
    procedure Insert   (New_Entry : in Cache_Entry) is
-      LRU_Locked : Boolean := False;
    begin
 
       if Debug_Locking then
@@ -177,13 +176,10 @@ package body Kit.Cache is
          Ada.Text_IO.Flush;
       end if;
 
+      LRU_Mutex.Lock;
       Hash_Mutex.Lock;
 
       while Current_Cache_Size >= Max_Cache_Size loop
-         if not LRU_Locked then
-            LRU_Mutex.Lock;
-            LRU_Locked := True;
-         end if;
 
          declare
             use List_Of_Cache_Entries;
@@ -211,10 +207,6 @@ package body Kit.Cache is
          end;
       end loop;
 
-      if LRU_Locked then
-         LRU_Mutex.Unlock;
-      end if;
-
       Local_Cache.Insert (Key      => (New_Entry.Rec, New_Entry.Index),
                           New_Item => New_Entry);
 
@@ -223,11 +215,10 @@ package body Kit.Cache is
       New_Entry.Cached     := True;
       New_Entry.References := 0;
 
-      LRU_Mutex.Lock;
       LRU.Prepend (New_Entry);
       New_Entry.LRU := LRU.First;
-      LRU_Mutex.Unlock;
       Current_Cache_Size := Current_Cache_Size + 1;
+      LRU_Mutex.Unlock;
 
    end Insert;
 
