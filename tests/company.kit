@@ -1,0 +1,22 @@
+package Company is
+
+record Object is
+   unique key Id : String (12);
+   key Name : String (32);
+end Object;
+
+record Inventory : Object;
+
+record Resource : Object;
+
+record Employee : Resource;
+
+record Product_Group : Inventory is
+   key Manager : Employee;
+end Product_Group;
+  
+record Product is
+   key Product_Group;
+end Product;
+
+end Company;
