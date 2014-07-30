@@ -36,8 +36,7 @@ package body Kit.Generic_Cache is
             Kit.Cache.Initialise (New_Cached_Record.all,
                                   Table,
                                   Index);
-            Cache_Mutex.Shared_Lock;
-            New_Cached_Record.X_Lock;
+            Cache_Mutex.Lock;
 
             Read (Index, New_Cached_Record.Db);
 
@@ -59,8 +58,7 @@ package body Kit.Generic_Cache is
 
             Result := Kit.Cache.Cache_Entry (New_Cached_Record);
             Kit.Cache.Insert (Result);
-            New_Cached_Record.Unlock;
-            Cache_Mutex.Shared_Unlock;
+            Cache_Mutex.Unlock;
          end;
       end if;
 
