@@ -45,9 +45,7 @@ package Kit.Cache is
 
    procedure Close;
 
-   procedure Get_Cache_Statistics (Blocks :    out Natural;
-                                   Pages  :    out Natural;
-                                   Hits   :    out Natural;
+   procedure Get_Cache_Statistics (Hits   :    out Natural;
                                    Misses :    out Natural);
 
    procedure Reset_Statistics;
@@ -72,7 +70,7 @@ private
    type Cache_Entry_Record is
      abstract new Kit.Locking.Root_Lockable_Type with
       record
-         Dirty       : Boolean;
+         Dirty       : Boolean                           := False;
          Last_Access : Tick;
          Rec         : Marlowe.Table_Index;
          Index       : Marlowe.Database_Index;

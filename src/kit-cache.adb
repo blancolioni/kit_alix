@@ -8,6 +8,9 @@ with Kit.Mutex;
 package body Kit.Cache is
 
    Debug_Locking : constant Boolean := False;
+   Max_Cache_Size : Natural := 1_000_000;
+   --  Maximum number of objects in the cache
+   --  Should, of course, be settable and tunable.
 
    Max_Table_Index : constant := 256;
 
@@ -28,12 +31,17 @@ package body Kit.Cache is
 
    LRU : List_Of_Cache_Entries.List;
 
-   Local_Cache : Cache_Map.Map;
-   Hash_Mutex  : Mutex.Mutex_Type;
-
-   Max_Cache_Size : Natural := 100_000;
-   --  Maximum number of objects in the cache
-   --  Should, of course, be settable and tunable.
+   protected Local_Cache is
+      procedure Insert (New_Entry : Cache_Entry);
+      procedure Delete (Item : Cache_Entry);
+      function Get (Table  : Marlowe.Table_Index;
+                    Index  : Marlowe.Database_Index)
+                    return Cache_Entry;
+      function Full return Boolean;
+   private
+      Map : Cache_Map.Map;
+      Current_Size : Natural := 0;
+   end Local_Cache;
 
    procedure Free is
       new Ada.Unchecked_Deallocation (Cache_Entry_Record'Class,
@@ -53,9 +61,7 @@ package body Kit.Cache is
    Global_Tick : Tick := 0;
    Tick_Mutex  : Mutex.Mutex_Type;
 
-   Current_Cache_Size : Natural := 0;
-   --  The cache size can be larger than the maximum if it's
-   --  full of locked entries.
+   Cache_Warning_Count : Natural := 0;
 
    -----------
    -- Close --
@@ -103,15 +109,12 @@ package body Kit.Cache is
    -- Get_Cache_Statistics --
    --------------------------
 
-   procedure Get_Cache_Statistics (Blocks :    out Natural;
-                                   Pages  :    out Natural;
-                                   Hits   :    out Natural;
+   procedure Get_Cache_Statistics (Hits   :    out Natural;
                                    Misses :    out Natural)
    is
    begin
---        Entry_Cache.Get_Cache_Statistics (Local_Cache,
---                                          Blocks, Pages, Hits, Misses);
-      null;
+      Hits := 0;
+      Misses := 0;
    end Get_Cache_Statistics;
 
    ---------------
@@ -126,7 +129,7 @@ package body Kit.Cache is
    end Get_Index;
 
    ---------------------
-   -- Get_Table_Reference --
+   -- Get_Table_Index --
    ---------------------
 
    function Get_Table_Index
@@ -165,6 +168,7 @@ package body Kit.Cache is
    ------------
 
    procedure Insert   (New_Entry : in Cache_Entry) is
+      Deleted_Count : Natural := 0;
    begin
 
       if Debug_Locking then
@@ -177,50 +181,137 @@ package body Kit.Cache is
       end if;
 
       LRU_Mutex.Lock;
-      Hash_Mutex.Lock;
 
-      while Current_Cache_Size >= Max_Cache_Size loop
+      if Local_Cache.Full then
+         if Cache_Warning_Count mod 100 = 0 then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "warning: cache size exceeds configured cache size"
+               & (if Cache_Warning_Count > 0
+                 then " (suppressed" & Natural'Image (Cache_Warning_Count)
+                 & " earlier warnings)"
+                 else ""));
+         end if;
 
          declare
             use List_Of_Cache_Entries;
-            Item : Cursor := LRU.Last;
-            E    : Cache_Entry := Element (Item);
+            Position : Cursor := LRU.Last;
          begin
-            exit when E.X_Locked
-              or else E.S_Locked
-              or else E.Dirty
-              or else E.References > 0;
+            while Has_Element (Position)
+              and then Deleted_Count < Max_Cache_Size / 2
+            loop
+               declare
+                  E    : Cache_Entry := Element (Position);
+               begin
+                  if E.X_Locked
+                    or else E.S_Locked
+                    or else E.Dirty
+                    or else E.References > 0
+                  then
+                     --  skip
+                     Previous (Position);
+                  else
 
-            if Debug_Locking then
-               Ada.Text_IO.Put_Line
-                 ("Dropping from cache: table"
-                  & Marlowe.Table_Index'Image (E.Rec)
-                  & " index"
-                  & Marlowe.Database_Index'Image (E.Index));
-               Ada.Text_IO.Flush;
-            end if;
+                     if Debug_Locking then
+                        Ada.Text_IO.Put_Line
+                          ("Dropping from cache: table"
+                           & Marlowe.Table_Index'Image (E.Rec)
+                           & " index"
+                           & Marlowe.Database_Index'Image (E.Index));
+                        Ada.Text_IO.Flush;
+                     end if;
 
-            Local_Cache.Delete ((E.Rec, E.Index));
-            LRU.Delete (Item);
-            Free (E);
-            Current_Cache_Size := Current_Cache_Size - 1;
+                     declare
+                        Prev : constant Cursor := Previous (Position);
+                     begin
+                        LRU.Delete (Position);
+                        Position := Prev;
+                     end;
+                     Local_Cache.Delete (E);
+                     Free (E);
+                     Deleted_Count := Deleted_Count + 1;
+                  end if;
+               end;
+            end loop;
          end;
-      end loop;
+         if Cache_Warning_Count mod 100 = 0 then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "warning: cache size reduced by"
+               & Natural'Image (Deleted_Count));
+         end if;
+         Cache_Warning_Count := Cache_Warning_Count + 1;
+      end if;
 
-      Local_Cache.Insert (Key      => (New_Entry.Rec, New_Entry.Index),
-                          New_Item => New_Entry);
-
-      Hash_Mutex.Unlock;
+      Local_Cache.Insert (New_Entry);
 
       New_Entry.Cached     := True;
       New_Entry.References := 0;
 
       LRU.Prepend (New_Entry);
       New_Entry.LRU := LRU.First;
-      Current_Cache_Size := Current_Cache_Size + 1;
       LRU_Mutex.Unlock;
 
    end Insert;
+
+   -----------------
+   -- Local_Cache --
+   -----------------
+
+   protected body Local_Cache is
+
+      ------------
+      -- Delete --
+      ------------
+
+      procedure Delete (Item : Cache_Entry) is
+      begin
+         Map.Delete ((Item.Rec, Item.Index));
+         Current_Size := Current_Size - 1;
+      end Delete;
+
+      ----------
+      -- Full --
+      ----------
+
+      function Full return Boolean is
+      begin
+         return Current_Size >= Max_Cache_Size;
+      end Full;
+
+      ---------
+      -- Get --
+      ---------
+
+      function Get (Table  : Marlowe.Table_Index;
+                    Index  : Marlowe.Database_Index)
+                    return Cache_Entry
+      is
+         Result  : Cache_Entry := null;
+      begin
+
+         if Map.Contains ((Table, Index))  then
+            Result := Map.Element ((Table, Index));
+         end if;
+
+         return Result;
+
+      end Get;
+
+      ------------
+      -- Insert --
+      ------------
+
+      procedure Insert (New_Entry : Cache_Entry) is
+      begin
+
+         Map.Insert (Key      => (New_Entry.Rec, New_Entry.Index),
+                     New_Item => New_Entry);
+         Current_Size := Current_Size + 1;
+
+      end Insert;
+
+   end Local_Cache;
 
    ----------------
    -- Lock_Cache --
@@ -247,7 +338,6 @@ package body Kit.Cache is
 
    procedure Reset_Statistics is
    begin
-      --  Entry_Cache.Reset_Statistics (Local_Cache);
       null;
    end Reset_Statistics;
 
@@ -259,41 +349,12 @@ package body Kit.Cache is
                        Index  : Marlowe.Database_Index)
                       return Cache_Entry
    is
-      Result  : Cache_Entry := null;
+      Result : constant Cache_Entry := Local_Cache.Get (Rec, Index);
    begin
-
-      Hash_Mutex.Shared_Lock;
-
-      if Local_Cache.Contains ((Rec, Index))  then
-
-         if Debug_Locking then
-            Ada.Text_IO.Put_Line
-              ("Retrieve from cache: table"
-               & Marlowe.Table_Index'Image (Rec)
-               & " index"
-               & Marlowe.Database_Index'Image (Index));
-            Ada.Text_IO.Flush;
-         end if;
-
-         Result := Local_Cache.Element ((Rec, Index));
+      if Result /= null then
          Update_LRU (Result);
-
       end if;
-
-      Hash_Mutex.Shared_Unlock;
-
       return Result;
---
---
---
---        Entry_Cache.Fetch (Local_Cache, To_Cache_Index (Rec, Index),
---                           Success, Result, Handle);
---        if Result /= null then
---           Result.Handle := Handle;
---           Result.Cached := True;
---        end if;
---
---        return Result;
    end Retrieve;
 
    ------------
