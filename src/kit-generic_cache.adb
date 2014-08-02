@@ -21,11 +21,22 @@ package body Kit.Generic_Cache is
       use type Kit.Cache.Cache_Entry;
       Result : Kit.Cache.Cache_Entry;
    begin
-      Cache.Lock_Cache;
+
       Result := Kit.Cache.Retrieve (Table, Index);
 
       if Debug_Cache then
          Ada.Text_IO.Put_Line ("cache-get:" & Table'Img & Index'Img);
+      end if;
+
+      if Result = null then
+
+         Cache_Mutex.Lock;
+
+         Result := Kit.Cache.Retrieve (Table, Index);
+
+         if Result /= null then
+            Cache_Mutex.Unlock;
+         end if;
       end if;
 
       if Result = null then
@@ -36,8 +47,6 @@ package body Kit.Generic_Cache is
             Kit.Cache.Initialise (New_Cached_Record.all,
                                   Table,
                                   Index);
-            Cache_Mutex.Lock;
-
             Read (Index, New_Cached_Record.Db);
 
             if False then
@@ -61,8 +70,6 @@ package body Kit.Generic_Cache is
             Cache_Mutex.Unlock;
          end;
       end if;
-
-      Kit.Cache.Unlock_Cache;
 
       if Lock_Result then
          Result.S_Lock;
