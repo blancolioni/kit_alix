@@ -23,25 +23,46 @@ package body Kit.Cache is
    function Database_Index_Hash (Key : Cache_Entry_Key)
                                  return Ada.Containers.Hash_Type;
 
+   pragma Unreferenced (Database_Index_Hash);
+
+   function Database_Index_Hash
+     (Index : Marlowe.Database_Index)
+      return Ada.Containers.Hash_Type
+   is (Ada.Containers.Hash_Type (Index));
+
    package Cache_Map is
-     new Ada.Containers.Hashed_Maps (Key_Type        => Cache_Entry_Key,
+     new Ada.Containers.Hashed_Maps
+       (Key_Type        => Marlowe.Database_Index,
                                      Element_Type    => Cache_Entry,
                                      Hash            => Database_Index_Hash,
-                                     Equivalent_Keys => "=");
+        Equivalent_Keys => Marlowe."=");
 
    LRU : List_Of_Cache_Entries.List;
 
-   protected Local_Cache is
+--     protected LRU_List is
+--        procedure Delete (Position : List_Of_Cache_Entries.Cursor);
+--     end LRU_List;
+
+   protected type Local_Cache_Type is
       procedure Insert (New_Entry : Cache_Entry);
       procedure Delete (Item : Cache_Entry);
-      function Get (Table  : Marlowe.Table_Index;
-                    Index  : Marlowe.Database_Index)
+      function Get (Index  : Marlowe.Database_Index)
                     return Cache_Entry;
       function Full return Boolean;
+      pragma Unreferenced (Full);
    private
       Map : Cache_Map.Map;
       Current_Size : Natural := 0;
-   end Local_Cache;
+   end Local_Cache_Type;
+
+   type Local_Cache_Access is access all Local_Cache_Type;
+
+   function Get_Local_Cache
+     (Table : Marlowe.Table_Index)
+      return Local_Cache_Access;
+
+   Local_Cache_Table : array (Marlowe.Table_Index range 1 .. Max_Table_Index)
+     of aliased Local_Cache_Type;
 
    procedure Free is
       new Ada.Unchecked_Deallocation (Cache_Entry_Record'Class,
@@ -129,6 +150,24 @@ package body Kit.Cache is
    end Get_Index;
 
    ---------------------
+   -- Get_Local_Cache --
+   ---------------------
+
+   function Get_Local_Cache
+     (Table : Marlowe.Table_Index)
+      return Local_Cache_Access
+   is
+      Result : constant Local_Cache_Access :=
+                 Local_Cache_Table (Table)'Access;
+   begin
+--        if Result = null then
+--           Result := new Local_Cache_Type;
+--           Local_Cache_Table (Table) := Result;
+--        end if;
+      return Result;
+   end Get_Local_Cache;
+
+   ---------------------
    -- Get_Table_Index --
    ---------------------
 
@@ -169,6 +208,8 @@ package body Kit.Cache is
 
    procedure Insert   (New_Entry : in Cache_Entry) is
       Deleted_Count : Natural := 0;
+      T             : constant Marlowe.Table_Index := New_Entry.Rec;
+      Local_Cache   : constant Local_Cache_Access := Get_Local_Cache (T);
    begin
 
       if Debug_Locking then
@@ -182,7 +223,7 @@ package body Kit.Cache is
 
       LRU_Mutex.Lock;
 
-      if Local_Cache.Full then
+      if False then -- Local_Cache.Full then
          if Cache_Warning_Count mod 100 = 0 then
             Ada.Text_IO.Put_Line
               (Ada.Text_IO.Standard_Error,
@@ -258,7 +299,7 @@ package body Kit.Cache is
    -- Local_Cache --
    -----------------
 
-   protected body Local_Cache is
+   protected body Local_Cache_Type is
 
       ------------
       -- Delete --
@@ -266,7 +307,7 @@ package body Kit.Cache is
 
       procedure Delete (Item : Cache_Entry) is
       begin
-         Map.Delete ((Item.Rec, Item.Index));
+         Map.Delete (Item.Index);
          Current_Size := Current_Size - 1;
       end Delete;
 
@@ -283,15 +324,14 @@ package body Kit.Cache is
       -- Get --
       ---------
 
-      function Get (Table  : Marlowe.Table_Index;
-                    Index  : Marlowe.Database_Index)
+      function Get (Index  : Marlowe.Database_Index)
                     return Cache_Entry
       is
          Result  : Cache_Entry := null;
       begin
 
-         if Map.Contains ((Table, Index))  then
-            Result := Map.Element ((Table, Index));
+         if Map.Contains (Index)  then
+            Result := Map.Element (Index);
          end if;
 
          return Result;
@@ -305,13 +345,13 @@ package body Kit.Cache is
       procedure Insert (New_Entry : Cache_Entry) is
       begin
 
-         Map.Insert (Key      => (New_Entry.Rec, New_Entry.Index),
+         Map.Insert (Key      => New_Entry.Index,
                      New_Item => New_Entry);
          Current_Size := Current_Size + 1;
 
       end Insert;
 
-   end Local_Cache;
+   end Local_Cache_Type;
 
    ----------------
    -- Lock_Cache --
@@ -349,7 +389,8 @@ package body Kit.Cache is
                        Index  : Marlowe.Database_Index)
                       return Cache_Entry
    is
-      Result : constant Cache_Entry := Local_Cache.Get (Rec, Index);
+      Local_Cache   : constant Local_Cache_Access := Get_Local_Cache (Rec);
+      Result : constant Cache_Entry := Local_Cache.Get (Index);
    begin
       if Result /= null then
          Update_LRU (Result);
