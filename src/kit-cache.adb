@@ -94,6 +94,7 @@ package body Kit.Cache is
       Cache_Mutex.Lock;
 
       --  Entry_Cache.Close (Local_Cache);
+      LRU.Clear;
 
       Cache_Mutex.Unlock;
 
