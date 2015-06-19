@@ -28,7 +28,7 @@ package body Kit.Text is
    --------------
 
    procedure Set_Text
-     (Handle : Marlowe.Btree_Handles.Btree_Handle;
+     (Handle : Marlowe.Data_Stores.Data_Store;
       Value  : String;
       Field  : in out Text_Type)
    is
@@ -52,12 +52,12 @@ package body Kit.Text is
 
             if Field.Overflow = Marlowe.Null_File_And_Page then
                Field.Overflow :=
-                 Marlowe.Btree_Handles.Create_Field_Extension
-                   (Handle);
+                 Marlowe.Data_Stores.Create_Field_Extension
+                   (Handle.all);
             end if;
 
-            Marlowe.Btree_Handles.Write_Field_Extension
-              (Handle    => Handle,
+            Marlowe.Data_Stores.Write_Field_Extension
+              (Store     => Handle.all,
                Reference => Field.Overflow,
                Data      => Overflow);
 
@@ -98,7 +98,7 @@ package body Kit.Text is
    ---------------
 
    function To_String
-     (Handle : Marlowe.Btree_Handles.Btree_Handle;
+     (Handle : Marlowe.Data_Stores.Data_Store;
       Field  : Text_Type)
       return String
    is
@@ -111,8 +111,8 @@ package body Kit.Text is
       else
          declare
             Overflow : constant Storage_Array :=
-                         Marlowe.Btree_Handles.Read_Field_Extension
-                           (Handle, Field.Overflow);
+                         Marlowe.Data_Stores.Read_Field_Extension
+                           (Handle.all, Field.Overflow);
             Back     : String (1 .. Natural (Overflow'Length));
          begin
             for I in Back'Range loop

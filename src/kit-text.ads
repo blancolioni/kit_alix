@@ -1,18 +1,18 @@
 with System.Storage_Elements;
 
-with Marlowe.Btree_Handles;
+with Marlowe.Data_Stores;
 
 package Kit.Text is
 
    type Text_Type is private;
 
    function To_String
-     (Handle : Marlowe.Btree_Handles.Btree_Handle;
+     (Handle : Marlowe.Data_Stores.Data_Store;
       Field  : Text_Type)
       return String;
 
    procedure Set_Text
-     (Handle : Marlowe.Btree_Handles.Btree_Handle;
+     (Handle : Marlowe.Data_Stores.Data_Store;
       Value  : String;
       Field  : in out Text_Type);
 
