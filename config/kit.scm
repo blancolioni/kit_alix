@@ -9,7 +9,8 @@
 (define (filter-fields fields rows)
   (define (field-ok f) (memq (car f) fields))
   (define (row-filter row) (filter field-ok row))
-  (map row-filter rows))
+  (if (eq? fields 'all) rows
+      (map row-filter rows)))
 
 (define (spaces n)
   (if (<= n 0) "" (string-append " " (spaces (- n 1)))))
