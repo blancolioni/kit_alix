@@ -94,7 +94,9 @@ package body Kit.Schema.Keys is
    -- Size --
    ----------
 
-   function Size (Key : Key_Type) return Natural is
+   overriding function Size
+     (Key : Key_Type) return Natural
+   is
       Result : Natural := 0;
    begin
       for F of Key.Fields loop

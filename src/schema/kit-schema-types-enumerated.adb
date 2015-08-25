@@ -26,7 +26,7 @@ package body Kit.Schema.Types.Enumerated is
    -- Create_Database_Record --
    ----------------------------
 
-   function Create_Database_Record
+   overriding function Create_Database_Record
      (For_Type : Enumerated_Type)
       return Aquarius.Drys.Statement'Class
    is
@@ -72,8 +72,9 @@ package body Kit.Schema.Types.Enumerated is
    -- Default_Value --
    -------------------
 
-   function Default_Value (Item : Enumerated_Type)
-                           return Aquarius.Drys.Expression'Class
+   overriding function Default_Value
+     (Item : Enumerated_Type)
+      return Aquarius.Drys.Expression'Class
    is
    begin
       return Aquarius.Drys.Object
@@ -84,7 +85,10 @@ package body Kit.Schema.Types.Enumerated is
    -- Haskell_Type_Name --
    -----------------------
 
-   function Haskell_Type_Name (Item : Enumerated_Type) return String is
+   overriding function Haskell_Type_Name
+     (Item : Enumerated_Type)
+      return String
+   is
       pragma Unreferenced (Item);
    begin
       return "Int";
@@ -94,7 +98,7 @@ package body Kit.Schema.Types.Enumerated is
    -- Return_Subtype --
    --------------------
 
-   function Return_Subtype
+   overriding function Return_Subtype
      (Item : Enumerated_Type)
       return String
    is
@@ -106,7 +110,7 @@ package body Kit.Schema.Types.Enumerated is
    -- Size --
    ----------
 
-   function Size (Item : Record_Type_Enumeration) return Natural is
+   overriding function Size (Item : Record_Type_Enumeration) return Natural is
       pragma Unreferenced (Item);
    begin
       return 4;
@@ -184,7 +188,7 @@ package body Kit.Schema.Types.Enumerated is
    -- To_Storage_Array --
    ----------------------
 
-   function To_Storage_Array
+   overriding function To_Storage_Array
      (Item        : Enumerated_Type;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class
