@@ -290,10 +290,22 @@ package body Kit.Server.Lith_Bindings is
            (Lith.Objects.To_Object
               (Lith.Objects.Symbols.Get_Symbol
                    (Item.Field_Name (I))));
-         Store.Push
-           (Lith.Objects.To_Object
-              (Lith.Objects.Symbols.Get_Symbol
-                   (Item.Get (I))));
+         declare
+            use Kit.Db.Tables;
+            Value : constant String := Item.Get (I);
+            Field_Type : constant Database_Field_Type :=
+                           Item.Get_Field_Type (Item.Field_Name (I));
+            Object_Value : Lith.Objects.Object;
+         begin
+            if Is_Integer (Field_Type) then
+               Object_Value := Lith.Objects.To_Object (Integer'Value (Value));
+            else
+               Object_Value :=
+                 Lith.Objects.To_Object
+                   (Lith.Objects.Symbols.Get_Symbol (Value));
+            end if;
+            Store.Push (Object_Value);
+         end;
          Store.Push (Lith.Objects.Nil);
          Store.Cons;
          Store.Cons;
