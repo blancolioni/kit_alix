@@ -76,7 +76,40 @@ package body {database}.Tables is
    begin
       Item.Fields := new Database_Fields'(Item.Fields.all);
    end Adjust;
-
+   
+   -----------------
+   -- Default_Key --
+   -----------------
+   
+   function Default_Key
+     (Table : Database_Table'Class)
+     return String
+   is
+      Rec : constant Kit_Record.Kit_Record_Type :=
+        Kit_Record.Get_By_Name (Table.Name);
+      Key : constant Kit_Key.Kit_Key_Type :=
+        Kit_Key.Get_By_Kit_Record (Rec.Reference);
+   begin
+      if Key.Has_Element then
+         return Key.Name;
+      else
+         for Base of
+           Kit_Record_Base.Select_By_Derived (Rec.Reference)
+         loop
+            declare
+               Base_Key    : constant Kit_Key.Kit_Key_Type :=
+                 Kit_Key.Get_By_Kit_Record
+                 (Base.Base);
+            begin
+               if Base_Key.Has_Element then
+                  return Base_Key.Name;
+               end if;
+            end;
+         end loop;
+      end if;
+      return "";
+   end Default_Key;
+   
    -----------------
    -- Field_Count --
    -----------------
