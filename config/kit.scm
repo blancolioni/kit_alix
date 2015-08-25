@@ -14,9 +14,12 @@
 (define (spaces n)
   (if (<= n 0) "" (string-append " " (spaces (- n 1)))))
 
-(define (write-column text width)
-  (write-string (spaces (- 8 (string-length text))))
-  (write-string text))
+(define (write-column text width alignment)
+  (define space-count (+ 1 (- width (string-length text))))
+  (define gap (spaces space-count))
+  (if (eq? alignment 'right) (write-string gap))
+  (write-string text)
+  (if (eq? alignment 'left) (write-string gap)))
 
 (define (for f xs)
   (if (null? xs) '()
@@ -24,10 +27,29 @@
         (f (car xs))
         (for f (cdr xs)))))
 
+(define (transpose xs) (transpose-join (car xs) (cdr xs)))
+
+(define (transpose-join row cols)
+  (if (null? row) nil
+      (cons (cons (car row) (map car cols)) (transpose-join (cdr row) (map cdr cols)))))
+
+(define (max-width col)
+  (if (null? (cdr col)) (car col)
+      (let ((r (max-width (cdr col)))) (if (> r (car col)) r (car col)))))
+
+(define (zip xs ys)
+  (if (null? xs) xs
+      (if (null? ys) ys
+          (cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys))))))
+
 (define (format-rows rows)
   (define headers (map car (car rows)))
   (define value-rows (map (lambda (x) (map cadr x)) rows))
-  (define (show-row row) (for (lambda (x) (write-column (symbol->string x) 8)) row) (newline))
-  (show-row headers)
-  (for show-row value-rows)
+  (define cell-widths (map (lambda (x) (map string-length (map symbol->string x))) value-rows))
+  (define header-widths (map string-length (map symbol->string headers)))
+  (define col-widths (map max-width (transpose (cons header-widths cell-widths))))
+  (define (show-row row) (for (lambda (x) (write-column (symbol->string (car x)) (cdr x) 'left)) row) (newline))
+  (show-row (zip headers col-widths))
+  (define rows-widths (map (lambda (x) (zip x col-widths)) value-rows))
+  (for show-row rows-widths)
   (length value-rows))
