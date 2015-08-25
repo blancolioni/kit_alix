@@ -42,9 +42,11 @@ private
    function Default_Value (Item : Enumerated_Type)
                            return Aquarius.Drys.Expression'Class;
 
-   function Haskell_Type_Name (Item : Enumerated_Type) return String;
+   overriding function Haskell_Type_Name
+     (Item : Enumerated_Type)
+      return String;
 
-   function Create_Database_Record
+   overriding function Create_Database_Record
      (For_Type : Enumerated_Type)
       return Aquarius.Drys.Statement'Class;
 
@@ -60,6 +62,6 @@ private
    type Record_Type_Enumeration is
      new Enumerated_Type with null record;
 
-   function Size (Item : Record_Type_Enumeration) return Natural;
+   overriding function Size (Item : Record_Type_Enumeration) return Natural;
 
 end Kit.Schema.Types.Enumerated;

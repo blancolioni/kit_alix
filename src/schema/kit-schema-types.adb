@@ -495,7 +495,6 @@ package body Kit.Schema.Types is
       Block.Append (Create_False);
       Block.Append (Create_True);
 
-
       return Declare_Statement (Block);
 
    end Create_Database_Record;
@@ -595,8 +594,9 @@ package body Kit.Schema.Types is
    -- Default_Value --
    -------------------
 
-   function Default_Value (Item : Float_Type)
-                           return Aquarius.Drys.Expression'Class
+   overriding function Default_Value
+     (Item : Float_Type)
+      return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -607,8 +607,9 @@ package body Kit.Schema.Types is
    -- Default_Value --
    -------------------
 
-   function Default_Value (Item : Boolean_Type)
-                           return Aquarius.Drys.Expression'Class
+   overriding function Default_Value
+     (Item : Boolean_Type)
+      return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -619,8 +620,9 @@ package body Kit.Schema.Types is
    -- Default_Value --
    -------------------
 
-   function Default_Value (Item : Table_Reference_Type_Record)
-                           return Aquarius.Drys.Expression'Class
+   overriding function Default_Value
+     (Item : Table_Reference_Type_Record)
+      return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -631,8 +633,9 @@ package body Kit.Schema.Types is
    -- Default_Value --
    -------------------
 
-   function Default_Value (Item : String_Type)
-                           return Aquarius.Drys.Expression'Class
+   overriding function Default_Value
+     (Item : String_Type)
+      return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -643,8 +646,9 @@ package body Kit.Schema.Types is
    -- Default_Value --
    -------------------
 
-   function Default_Value (Item : Text_Type)
-                           return Aquarius.Drys.Expression'Class
+   overriding function Default_Value
+     (Item : Text_Type)
+      return Aquarius.Drys.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -716,8 +720,9 @@ package body Kit.Schema.Types is
    -- Has_Default_Value --
    -----------------------
 
-   function Has_Default_Value (Item : String_Type)
-                               return Boolean
+   overriding function Has_Default_Value
+     (Item : String_Type)
+      return Boolean
    is
       pragma Unreferenced (Item);
    begin
@@ -799,7 +804,7 @@ package body Kit.Schema.Types is
    -- Is_Reference_To --
    ---------------------
 
-   function Is_Reference_To
+   overriding function Is_Reference_To
      (Item       : Table_Reference_Type_Record;
       Table_Name : String)
       return Boolean
@@ -1446,7 +1451,7 @@ package body Kit.Schema.Types is
    -- Storage_Array_Transfer --
    ----------------------------
 
-   function Storage_Array_Transfer
+   overriding function Storage_Array_Transfer
      (Item          : String_Type;
       To_Storage    : Boolean;
       Object_Name   : String;
@@ -1568,7 +1573,7 @@ package body Kit.Schema.Types is
    -- To_Storage_Array --
    ----------------------
 
-   function To_Storage_Array
+   overriding function To_Storage_Array
      (Item        : Table_Reference_Type_Record;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class
@@ -1589,7 +1594,7 @@ package body Kit.Schema.Types is
    -- To_Storage_Array --
    ----------------------
 
-   function To_Storage_Array
+   overriding function To_Storage_Array
      (Item        : Float_Type;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class

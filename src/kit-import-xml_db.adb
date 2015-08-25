@@ -33,15 +33,15 @@ package body Kit.Import.XML_DB is
          Not_Null   : Boolean := False;
       end record;
 
-   procedure On_Open_Tag
+   overriding procedure On_Open_Tag
      (Document : in out XML_DB_Reader_Type;
       Tag_Name : String);
 
-   procedure On_Close_Tag
+   overriding procedure On_Close_Tag
      (Document : in out XML_DB_Reader_Type;
       Tag_Name : String);
 
-   procedure On_Attribute
+   overriding procedure On_Attribute
      (Document : in out XML_DB_Reader_Type;
       Attribute_Name  : String;
       Attribute_Value : String);
@@ -108,7 +108,7 @@ package body Kit.Import.XML_DB is
    -- On_Attribute --
    ------------------
 
-   procedure On_Attribute
+   overriding procedure On_Attribute
      (Document : in out XML_DB_Reader_Type;
       Attribute_Name  : String;
       Attribute_Value : String)
@@ -184,7 +184,7 @@ package body Kit.Import.XML_DB is
    -- On_Close_Tag --
    ------------------
 
-   procedure On_Close_Tag
+   overriding procedure On_Close_Tag
      (Document : in out XML_DB_Reader_Type;
       Tag_Name : String)
    is
@@ -233,12 +233,11 @@ package body Kit.Import.XML_DB is
       end case;
    end On_Close_Tag;
 
-
    -----------------
    -- On_Open_Tag --
    -----------------
 
-   procedure On_Open_Tag
+   overriding procedure On_Open_Tag
      (Document : in out XML_DB_Reader_Type;
       Tag_Name : String)
    is
