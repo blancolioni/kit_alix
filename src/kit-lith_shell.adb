@@ -26,4 +26,8 @@ begin
 
    Lith.Library.Start_Repl;
 
+   if Ada.Command_Line.Argument_Count = 1 then
+      Kit.Db.Database.Close;
+   end if;
+
 end Kit.Lith_Shell;
