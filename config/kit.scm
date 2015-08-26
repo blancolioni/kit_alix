@@ -1,11 +1,25 @@
+(define (select fields table-name . constraints)
+  (format-rows (select-fields fields table-name constraints)))
+
 (define (select-fields fields table-name constraints)
   (if (null? constraints)
       (filter-fields fields (table-select-all table-name))
-      (filter-fields fields (table-select-all table-name))))
+      (filter-fields fields (filter-rows constraints (table-select-all table-name)))))
       
-(define (select fields table-name key-values)
-  (format-rows (select-fields fields table-name key-values)))
-      
+(define (filter-rows constraints rows)
+  (if (null? constraints) rows
+      (filter-rows (cdr constraints) (filter-constraint (car constraints) rows))))
+
+(define (filter-constraint constraint rows)
+  (filter (lambda (row) (check-constraint constraint row)) rows))
+
+(define (check-constraint constraint cells)
+  (define op (car constraint))
+  (define field-name (cadr constraint))
+  (define value (car (cddr constraint)))
+  (cond ((eq? op 'eq) (eq? (cadr (assq field-name cells)) value))
+        (else #f)))
+
 (define (filter-fields fields rows)
   (define (field-ok f) (memq (car f) fields))
   (define (row-filter row) (filter field-ok row))
