@@ -1,6 +1,5 @@
 package body Kit.Schema.Fields is
 
-
    --------------------
    -- Base_Reference --
    --------------------

@@ -411,7 +411,7 @@ package body Aquarius.Drys.Declarations is
    function Identifier (Id : String) return Defining_Identifier_List is
    begin
       return Result : Defining_Identifier_List do
-        Result.List.Append (Id);
+         Result.List.Append (Id);
       end return;
    end Identifier;
 
@@ -569,7 +569,7 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Package_Type do
-        Result.Name := new String'(Parent.Name.all & "." & Name);
+         Result.Name := new String'(Parent.Name.all & "." & Name);
       end return;
    end New_Child_Package;
 
@@ -584,12 +584,12 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Object_Declaration do
-        Result.Objects     := Identifier (Name);
-        Result.Is_Aliased  := False;
-        Result.Is_Constant := True;
-        Result.Is_Deferred := False;
-        Result.Object_Type := null;
-        Result.Initialiser := new Expression'Class'(Value);
+         Result.Objects     := Identifier (Name);
+         Result.Is_Aliased  := False;
+         Result.Is_Constant := True;
+         Result.Is_Deferred := False;
+         Result.Object_Type := null;
+         Result.Initialiser := new Expression'Class'(Value);
       end return;
    end New_Constant_Declaration;
 
@@ -654,8 +654,8 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Type_Declaration do
-        Result.Name := new String'(Identifier);
-        Result.Definition := new Type_Definition'Class'(Definition);
+         Result.Name := new String'(Identifier);
+         Result.Definition := new Type_Definition'Class'(Definition);
          Result.Is_Deferred := True;
          Result.Is_Indefinite := Indefinite;
       end return;
@@ -672,10 +672,10 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Formal_Argument do
-        Object_Declaration (Result) :=
+         Object_Declaration (Result) :=
           Object_Declaration (From_Object_Declaration);
-        Result.Is_Argument := True;
-        Result.Mode        := Mode;
+         Result.Is_Argument := True;
+         Result.Mode        := Mode;
       end return;
    end New_Formal_Argument;
 
@@ -736,9 +736,9 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Type_Declaration do
-        Result.Name := new String'(Identifier);
-        Result.Definition := new Type_Definition'Class'(Definition);
-        Result.Is_Private := False;
+         Result.Name := new String'(Identifier);
+         Result.Definition := new Type_Definition'Class'(Definition);
+         Result.Is_Private := False;
       end return;
    end New_Full_Type_Declaration;
 
@@ -919,12 +919,12 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Object_Declaration do
-        Result.Objects     := Identifiers;
-        Result.Is_Aliased  := Is_Aliased;
-        Result.Is_Constant := Is_Constant;
-        Result.Is_Deferred := Is_Deferred;
-        Result.Object_Type := new Subtype_Indication'Class'(Object_Type);
-        Result.Initialiser := new Expression'Class'(Initialiser);
+         Result.Objects     := Identifiers;
+         Result.Is_Aliased  := Is_Aliased;
+         Result.Is_Constant := Is_Constant;
+         Result.Is_Deferred := Is_Deferred;
+         Result.Object_Type := new Subtype_Indication'Class'(Object_Type);
+         Result.Initialiser := new Expression'Class'(Initialiser);
       end return;
    end New_Object_Declaration;
 
@@ -942,12 +942,12 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Object_Declaration do
-        Result.Objects     := Identifiers;
-        Result.Is_Aliased  := Is_Aliased;
-        Result.Is_Constant := Is_Constant;
-        Result.Is_Deferred := Is_Deferred;
-        Result.Object_Type := new Subtype_Indication'Class'(Object_Type);
-        Result.Initialiser := null;
+         Result.Objects     := Identifiers;
+         Result.Is_Aliased  := Is_Aliased;
+         Result.Is_Constant := Is_Constant;
+         Result.Is_Deferred := Is_Deferred;
+         Result.Object_Type := new Subtype_Indication'Class'(Object_Type);
+         Result.Initialiser := null;
       end return;
    end New_Object_Declaration;
 
@@ -976,7 +976,7 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Package_Type do
-        Result.Name := new String'(Name);
+         Result.Name := new String'(Name);
       end return;
    end New_Package_Type;
 
@@ -1061,7 +1061,7 @@ package body Aquarius.Drys.Declarations is
    function New_Separator return Specification_Separator is
    begin
       return Result : Specification_Separator do
-        null;
+         null;
       end return;
    end New_Separator;
 
@@ -1169,7 +1169,7 @@ package body Aquarius.Drys.Declarations is
    is
    begin
       return Result : Defining_Identifier_List do
-        Result.List.Append (Text);
+         Result.List.Append (Text);
       end return;
    end Single_Identifier;
 

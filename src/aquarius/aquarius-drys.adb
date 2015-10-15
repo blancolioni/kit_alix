@@ -165,7 +165,7 @@ package body Aquarius.Drys is
                                         Ada.Strings.Left);
    begin
       return Result : Literal_Expression do
-        Result.Literal := new String'(Image);
+         Result.Literal := new String'(Image);
       end return;
    end Literal;
 
@@ -176,7 +176,7 @@ package body Aquarius.Drys is
    function Literal (Value : String) return Expression'Class is
    begin
       return Result : Literal_Expression do
-        Result.Literal := new String'('"' & Value & '"');
+         Result.Literal := new String'('"' & Value & '"');
       end return;
    end Literal;
 
@@ -187,7 +187,7 @@ package body Aquarius.Drys is
    function Literal (Value : Boolean) return Expression'Class is
    begin
       return Result : Literal_Expression do
-        Result.Literal := new String'((if Value then "True" else "False"));
+         Result.Literal := new String'((if Value then "True" else "False"));
       end return;
    end Literal;
 
@@ -200,7 +200,7 @@ package body Aquarius.Drys is
    is
    begin
       return Result : Subtype_Indication do
-        Result.Base_Type := new String'(Name);
+         Result.Base_Type := new String'(Name);
       end return;
    end Named_Subtype;
 
@@ -230,7 +230,7 @@ package body Aquarius.Drys is
    is
    begin
       return Result : Derived_Type_Definition do
-        Result.Base_Type := new String'(Derived_From);
+         Result.Base_Type := new String'(Derived_From);
       end return;
    end New_Derived_Type;
 
@@ -253,7 +253,7 @@ package body Aquarius.Drys is
    function Object (Name : String) return Expression'Class is
    begin
       return Result : Literal_Expression do
-        Result.Literal := new String'(Name);
+         Result.Literal := new String'(Name);
       end return;
    end Object;
 

@@ -1274,5 +1274,4 @@ package body Kit.Schema.Tables is
       return Item.With_Vector_Package;
    end With_Vector_Package;
 
-
 end Kit.Schema.Tables;
