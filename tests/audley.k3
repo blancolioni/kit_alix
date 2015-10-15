@@ -1,3 +1,5 @@
+with Localisation;
+
 package Audley.Db is
 
 record Term is

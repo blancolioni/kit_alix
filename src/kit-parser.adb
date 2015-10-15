@@ -1,5 +1,5 @@
 with Ada.Characters.Handling;
-with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Directories;
 
 with GCS.Positions;
@@ -22,14 +22,14 @@ package body Kit.Parser is
    Got_System_Db : Boolean := False;
 
    package List_Of_Withed_Databases is
-     new Ada.Containers.Doubly_Linked_Lists
-       (Kit.Schema.Databases.Database_Type,
-        Kit.Schema.Databases."=");
+     new Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
 
    procedure Read_Package
-     (Db           : in out Kit.Schema.Databases.Database_Type;
-      Package_Path : String;
-      With_System  : Boolean := True);
+     (Db               : in out Kit.Schema.Databases.Database_Type;
+      Package_Path     : String;
+      Withed_Databases : in out List_Of_Withed_Databases.List;
+      With_System      : Boolean;
+      Create_Database  : Boolean);
 
    function At_Declaration return Boolean;
 
@@ -567,11 +567,14 @@ package body Kit.Parser is
      (Path : String;
       Db   : out Kit.Schema.Databases.Database_Type)
    is
+      Withed : List_Of_Withed_Databases.List;
    begin
 
       Open (Path);
 
-      Read_Package (Db, Path);
+      Read_Package (Db, Path, Withed,
+                    With_System     => True,
+                    Create_Database => True);
 
       Close;
    end Read_Kit_File;
@@ -581,17 +584,19 @@ package body Kit.Parser is
    ------------------
 
    procedure Read_Package
-     (Db           : in out Kit.Schema.Databases.Database_Type;
-      Package_Path : String;
-      With_System  : Boolean := True)
+     (Db               : in out Kit.Schema.Databases.Database_Type;
+      Package_Path     : String;
+      Withed_Databases : in out List_Of_Withed_Databases.List;
+      With_System      : Boolean;
+      Create_Database  : Boolean)
    is
+      Local_Withed_Databases : List_Of_Withed_Databases.List;
    begin
 
       while Tok = Tok_With loop
          Scan;
          while Tok = Tok_Identifier loop
             declare
-               Withed_Db : Kit.Schema.Databases.Database_Type;
                Name      : constant String :=
                              Ada.Characters.Handling.To_Lower
                                (Tok_Text)
@@ -616,10 +621,9 @@ package body Kit.Parser is
                                 else raise Constraint_Error
                                   with "not found: " & Name);
             begin
-               Open (Path);
-               Read_Package (Withed_Db, Path);
-               Close;
-               Db.With_Database (Withed_Db);
+               if not Withed_Databases.Contains (Path) then
+                  Local_Withed_Databases.Append (Path);
+               end if;
             end;
 
             Scan;
@@ -650,7 +654,9 @@ package body Kit.Parser is
       begin
          Expect (Tok_Is, (Tok_Record, Tok_End));
 
-         Db.Create_Database (Package_Name);
+         if Create_Database then
+            Db.Create_Database (Package_Name);
+         end if;
 
          if With_System and then Package_Name /= "kit.db" then
             if not Got_System_Db then
@@ -660,13 +666,29 @@ package body Kit.Parser is
                begin
                   Open (System_Path);
                   Read_Package (System_Db, System_Path,
-                                With_System => False);
+                                Withed_Databases,
+                                With_System => False,
+                                Create_Database => True);
                   Close;
                end;
                Got_System_Db := True;
             end if;
             Db.With_Database (System_Db);
          end if;
+
+         for Path of Local_Withed_Databases loop
+            if not Withed_Databases.Contains (Path) then
+               Withed_Databases.Append (Path);
+               Open (Path);
+               Read_Package
+                 (Db               => Db,
+                  Package_Path     => Path,
+                  Withed_Databases => Withed_Databases,
+                  With_System      => False,
+                  Create_Database  => False);
+               Close;
+            end if;
+         end loop;
 
          while At_Declaration loop
             if Tok = Tok_Record then

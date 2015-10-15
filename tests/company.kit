@@ -1,9 +1,7 @@
-package Company is
+with Localisation;
+with Company_Objects;
 
-record Object is
-   unique key Id : String (12);
-   key Name : String (32);
-end Object;
+package Company is
 
 record Inventory : Object;
 
