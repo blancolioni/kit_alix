@@ -37,7 +37,6 @@ begin
 
    Kit.Schema.Types.Create_Standard_Types;
 
-
    declare
       use Ada.Directories;
       File_Name : constant String :=

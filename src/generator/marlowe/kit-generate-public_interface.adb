@@ -93,7 +93,6 @@ package body Kit.Generate.Public_Interface is
          procedure Insert_Table_Keys
            (Base  : Kit.Schema.Tables.Table_Type'Class);
 
-
          -----------------------
          -- Insert_Table_Keys --
          -----------------------
@@ -1979,7 +1978,6 @@ package body Kit.Generate.Public_Interface is
 --        return List_Of_Marks.Has_Element (Item.Current_Mark)
 --          and then Marlowe.Btree_Handles.Valid
 --            (List_Of_Marks.Element (Item.Current_Mark).all);
-
 
             Has_Element_Block.Add_Statement
               (New_Return_Statement

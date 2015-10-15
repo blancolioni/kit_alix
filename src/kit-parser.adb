@@ -547,7 +547,6 @@ package body Kit.Parser is
          end if;
       end;
 
-
    end Parse_Type_Declaration;
 
    -------------------
