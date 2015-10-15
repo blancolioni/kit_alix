@@ -1,3 +1,7 @@
+with Ada.Characters.Handling;
+with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Directories;
+
 with GCS.Positions;
 
 with Kit.Names;
@@ -17,9 +21,15 @@ package body Kit.Parser is
    System_Db : Kit.Schema.Databases.Database_Type;
    Got_System_Db : Boolean := False;
 
+   package List_Of_Withed_Databases is
+     new Ada.Containers.Doubly_Linked_Lists
+       (Kit.Schema.Databases.Database_Type,
+        Kit.Schema.Databases."=");
+
    procedure Read_Package
-     (Db          : in out Kit.Schema.Databases.Database_Type;
-      With_System : Boolean := True);
+     (Db           : in out Kit.Schema.Databases.Database_Type;
+      Package_Path : String;
+      With_System  : Boolean := True);
 
    function At_Declaration return Boolean;
 
@@ -561,7 +571,7 @@ package body Kit.Parser is
 
       Open (Path);
 
-      Read_Package (Db);
+      Read_Package (Db, Path);
 
       Close;
    end Read_Kit_File;
@@ -571,10 +581,64 @@ package body Kit.Parser is
    ------------------
 
    procedure Read_Package
-     (Db          : in out Kit.Schema.Databases.Database_Type;
-      With_System : Boolean := True)
+     (Db           : in out Kit.Schema.Databases.Database_Type;
+      Package_Path : String;
+      With_System  : Boolean := True)
    is
    begin
+
+      while Tok = Tok_With loop
+         Scan;
+         while Tok = Tok_Identifier loop
+            declare
+               Withed_Db : Kit.Schema.Databases.Database_Type;
+               Name      : constant String :=
+                             Ada.Characters.Handling.To_Lower
+                               (Tok_Text)
+                             & ".kit";
+               Local_Path : constant String := Name;
+               Related_Path : constant String :=
+                                Ada.Directories.Compose
+                                  (Ada.Directories.Containing_Directory
+                                     (Package_Path),
+                                   Name);
+
+               System_Path : constant String :=
+                               Kit.Paths.Config_Path
+                               & "/packages/" & Name;
+               Path        : constant String :=
+                               (if Ada.Directories.Exists (Local_Path)
+                                then Local_Path
+                                elsif Ada.Directories.Exists (Related_Path)
+                                then Related_Path
+                                elsif Ada.Directories.Exists (System_Path)
+                                then System_Path
+                                else raise Constraint_Error
+                                  with "not found: " & Name);
+            begin
+               Open (Path);
+               Read_Package (Withed_Db, Path);
+               Close;
+               Db.With_Database (Withed_Db);
+            end;
+
+            Scan;
+            if Tok = Tok_Comma then
+               Scan;
+               Expect (Tok_Identifier, (Tok_Semi, Tok_Package));
+            elsif Tok = Tok_Identifier then
+               Error ("missing package name");
+            elsif Tok /= Tok_Semi then
+               Expect (Tok_Semi, (Tok_Package, Tok_With));
+               exit;
+            end if;
+         end loop;
+
+         if Tok = Tok_Semi then
+            Scan;
+         end if;
+      end loop;
+
       if Tok /= Tok_Package then
          Error ("missing package");
       end if;
@@ -590,9 +654,15 @@ package body Kit.Parser is
 
          if With_System and then Package_Name /= "kit.db" then
             if not Got_System_Db then
-               Open (Kit.Paths.Config_Path & "/kit.kit");
-               Read_Package (System_Db, With_System => False);
-               Close;
+               declare
+                  System_Path : constant String :=
+                                  Kit.Paths.Config_Path & "/kit.kit";
+               begin
+                  Open (System_Path);
+                  Read_Package (System_Db, System_Path,
+                                With_System => False);
+                  Close;
+               end;
                Got_System_Db := True;
             end if;
             Db.With_Database (System_Db);
