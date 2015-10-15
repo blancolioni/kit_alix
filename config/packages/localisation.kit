@@ -1,0 +1,15 @@
+package Localisation is
+
+record Localised is
+   key Tag : String (20) is display;
+end Localised;
+
+record Language : Localised;
+
+record Local_Text : Localised is
+   key Language;
+   Local_Text : Text;
+   unique key Tag_And_Language with Tag, Language;
+end Local_Text;
+
+end Localisation;
