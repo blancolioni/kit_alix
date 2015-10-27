@@ -1,7 +1,7 @@
-with Marlowe.Btree_Handles;
+with Marlowe.Data_Stores;
 
 package Kit.Server is
 
-   Handle : Marlowe.Btree_Handles.Btree_Handle;
+   Handle : Marlowe.Data_Stores.Data_Store;
 
 end Kit.Server;
