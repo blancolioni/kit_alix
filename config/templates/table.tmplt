@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+<title>@_TITLE_@</title>
+    <script src="http://code.jquery.com/jquery-2.1.4.min.js" type="text/javascript"></script>
+
+<style type="text/css">
+    h1 {
+        color:red;
+        font-size:24px;
+        text-shadow: 1px 1px 2px black;
+    }
+    body {
+        font-family: "OpenSansRegular", Tahoma, Verdana, Arial, sans-serif;
+        font-size: 12px;
+    }
+    table {
+        margin-top: 1em;
+        border-collapse: collapse;
+        table-layout:fixed;
+        font-weight:normal;
+        empty-cells: hide;
+        white-space: nowrap;
+        padding: 0px;
+        }
+
+    thead {
+        color:white;
+        background-color:#444;
+    }
+    tr {
+        height: 21px;
+    }
+    th, td {
+        overflow: hidden;
+        /* padding: 0px; */
+    }
+
+    th {
+        text-overflow: ellipsis;
+        border: 1px solid white;
+        font-weight: normal;
+    }
+        th:empty {
+            background-color: white;
+        }
+
+    tbody > tr > th {
+        font-weight: bold;
+        font-size:11px;
+        text-align: left;
+    }
+    tbody > tr:nth-child(even) {
+        background-color: rgb(220, 230, 241);
+    }
+    td {
+        text-overflow: ellipsis;
+        border: 1px solid transparent;
+    }
+
+    .kitTable {
+        overflow: hidden;
+        padding: 0px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-family: "OpenSansRegular", Tahoma, Verdana, Arial, sans-serif;
+        font-size: 12px;
+    }
+
+    .kitCellEditor {
+        border: none;
+        padding: 0px;
+    }
+    .kitCellSelected {
+        border: 1px solid black;
+    }
+
+</style>
+
+<script type="text/javascript">
+
+    "use strict";
+
+    var selectedCell;
+    var input;
+    
+    $(document).ready(function () {
+        // $('td,th').click(function (e) { alert(e.target.innerText + ' - ' + e.target.scrollWidth); });
+        var container = document.getElementById('test-table-container');
+        var table = showHeadings(container, testTable);
+        setTimeout(function() {
+            showTableData(table, testTableData);
+        }, 1000);
+
+        //$('td[data-editable="true"]').css({ fontWeight: 'bold' });
+        //if (true) {
+        //    $('td').each(function (i, td) {
+        //        var tmp = td.innerHTML;
+        //        td.innerHTML = '<div class="anagoTable" style="width:95%">' + tmp + '</div>';
+        //    });
+        //    $('td > div').click(selectCell);
+        //}
+    });
+
+    function selectCell(e) {
+        if (selectedCell == e.target) {
+            editCell(selectedCell);
+        } else {
+            if (input) $(input).hide();
+            if (selectedCell) $(selectedCell).removeClass('selected');
+            selectedCell = e.target;
+            $(selectedCell).addClass('selected');
+        }
+    }
+
+    function editCell(cell) {
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'text';
+            $(input).addClass('anagoTable');
+            $(input).addClass('anagoCellEditor');
+        } else {
+        }
+        $(input).hide();
+
+        cell.parentNode.appendChild(input);
+        input.value = $(cell).text();
+        $(cell).hide();
+        $(input).show();
+        input.focus();
+    }
+
+</script>
+
+</head>
+<body>
+<h1>@_TITLE_@</h1>
+<table>
+  <thead>
+    <tr>
+@@TABLE@@
+      <th>@_FIELDS_@
+@@END_TABLE@@
+    </tr>
+  </thead>
+  <tbody>
+@@TABLE@@
+  <tr>
+@@TABLE@@
+  <td>
+    @_VALUES_@
+  </td>
+@@END_TABLE@@
+  </tr>
+@@END_TABLE@@
+  </tbody>
+</table>
+<p>
+Scan read @_COUNT_@ records in @_TIME_@ms
+</p>
+</body>
+</html>

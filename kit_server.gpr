@@ -8,22 +8,84 @@ with "aws";
 
 project Kit_Server is
 
-   for Source_Dirs use ("src", "src/server", "src/server/generated");
-   for Object_Dir use "build/obj";
-   for Exec_Dir use "build/bin";
+   type Build_Kind1 is
+      ("default", "relocatable");
+   type Build_Kind is
+      ("static", "relocatable");
    for Main use ("kit-server-driver");
+   XMLADA_BUILD : Build_Kind := external ("XMLADA_BUILD");
+   AWS_BUILD : Build_Kind1 := external ("AWS_BUILD");
 
    package Builder is
       for Default_Switches ("ada") use ("-k", "-s", "-g");
    end Builder;
 
    package Compiler is
-      for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012", "-gnata");
+
+      case XMLADA_BUILD is
+
+         when "static" =>
+
+            case AWS_BUILD is
+
+               when "default" =>
+                  for Default_Switches ("ada") use ("-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012", "-O3", "-g", "-gnatp", "-gnatVn");
+
+               when "relocatable" =>
+                  for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012", "-gnata");
+            end case;
+
+         when "relocatable" =>
+            for Default_Switches ("ada") use ("-g", "-gnatwae", "-gnatyabcefhiklmnoprst", "-gnat2012", "-gnata");
+      end case;
    end Compiler;
 
    package Linker is
       for Default_Switches ("ada") use ("-g");
    end Linker;
+
+   case XMLADA_BUILD is
+
+      when "static" =>
+
+         case AWS_BUILD is
+
+            when "default" =>
+               for Exec_Dir use "build\bin";
+               for Object_Dir use "build\obj";
+               for Source_Dirs use ("src", "src\server", "src\server\generated");
+
+            when "relocatable" =>
+               for Exec_Dir use "build/bin";
+               for Object_Dir use "build/obj";
+               for Source_Dirs use ("src", "src/server", "src/server/generated");
+         end case;
+
+      when "relocatable" =>
+         for Exec_Dir use "build/bin";
+         for Object_Dir use "build/obj";
+         for Source_Dirs use ("src", "src/server", "src/server/generated");
+   end case;
+
+   package Ide is
+
+      case XMLADA_BUILD is
+
+         when "static" =>
+
+            case AWS_BUILD is
+
+               when "default" =>
+                  for Default_Switches ("ada2wsdl") use ("-v");
+
+               when "relocatable" =>
+
+            end case;
+
+         when "relocatable" =>
+
+      end case;
+   end Ide;
 
 end Kit_Server;
 

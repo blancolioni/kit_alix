@@ -1,17 +1,17 @@
 with Ada.Command_Line;
 
-with Lith.Library;
+--  with Lith.Library;
 
 with Kit.Db.Database;
 
 with Kit.Server.Lith_Bindings;
 
-with Kit.Paths;
+--  with Kit.Paths;
 
 procedure Kit.Lith_Shell is
 begin
 
-   Lith.Library.Initialise;
+--     Lith.Library.Initialise;
 
    Kit.Server.Lith_Bindings.Create_Bindings;
 
@@ -24,7 +24,7 @@ begin
         (Ada.Command_Line.Argument (1));
    end if;
 
-   Lith.Library.Start_Repl;
+--    Lith.Library.Start_Repl;
 
    if Ada.Command_Line.Argument_Count = 1 then
       Kit.Db.Database.Close;
