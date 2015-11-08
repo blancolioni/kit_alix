@@ -95,8 +95,10 @@ package body Kit.Generate.Templates is
                              Database.Ada_Name
                              & "."
                              & Base_Name;
-            Source_Spec  : constant String := Base_Name & ".ads";
-            Source_Body  : constant String := Base_Name & ".adb";
+            Source_Spec  : constant String :=
+                             Make_File_Name (Base_Name, "ads");
+            Source_Body  : constant String :=
+                             Make_File_Name (Base_Name, "adb");
             Target_Spec  : constant String :=
                              Make_File_Name (Package_Name, "ads");
             Target_Body  : constant String :=
@@ -118,7 +120,12 @@ package body Kit.Generate.Templates is
             Ada.Strings.Fixed.Trim
               (Natural'Image (Database.Table_Count), Ada.Strings.Left));
 
-         Copy ("kit_deferred_keys");
+         Copy ("Kit_Deferred_Keys");
+         Copy ("Tables");
+         Copy ("Tables.Scanner");
+         Copy ("Tables.SK_Tables");
+         Copy ("SK_Bindings");
+
       end General_Packages;
 
    begin
