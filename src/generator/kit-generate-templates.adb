@@ -2,7 +2,7 @@ with Ada.Strings.Fixed;
 
 with Kit.Schema.Tables;
 
-with Kit.Generate.Transformations;
+with Kit.Templates;
 
 with Kit.Paths;
 
@@ -30,7 +30,7 @@ package body Kit.Generate.Templates is
       procedure Extra_Packages
         (Table : Kit.Schema.Tables.Table_Type'Class)
       is
-         use Kit.Generate.Transformations;
+         use Kit.Templates;
 
          Standard_Sub : Substitutions;
 
@@ -80,7 +80,7 @@ package body Kit.Generate.Templates is
       end Extra_Packages;
 
       procedure General_Packages is
-         use Kit.Generate.Transformations;
+         use Kit.Templates;
 
          Standard_Sub : Substitutions;
 
