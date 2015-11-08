@@ -26,6 +26,41 @@ package body Kit.Generate.Public_Get is
       Inline        : in     Boolean;
       Next          : in     Boolean);
 
+   procedure Check_Deferred_Keys
+     (Seq       : in out Aquarius.Drys.Statement_Sequencer'Class;
+      Key_Table : Kit.Schema.Tables.Table_Type'Class);
+
+   --  Create a call to Kit_Deferred_Keys.Check_Keys for
+   --  the index of each table which is a base of Key_Table (inclusive).
+   --  Add each call to Seq
+
+   -------------------------
+   -- Check_Deferred_Keys --
+   -------------------------
+
+   procedure Check_Deferred_Keys
+     (Seq       : in out Aquarius.Drys.Statement_Sequencer'Class;
+      Key_Table : Kit.Schema.Tables.Table_Type'Class)
+   is
+      procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type'Class);
+
+      ----------------
+      -- Check_Keys --
+      ----------------
+
+      procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type'Class) is
+      begin
+         Seq.Append
+           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+              ("Kit_Deferred_Keys.Check_Keys",
+                  Aquarius.Drys.Literal
+                 (Natural (Base.Reference_Index))));
+      end Check_Keys;
+
+   begin
+      Key_Table.Iterate (Check_Keys'Access, Inclusive => True);
+   end Check_Deferred_Keys;
+
    ----------------------------------
    -- Create_Default_Key_Functions --
    ----------------------------------
@@ -918,9 +953,13 @@ package body Kit.Generate.Public_Get is
                           & Ada.Strings.Fixed.Trim (Natural'Image (Key.Size),
                                                     Ada.Strings.Left)
                           & ")";
+
       begin
          Block.Add_Declaration
            (Use_Type ("System.Storage_Elements.Storage_Array"));
+
+         Check_Deferred_Keys (Block, Key_Table);
+
          Block.Append
            (Aquarius.Drys.Statements.New_Return_Statement
               ("Result", Return_Type, Return_Sequence));
@@ -1083,6 +1122,8 @@ package body Kit.Generate.Public_Get is
          Block.Add_Declaration
            (Aquarius.Drys.Declarations.New_Object_Declaration
               ("Db_Index", "Marlowe.Database_Index", Literal (0)));
+
+         Check_Deferred_Keys (Block, Key_Table);
 
          Block.Add_Statement
            (New_Procedure_Call_Statement

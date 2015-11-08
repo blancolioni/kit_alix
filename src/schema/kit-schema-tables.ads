@@ -135,6 +135,16 @@ package Kit.Schema.Tables is
                         With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class;
 
+   function To_Storage (Table       : Table_Type'Class;
+                        Base_Table  : Table_Type'Class;
+                        Key_Table   : Table_Type'Class;
+                        Object_Name : String;
+                        Key         : Kit.Schema.Keys.Key_Type'Class;
+                        New_Field   : Kit.Schema.Fields.Field_Type'Class;
+                        Field_Value : String;
+                        With_Index  : Boolean)
+                        return Aquarius.Drys.Expression'Class;
+
    function To_Storage (Key_Value_Name   : String;
                         Index_Value_Name : String;
                         Key         : Kit.Schema.Keys.Key_Type'Class)
