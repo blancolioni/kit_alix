@@ -1,5 +1,6 @@
 with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Characters.Handling;
+with Ada.Directories;
 with Ada.Text_IO;
 
 package body Kit.Templates is
@@ -15,6 +16,11 @@ package body Kit.Templates is
 
    function Get_Loop_Name (Line : String) return String
      with Pre => Begins_Loop (Line);
+
+   function File_Changed
+     (Original_File_Path : String;
+      New_File_Path      : String)
+      return Boolean;
 
    ----------------------
    -- Add_Substitution --
@@ -64,9 +70,10 @@ package body Kit.Templates is
    is
       use Ada.Text_IO;
       F, G : File_Type;
+      Temp_Path : constant String := Target & "-t";
    begin
       Open (F, In_File, Source);
-      Create (G, Out_File, Target);
+      Create (G, Out_File, Temp_Path);
 
       while not End_Of_File (F) loop
          declare
@@ -107,6 +114,15 @@ package body Kit.Templates is
       end loop;
       Close (G);
       Close (F);
+
+      if not Ada.Directories.Exists (Target)
+        or else File_Changed (Target, Temp_Path)
+      then
+         Ada.Directories.Rename (Temp_Path, Target);
+      else
+         Ada.Directories.Delete_File (Temp_Path);
+      end if;
+
    end Copy_File;
 
    ---------------
@@ -121,6 +137,46 @@ package body Kit.Templates is
    begin
       return Ada.Strings.Fixed.Index (Line, "{end-loop:" & Name & "}") > 0;
    end Ends_Loop;
+
+   ------------------
+   -- File_Changed --
+   ------------------
+
+   function File_Changed
+     (Original_File_Path : String;
+      New_File_Path      : String)
+      return Boolean
+   is
+      use Ada.Text_IO;
+      Old_File, New_File : File_Type;
+      Changed            : Boolean := False;
+   begin
+      Open (Old_File, In_File, Original_File_Path);
+      Open (New_File, In_File, New_File_Path);
+      while not End_Of_File (Old_File) loop
+         if End_Of_File (New_File) then
+            Changed := True;
+            exit;
+         end if;
+
+         declare
+            Old_Line : constant String := Get_Line (Old_File);
+            New_Line : constant String := Get_Line (New_File);
+         begin
+            if Old_Line /= New_Line then
+               Changed := True;
+               exit;
+            end if;
+         end;
+      end loop;
+
+      if not End_Of_File (New_File) then
+         Changed := True;
+      end if;
+      Close (Old_File);
+      Close (New_File);
+      return Changed;
+   end File_Changed;
 
    -------------------
    -- Get_Loop_Name --
