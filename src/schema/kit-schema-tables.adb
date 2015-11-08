@@ -1142,6 +1142,78 @@ package body Kit.Schema.Tables is
                         Key_Table   : Table_Type'Class;
                         Object_Name : String;
                         Key         : Kit.Schema.Keys.Key_Type'Class;
+                        New_Field   : Kit.Schema.Fields.Field_Type'Class;
+                        Field_Value : String;
+                        With_Index  : Boolean)
+                        return Aquarius.Drys.Expression'Class
+   is
+      use Aquarius.Drys;
+      use Aquarius.Drys.Expressions;
+      Key_Index : constant String :=
+                    Table.Database_Index_Component
+                      (Object_Name, Base_Table);
+      Index_Part : constant Expression'Class :=
+                     New_Function_Call_Expression
+                       ("Marlowe.Key_Storage.To_Storage_Array",
+                        New_Function_Call_Expression
+                          ("Marlowe.Database_Index",
+                           Object (Key_Index)));
+      Object_Component : constant String :=
+                           (if Object_Name = ""
+                            then ""
+                            elsif Object_Name (Object_Name'Last) = '_'
+                            then Object_Name
+                            else Object_Name & ".");
+   begin
+      if Key.Field_Count > 1 then
+         declare
+            Result : Function_Call_Expression :=
+                       New_Function_Call_Expression
+                         (Ada_Name (Key_Table)
+                          & "_Impl."
+                          & Key.Ada_Name & "_To_Storage");
+         begin
+            for I in 1 .. Key.Field_Count loop
+               if Key.Field (I).Name = New_Field.Name then
+                  Result.Add_Actual_Argument
+                    (Object (Field_Value));
+               else
+                  Result.Add_Actual_Argument
+                    (Object
+                       (Object_Component
+                        & Key.Field (I).Ada_Name));
+               end if;
+            end loop;
+            if With_Index then
+               return Long_Operator ("&", Result, Index_Part);
+            else
+               return Result;
+            end if;
+         end;
+      else
+         declare
+            Key_Part : constant Expression'Class :=
+                         Key.Field (1).Get_Field_Type.To_Storage_Array
+                           (Field_Value);
+         begin
+            if With_Index then
+               return Long_Operator ("&", Key_Part, Index_Part);
+            else
+               return Key_Part;
+            end if;
+         end;
+      end if;
+   end To_Storage;
+
+   ----------------
+   -- To_Storage --
+   ----------------
+
+   function To_Storage (Table       : Table_Type'Class;
+                        Base_Table  : Table_Type'Class;
+                        Key_Table   : Table_Type'Class;
+                        Object_Name : String;
+                        Key         : Kit.Schema.Keys.Key_Type'Class;
                         With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class
    is

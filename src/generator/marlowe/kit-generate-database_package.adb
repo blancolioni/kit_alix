@@ -39,6 +39,10 @@ package body Kit.Generate.Database_Package is
       function Create_Close_Procedure
         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class;
 
+      -----------------------------
+      -- Add_Implementation_With --
+      -----------------------------
+
       procedure Add_Implementation_With
         (Table : Kit.Schema.Tables.Table_Type'Class)
       is
@@ -59,6 +63,9 @@ package body Kit.Generate.Database_Package is
          use Aquarius.Drys;
          Block : Aquarius.Drys.Blocks.Block_Type;
       begin
+         Block.Add_Statement
+           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+              ("Kit_Deferred_Keys.Close_Deferred_Keys"));
          Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
               ("Kit.Cache.Close"));
@@ -294,6 +301,8 @@ package body Kit.Generate.Database_Package is
       Result.With_Package (Db.Ada_Name & ".Kit_Key",
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Key_Field",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Deferred_Keys",
                            Body_With => True);
 
       if False then

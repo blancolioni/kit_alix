@@ -380,6 +380,11 @@ package body Kit.Generate.Public_Interface is
          Key        : Kit.Schema.Keys.Key_Type'Class;
          Lock     : Boolean);
 
+      procedure Record_Key_Change
+        (Table_Base : Kit.Schema.Tables.Table_Type'Class;
+         Key_Base   : Kit.Schema.Tables.Table_Type'Class;
+         Key        : Kit.Schema.Keys.Key_Type'Class);
+
       procedure Delete_Old_Key
         (Table_Base : Kit.Schema.Tables.Table_Type'Class;
          Key_Base   : Kit.Schema.Tables.Table_Type'Class;
@@ -590,6 +595,54 @@ package body Kit.Generate.Public_Interface is
                         Table_First => False);
       end Process_Keys;
 
+      -----------------------
+      -- Record_Key_Change --
+      -----------------------
+
+      procedure Record_Key_Change
+        (Table_Base : Kit.Schema.Tables.Table_Type'Class;
+         Key_Base   : Kit.Schema.Tables.Table_Type'Class;
+         Key        : Kit.Schema.Keys.Key_Type'Class)
+      is
+         S : Aquarius.Drys.Statements.Procedure_Call_Statement :=
+               Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                 ("Kit_Deferred_Keys.Key_Changed");
+         Old_Key_Storage : constant Aquarius.Drys.Expression'Class :=
+                             Table.To_Storage
+                               (Base_Table  => Table_Base,
+                                Key_Table   => Key_Base,
+                                Object_Name => "Item",
+                                Key         => Key,
+                                With_Index  => False);
+         New_Key_Storage : constant Aquarius.Drys.Expression'Class :=
+                             Table.To_Storage
+                               (Base_Table  => Table_Base,
+                                Key_Table   => Key_Base,
+                                Object_Name => "Item",
+                                Key         => Key,
+                                New_Field   => Field,
+                                Field_Value => "Value",
+                                With_Index  => False);
+      begin
+         S.Add_Actual_Argument
+           (Key_Base.Index_Image);
+         S.Add_Actual_Argument
+           ("Marlowe_Keys."
+            & Table_Base.Key_Reference_Name (Key));
+         S.Add_Actual_Argument
+           (Aquarius.Drys.Expressions.New_Function_Call_Expression
+              ("Marlowe.Database_Index",
+               Table.Database_Index_Component ("Item", Table_Base)));
+         S.Add_Actual_Argument (Old_Key_Storage);
+         S.Add_Actual_Argument (New_Key_Storage);
+
+         Store_Block.Add_Statement
+           (Aquarius.Drys.Statements.If_Statement
+              (Aquarius.Drys.Expressions.Operator
+                 ("not", Aquarius.Drys.Object ("Item.Created")),
+               S));
+      end Record_Key_Change;
+
       -----------------
       -- Release_Key --
       -----------------
@@ -677,16 +730,26 @@ package body Kit.Generate.Public_Interface is
               ("Item.X_Lock"));
       end;
 
-      Process_Keys (Lock_Key'Access);
+      if False then
+         Process_Keys (Lock_Key'Access);
+      end if;
+
       --  Table.Scan_Keys (Field, Release_Key'Access);
-      Process_Keys (Delete_Old_Key'Access);
+
+      Process_Keys (Record_Key_Change'Access);
+
+      if False then
+         Process_Keys (Delete_Old_Key'Access);
+      end if;
 
       Field.Get_Field_Type.Set_Value
         (Target_Name => "Target",
          Value_Name  => "Value",
          Sequence    => Store_Block);
 
-      Process_Keys (Insert_New_Key'Access);
+      if False then
+         Process_Keys (Insert_New_Key'Access);
+      end if;
 
       declare
          use Aquarius.Drys.Statements;
@@ -696,7 +759,9 @@ package body Kit.Generate.Public_Interface is
               ("Database_Mutex.Shared_Unlock"));
       end;
 
-      Process_Keys (Unlock_Key'Access);
+      if False then
+         Process_Keys (Unlock_Key'Access);
+      end if;
 
       declare
          use Aquarius.Drys.Declarations;
@@ -2379,6 +2444,8 @@ package body Kit.Generate.Public_Interface is
                                      Body_With => True);
       end if;
 
+      Table_Package.With_Package (Db.Ada_Name & ".Kit_Deferred_Keys",
+                                  Body_With => True);
       Table_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                                   Body_With => True);
 
