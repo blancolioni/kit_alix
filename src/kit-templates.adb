@@ -115,9 +115,10 @@ package body Kit.Templates is
       Close (G);
       Close (F);
 
-      if not Ada.Directories.Exists (Target)
-        or else File_Changed (Target, Temp_Path)
-      then
+      if not Ada.Directories.Exists (Target) then
+         Ada.Directories.Rename (Temp_Path, Target);
+      elsif File_Changed (Target, Temp_Path) then
+         Ada.Directories.Delete_File (Target);
          Ada.Directories.Rename (Temp_Path, Target);
       else
          Ada.Directories.Delete_File (Temp_Path);
