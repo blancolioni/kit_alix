@@ -246,9 +246,20 @@ package body Kit.Generate.Public_Get is
             New_Function_Call_Expression
               (Table.Reference_Type, "Index")));
 
-      Fetch.Fetch_From_Index (Table       => Table,
-                              Object_Name => "Element",
-                              Target      => Block);
+      declare
+         Exists_Sequence : Sequence_Of_Statements;
+      begin
+         Fetch.Fetch_From_Index (Table       => Table,
+                                 Object_Name => "Element",
+                                 Target      => Exists_Sequence);
+         Block.Append
+           (If_Statement
+              (Operator
+                   ("/=", Object ("Element.M_Index"),
+                    Object
+                      ("Null_" & Table.Ada_Name & "_Reference")),
+               Exists_Sequence));
+      end;
 
       Set_Field (Block, "Finished", False);
       Set_Field (Block, "Using_Key_Value", False);
@@ -794,9 +805,20 @@ package body Kit.Generate.Public_Get is
         (New_Assignment_Statement
            ("Result.M_Index", Object ("Ref")));
 
-      Fetch.Fetch_From_Index (Table       => Table,
-                              Object_Name => "Result",
-                              Target      => Return_Sequence);
+      declare
+         Exists_Sequence : Sequence_Of_Statements;
+      begin
+         Fetch.Fetch_From_Index (Table       => Table,
+                                 Object_Name => "Result",
+                                 Target      => Exists_Sequence);
+         Return_Sequence.Append
+           (If_Statement
+              (Operator
+                   ("/=", Object ("Result.M_Index"),
+                    Object
+                      ("Null_" & Table.Ada_Name & "_Reference")),
+               Exists_Sequence));
+      end;
 
       Set_Field (Return_Sequence, "Finished", False);
       Set_Field (Return_Sequence, "Using_Key_Value", False);
