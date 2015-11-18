@@ -11,6 +11,7 @@ with Kit.Generate.Get_From_Cache;
 with Kit.Generate.Marlowe_Keys_Package;
 with Kit.Generate.Public_Interface;
 with Kit.Generate.Private_Interface;
+with Kit.Generate.Table_Name_Map;
 
 package body Kit.Generate is
 
@@ -558,6 +559,9 @@ package body Kit.Generate is
         (Database_Package.Generate_Database_Package (Db));
       Project.Add_Package
         (Marlowe_Keys_Package.Generate_Package (Db));
+      Project.Add_Package
+        (Table_Name_Map.Generate_Package (Db));
+
       Db.Iterate (Get_From_Cache'Access);
       Db.Iterate (Public_Interface'Access);
       Db.Iterate (Private_Interface'Access);
