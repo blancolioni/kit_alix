@@ -158,6 +158,8 @@ package Aquarius.Drys is
    function Literal (Value : String) return Expression'Class;
    function Literal (Value : Boolean) return Expression'Class;
 
+   function Current_Line return Expression'Class;
+
    function Object (Name : String) return Expression'Class;
 
    procedure Add_Aspect
@@ -224,6 +226,16 @@ private
       record
          Literal : String_Access;
       end record;
+
+   type Meta_Expression is abstract new Expression with null record;
+
+   type Current_Line_Expression is
+     new Meta_Expression with null record;
+
+   overriding
+   procedure Write
+     (Item        : Current_Line_Expression;
+      Writer      : in out Writer_Interface'Class);
 
    type Enumeration_Type_Definition is new Type_Definition with
       record

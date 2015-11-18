@@ -60,6 +60,17 @@ package body Aquarius.Drys is
       return Result;
    end Class_Wide_Subtype;
 
+   ------------------
+   -- Current_Line --
+   ------------------
+
+   function Current_Line return Expression'Class is
+   begin
+      return Result : Current_Line_Expression do
+         null;
+      end return;
+   end Current_Line;
+
    --------------
    -- Has_Body --
    --------------
@@ -501,6 +512,23 @@ package body Aquarius.Drys is
          end loop;
          Writer.Indent (Current_Indent);
       end if;
+   end Write;
+
+     -----------
+     -- Write --
+     -----------
+
+   overriding
+   procedure Write
+     (Item        : Current_Line_Expression;
+      Writer      : in out Writer_Interface'Class)
+   is
+      pragma Unreferenced (Item);
+   begin
+      Writer.Put
+        (Ada.Strings.Fixed.Trim
+           (Positive'Image (Writer.Line),
+            Ada.Strings.Left));
    end Write;
 
 end Aquarius.Drys;
