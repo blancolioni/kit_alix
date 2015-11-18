@@ -58,6 +58,13 @@ package body Kit.Generate.Public_Interface is
      (Table : in     Kit.Schema.Tables.Table_Type'Class;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
+   procedure Perform_X_Lock
+     (Sequence          : in out Aquarius.Drys.Statement_Sequencer'Class;
+      Table_Name        : String;
+      Object_Name       : String;
+      Request_Object    : String;
+      Index_Object      : String);
+
    -------------------------------
    -- Create_Control_Procedures --
    -------------------------------
@@ -144,7 +151,7 @@ package body Kit.Generate.Public_Interface is
 
          Finalize_Block.Add_Statement
            (If_Statement
-              (Operator ("=", Object ("Item.M_Index"), Literal (0)),
+              (Operator ("=", Object ("Item.Local.M_Index"), Literal (0)),
                New_Return_Statement));
 
          Insert_Keys.Append
@@ -161,7 +168,7 @@ package body Kit.Generate.Public_Interface is
                        ("Finalize " & Table.Ada_Name & ":"),
                      New_Function_Call_Expression
                        ("Marlowe.Database_Index'Image",
-                        Object ("Item.M_Index")))));
+                        Object ("Item.Local.M_Index")))));
          end if;
 
          Table.Iterate (Insert_Table_Keys'Access,
@@ -208,7 +215,7 @@ package body Kit.Generate.Public_Interface is
 
          Finalize_Block.Add_Statement
            (New_Assignment_Statement
-              ("Item.M_Index", Literal (0)));
+              ("Item.Local.M_Index", Literal (0)));
          Finalize_Block.Add_Statement
            (New_Assignment_Statement
               ("Item.Created", Object ("False")));
@@ -291,8 +298,8 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Has_Finish", "False");
          Set_Field ("Subclassed", "False");
          Set_Field ("Using_Key", "False");
-         Set_Field ("M_Index", "0");
 
+         Set_Field ("Local.M_Index", "0");
          Set_Field ("Local.X_Locked", "False");
          Set_Field ("Local.S_Locked", "False");
 
@@ -1110,11 +1117,24 @@ package body Kit.Generate.Public_Interface is
       ------------
 
       procedure Unlock (T : Kit.Schema.Tables.Table_Type'Class) is
+         Request_Object : constant String :=
+                            "Item.T" & T.Index_Image & "_Request";
+
       begin
          Unlock_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
               ("Item.T" & T.Index_Image
                & "_Data.Unlock"));
+         if Kit.Options.Generate_Deadlock_Detection then
+            Unlock_Block.Add_Statement
+              (Aquarius.Drys.Statements.If_Statement
+                 (Aquarius.Drys.Expressions.Operator
+                      ("/=", Aquarius.Drys.Object (Request_Object),
+                       Aquarius.Drys.Object ("Kit_Locking.No_Request")),
+                  Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                    ("Kit_Locking.Release_Lock",
+                     Aquarius.Drys.Object (Request_Object))));
+         end if;
       end Unlock;
 
       ------------
@@ -1123,13 +1143,21 @@ package body Kit.Generate.Public_Interface is
 
       procedure X_Lock (T : Kit.Schema.Tables.Table_Type'Class) is
       begin
-         X_Lock_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
-              ("Item.T" & T.Index_Image
-               & "_Data.X_Lock"));
+         Perform_X_Lock
+           (Sequence       => X_Lock_Block,
+            Table_Name     => T.Ada_Name,
+            Object_Name    => "Item.T" & T.Index_Image & "_Data",
+            Request_Object => "Item.T" & T.Index_Image & "_Request",
+            Index_Object   => "Item.M_Index");
       end X_Lock;
 
    begin
+
+      if Kit.Options.Generate_Deadlock_Detection then
+         Unlock_Block.Add_Declaration
+           (Aquarius.Drys.Declarations.Use_Type
+              ("Kit_Locking.Request_Id"));
+      end if;
 
       --  Unlock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
       Table.Iterate (Unlock'Access,
@@ -1236,7 +1264,7 @@ package body Kit.Generate.Public_Interface is
            (Use_Type ("Marlowe.Database_Index"));
          Has_Element_Block.Add_Statement
            (Aquarius.Drys.Statements.New_Return_Statement
-              (Operator ("/=", Object ("Item.M_Index"),
+              (Operator ("/=", Object ("Item.Local.M_Index"),
                Object ("0"))));
 
          declare
@@ -1292,7 +1320,7 @@ package body Kit.Generate.Public_Interface is
            (If_Statement
               (Object ("Got_Valid_Index"),
                New_Assignment_Statement
-                 ("Item.M_Index",
+                 ("Item.Local.M_Index",
                   New_Function_Call_Expression
                     ("Marlowe.Key_Storage.To_Database_Index",
                      Object ("Item.Mark.Get_Key")))));
@@ -1305,7 +1333,7 @@ package body Kit.Generate.Public_Interface is
             Not_Found   : Sequence_Of_Statements;
          begin
             Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
-            Not_Found.Append ("Item.M_Index := 0");
+            Not_Found.Append ("Item.Local.M_Index := 0");
             Next_Block.Add_Statement
               (If_Statement
                  (Object ("Got_Valid_Index"),
@@ -1568,8 +1596,13 @@ package body Kit.Generate.Public_Interface is
                      Object (Index_Field)),
                   Object ("Result" & Base.Base_Component_Name & ".Db")));
 
-            Sequence.Append
-              ("Result" & Base.Base_Component_Name & ".X_Lock");
+            Perform_X_Lock
+              (Sequence       => Sequence,
+               Table_Name     => Base.Ada_Name,
+               Object_Name    => "Result" & Base.Base_Component_Name,
+               Request_Object =>
+                 "Result.Local.T" & Base.Index_Image & "_Request",
+               Index_Object   => Index_Field);
 
             Sequence.Append (Base.Ada_Name & "_Impl.File_Mutex.Unlock");
          end Database_Insert;
@@ -1616,7 +1649,8 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Link.X_Locked", "True");
          Set_Field ("Link.S_Locked", "False");
          Set_Field ("Using_Key", "False");
-         Set_Field ("M_Index", "0");
+
+         Set_Field ("Local.M_Index", "0");
 
          Sequence.Append
            (New_Procedure_Call_Statement ("Memory_Mutex.Lock"));
@@ -1814,12 +1848,22 @@ package body Kit.Generate.Public_Interface is
             Context_Defn.Add_Component
               (Name & "_Data",
                It.Ada_Name & "_Cache.Cache_Access");
+            if Kit.Options.Generate_Deadlock_Detection then
+               Context_Defn.Add_Component
+                 (Name & "_Request",
+                  "Kit_Locking.Request_Id",
+                  "Kit_Locking.No_Request");
+            end if;
+
          end Add_Base_Component;
 
       begin
          Context_Defn.Add_Parent ("Lock_Context_Record");
 --           Context_Defn.Add_Component ("Handle",
 --                                       "Kit.Access_Control.Access_Handle");
+         Context_Defn.Add_Component
+           ("M_Index", Table.Reference_Type);
+
          Table.Iterate (Add_Base_Component'Access,
                         Inclusive => True, Table_First => False);
 
@@ -1853,7 +1897,7 @@ package body Kit.Generate.Public_Interface is
          --  Record_Defn.Add_Component ("Mark", "Mark_Access");
          Record_Defn.Add_Component ("Key_Ref",
                                     "Marlowe.Data_Stores.Key_Reference");
-         Record_Defn.Add_Component ("M_Index", Table.Reference_Type);
+--         Record_Defn.Add_Component ("M_Index", Table.Reference_Type);
          Record_Defn.Add_Component ("Local",
                                     "Local_Lock_Context");
          Record_Defn.Add_Component ("Link",
@@ -2449,6 +2493,15 @@ package body Kit.Generate.Public_Interface is
       Table_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                                   Body_With => True);
 
+      if Kit.Options.Generate_Deadlock_Detection then
+         Table_Package.With_Package
+           (Db.Ada_Name & ".Kit_Locking",
+            Body_With => True);
+         Table_Package.With_Package
+           (Db.Ada_Name & ".Table_Names",
+            Body_With => True);
+      end if;
+
       Table.Iterate (Add_Base_With'Access, Inclusive => False);
       Table.Iterate_All (Add_Field_Type_With'Access,
                          Table_First => True);
@@ -2555,5 +2608,43 @@ package body Kit.Generate.Public_Interface is
 
       return Table_Package;
    end Generate_Public_Interface;
+
+   --------------------
+   -- Perform_X_Lock --
+   --------------------
+
+   procedure Perform_X_Lock
+     (Sequence          : in out Aquarius.Drys.Statement_Sequencer'Class;
+      Table_Name        : String;
+      Object_Name       : String;
+      Request_Object    : String;
+      Index_Object      : String)
+   is
+      use Aquarius.Drys;
+      use Aquarius.Drys.Statements;
+      use Aquarius.Drys.Expressions;
+   begin
+      if Kit.Options.Generate_Deadlock_Detection then
+         Sequence.Append
+           (New_Assignment_Statement
+              (Request_Object,
+               New_Function_Call_Expression
+                 ("Kit_Locking.Request_Lock",
+                  Object ("Table_Names." & Table_Name),
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Object (Index_Object)),
+                  Current_Line)));
+      end if;
+      Sequence.Append
+        (New_Procedure_Call_Statement (Object_Name & ".X_Lock"));
+      if Kit.Options.Generate_Deadlock_Detection then
+         Sequence.Append
+           (New_Procedure_Call_Statement
+              (Procedure_Name => "Kit_Locking.Got_Lock",
+               Argument       =>
+                 Object (Request_Object)));
+      end if;
+   end Perform_X_Lock;
 
 end Kit.Generate.Public_Interface;
