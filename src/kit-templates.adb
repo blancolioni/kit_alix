@@ -22,6 +22,12 @@ package body Kit.Templates is
       New_File_Path      : String)
       return Boolean;
 
+   function Substitute
+     (Source : String;
+      Map    : Substitutions;
+      Line   : Ada.Text_IO.Count)
+      return String;
+
    ----------------------
    -- Add_Substitution --
    ----------------------
@@ -71,6 +77,7 @@ package body Kit.Templates is
       use Ada.Text_IO;
       F, G : File_Type;
       Temp_Path : constant String := Target & "-t";
+
    begin
       Open (F, In_File, Source);
       Create (G, Out_File, Temp_Path);
@@ -102,13 +109,15 @@ package body Kit.Templates is
                      Temp_Sub.Simple_Map.Insert
                        (Loop_Name, Loop_Info.Get_Item (I));
                      for Line of Loop_Lines loop
-                        Put_Line (G, Substitute (Line, Temp_Sub));
+                        Put_Line
+                          (G,
+                           Substitute (Line, Temp_Sub, Ada.Text_IO.Line (G)));
                      end loop;
                      Temp_Sub.Simple_Map.Delete (Loop_Name);
                   end loop;
                end;
             else
-               Put_Line (G, Substitute (Line, Map));
+               Put_Line (G, Substitute (Line, Map, Ada.Text_IO.Line (G)));
             end if;
          end;
       end loop;
@@ -218,11 +227,12 @@ package body Kit.Templates is
 
    function Substitute
      (Source : String;
-      Map    : Substitutions)
+      Map    : Substitutions;
+      Line   : Ada.Text_IO.Count)
       return String
    is
       use Ada.Strings.Fixed;
-      Start : constant Natural := Index (Source, "{");
+      Start  : constant Natural := Index (Source, "{");
       Finish : Natural;
    begin
       if Start = 0 then
@@ -233,15 +243,21 @@ package body Kit.Templates is
             return Source;
          else
             declare
+               use Ada.Characters.Handling, Ada.Text_IO;
+               use Ada.Strings;
                use Substitution_Maps;
-               Key : constant String := Source (Start + 1 .. Finish - 1);
-               Position : constant Cursor := Map.Simple_Map.Find (Key);
+               Key      : constant String :=
+                            Source (Start + 1 .. Finish - 1);
+               Value    : constant String :=
+                            (if To_Lower (Key) = "line-number"
+                             then Trim (Ada.Text_IO.Count'Image (Line), Both)
+                             elsif Map.Simple_Map.Contains (Key)
+                             then Map.Simple_Map.Element (Key)
+                             else Source (Start .. Finish));
             begin
                return Source (Source'First .. Start - 1)
-                 & (if Has_Element (Position)
-                    then Element (Position)
-                    else Source (Start .. Finish))
-                 & Substitute (Source (Finish + 1 .. Source'Last), Map);
+                 & Value
+                 & Substitute (Source (Finish + 1 .. Source'Last), Map, Line);
             end;
          end if;
       end if;

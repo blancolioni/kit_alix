@@ -30,11 +30,6 @@ package Kit.Templates is
       File_Extension   : String)
       return String;
 
-   function Substitute
-     (Source : String;
-      Map    : Substitutions)
-      return String;
-
 private
 
    package Substitution_Maps is
