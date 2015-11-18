@@ -121,6 +121,7 @@ package body Kit.Generate.Templates is
               (Natural'Image (Database.Table_Count), Ada.Strings.Left));
 
          Copy ("Kit_Deferred_Keys");
+         Copy ("Kit_Locking");
          Copy ("Tables");
          Copy ("Tables.Scanner");
          Copy ("Tables.SK_Tables");

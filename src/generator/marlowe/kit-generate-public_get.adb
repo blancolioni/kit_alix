@@ -242,7 +242,7 @@ package body Kit.Generate.Public_Get is
 
       Block.Append
         (New_Assignment_Statement
-           ("Element.M_Index",
+           ("Element.Local.M_Index",
             New_Function_Call_Expression
               (Table.Reference_Type, "Index")));
 
@@ -255,7 +255,7 @@ package body Kit.Generate.Public_Get is
          Block.Append
            (If_Statement
               (Operator
-                   ("/=", Object ("Element.M_Index"),
+                   ("/=", Object ("Element.Local.M_Index"),
                     Object
                       ("Null_" & Table.Ada_Name & "_Reference")),
                Exists_Sequence));
@@ -423,7 +423,7 @@ package body Kit.Generate.Public_Get is
         (If_Statement
            (Object ("Got_Valid_Index"),
             New_Assignment_Statement
-              ("Item.M_Index",
+              ("Item.Local.M_Index",
                New_Function_Call_Expression
                  (Table.Reference_Type,
                   New_Function_Call_Expression
@@ -441,7 +441,7 @@ package body Kit.Generate.Public_Get is
          Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
          Fetch_Found.Append
            ("Item.Link.S_Locked := True");
-         Not_Found.Append ("Item.M_Index := 0");
+         Not_Found.Append ("Item.Local.M_Index := 0");
          Next_Block.Add_Statement
            (If_Statement
               (Object ("Got_Valid_Index"),
@@ -803,7 +803,7 @@ package body Kit.Generate.Public_Get is
 
       Return_Sequence.Append
         (New_Assignment_Statement
-           ("Result.M_Index", Object ("Ref")));
+           ("Result.Local.M_Index", Object ("Ref")));
 
       declare
          Exists_Sequence : Sequence_Of_Statements;
@@ -814,7 +814,7 @@ package body Kit.Generate.Public_Get is
          Return_Sequence.Append
            (If_Statement
               (Operator
-                   ("/=", Object ("Result.M_Index"),
+                   ("/=", Object ("Result.Local.M_Index"),
                     Object
                       ("Null_" & Table.Ada_Name & "_Reference")),
                Exists_Sequence));
@@ -1232,7 +1232,7 @@ package body Kit.Generate.Public_Get is
 
                Return_Sequence.Append
                  (New_Assignment_Statement
-                    (Target => "Result.M_Index",
+                    (Target => "Result.Local.M_Index",
                      Value  =>
                        New_Function_Call_Expression
                          (Table.Reference_Type, "Db_Index")));

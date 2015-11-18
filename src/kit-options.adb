@@ -1,5 +1,14 @@
 package body Kit.Options is
 
+   ---------------------------------
+   -- Generate_Deadlock_Detection --
+   ---------------------------------
+
+   function Generate_Deadlock_Detection return Boolean is
+   begin
+      return True;
+   end Generate_Deadlock_Detection;
+
    --------------------
    -- Generate_Debug --
    --------------------
