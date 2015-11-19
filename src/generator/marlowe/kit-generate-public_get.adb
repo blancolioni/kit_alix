@@ -1007,7 +1007,7 @@ package body Kit.Generate.Public_Get is
                                               else "Start_");
                               Field      : Kit.Schema.Fields.Field_Type'Class
                               renames Key.Field (I);
-                              Field_Type : Kit.Schema.Types.Kit_Type'Class
+                              Field_Type : Kit.Schema.Types.Kit_Type
                               renames Field.Get_Field_Type;
                            begin
                               if I = 1

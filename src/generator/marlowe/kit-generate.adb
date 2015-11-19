@@ -408,13 +408,13 @@ package body Kit.Generate is
 
       pragma Unreferenced (Db);
 
-      procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type'Class);
+      procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type);
 
       -----------------
       -- Create_Type --
       -----------------
 
-      procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type'Class) is
+      procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type) is
       begin
          Top.Append (User_Type.To_Declaration);
       end Create_Type;

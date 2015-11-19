@@ -13,14 +13,14 @@ package body Kit.Schema.Fields is
    -- Create_Field --
    ------------------
 
-   procedure Create_Field (Item       : in out Field_Type;
-                           Name       : in     String;
-                           Field_Type : in     Kit.Schema.Types.Kit_Type'Class)
+   procedure Create_Field
+     (Item       : in out Field_Type;
+      Name       : in     String;
+      Field_Type : in     Kit.Schema.Types.Kit_Type)
    is
    begin
       Item.Create (Name);
-      Item.Field_Type :=
-        new Kit.Schema.Types.Kit_Type'Class'(Field_Type);
+      Item.Field_Type := Field_Type;
       Item.Size := Item.Field_Type.Size;
    end Create_Field;
 
@@ -46,11 +46,12 @@ package body Kit.Schema.Fields is
    -- Get_Field_Type --
    --------------------
 
-   function Get_Field_Type (Item : Field_Type)
-                           return Kit.Schema.Types.Kit_Type'Class
+   function Get_Field_Type
+     (Item : Field_Type)
+      return Kit.Schema.Types.Kit_Type
    is
    begin
-      return Item.Field_Type.all;
+      return Item.Field_Type;
    end Get_Field_Type;
 
    --------------

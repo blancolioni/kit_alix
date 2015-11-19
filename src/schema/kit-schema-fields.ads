@@ -23,10 +23,10 @@ package Kit.Schema.Fields is
    procedure Create_Field
      (Item       : in out Field_Type;
       Name       : in     String;
-      Field_Type : in     Kit.Schema.Types.Kit_Type'Class);
+      Field_Type : in     Kit.Schema.Types.Kit_Type);
 
    function Get_Field_Type (Item : Field_Type)
-                           return Kit.Schema.Types.Kit_Type'Class;
+                           return Kit.Schema.Types.Kit_Type;
 
    function Created (Field : Field_Type) return Boolean;
    --  return True if Field should be part of the Create subprograms
@@ -54,7 +54,7 @@ private
          Writeable      : Boolean := True;
          Display        : Boolean := False;
          Base_Reference : Boolean := False;
-         Field_Type     : access Kit.Schema.Types.Kit_Type'Class;
+         Field_Type     : Kit.Schema.Types.Kit_Type;
       end record;
 
 end Kit.Schema.Fields;

@@ -14,16 +14,25 @@ package body Kit.Schema.Types is
 
    Text_Type_Record_Size : constant := 32;
 
+   Standard_Boolean_Type    : Kit_Type;
+   Standard_Float_Type      : Kit_Type;
+   Standard_Long_Float_Type : Kit_Type;
+   Standard_Integer_Type    : Kit_Type;
+   Standard_Natural_Type    : Kit_Type;
+   Standard_Positive_Type   : Kit_Type;
+   Standard_Rec_Type        : Kit_Type;
+   Standard_Reference_Type  : Kit_Type;
+
    package Type_Maps is
      new Ada.Containers.Indefinite_Hashed_Maps
        (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
-        Element_Type    => Kit_Type'Class,
+        Element_Type    => Kit_Type,
         Hash            => Ada.Strings.Unbounded.Hash,
         Equivalent_Keys => Ada.Strings.Unbounded."=");
 
    Type_Table : Type_Maps.Map;
 
-   type Integer_Type is new Kit_Type with
+   type Integer_Type is new Root_Kit_Type with
       record
          Low, High : Integer;
       end record;
@@ -43,7 +52,7 @@ package body Kit.Schema.Types is
    overriding
    function Haskell_Type_Name (Item : Integer_Type) return String;
 
-   type Float_Type is new Kit_Type with
+   type Float_Type is new Root_Kit_Type with
       record
          Long : Boolean;
       end record;
@@ -69,7 +78,7 @@ package body Kit.Schema.Types is
       Object_Name : String)
       return Aquarius.Drys.Expression'Class;
 
-   type Boolean_Type is new Kit_Type with null record;
+   type Boolean_Type is new Root_Kit_Type with null record;
 
    overriding
    function Return_Subtype (Item : Boolean_Type) return String;
@@ -87,7 +96,7 @@ package body Kit.Schema.Types is
    function Haskell_Type_Name (Item : Boolean_Type) return String;
 
    type Table_Reference_Type_Record is
-     new Kit_Type with null record;
+     new Root_Kit_Type with null record;
 
    overriding
    function Return_Subtype
@@ -142,7 +151,7 @@ package body Kit.Schema.Types is
       Table_Name : String)
       return Boolean;
 
-   type String_Type is new Kit_Type with
+   type String_Type is new Root_Kit_Type with
       record
          Length : Positive;
       end record;
@@ -232,7 +241,7 @@ package body Kit.Schema.Types is
    overriding
    function Haskell_Type_Name (Item : String_Type) return String;
 
-   type Text_Type is new Kit_Type with null record;
+   type Text_Type is new Root_Kit_Type with null record;
 
    overriding function Key_OK (Item : Text_Type) return Boolean
    is (False);
@@ -290,16 +299,16 @@ package body Kit.Schema.Types is
    -- Argument_Subtype --
    ----------------------
 
-   function Argument_Subtype (Item : Kit_Type) return String is
+   function Argument_Subtype (Item : Root_Kit_Type) return String is
    begin
-      return Kit_Type'Class (Item).Return_Subtype;
+      return Root_Kit_Type'Class (Item).Return_Subtype;
    end Argument_Subtype;
 
    -------------------------
    -- Convert_From_String --
    -------------------------
 
-   function Convert_From_String (Item   : Kit_Type;
+   function Convert_From_String (Item   : Root_Kit_Type;
                                  Object_Name : String)
                                  return Aquarius.Drys.Expression'Class
    is
@@ -357,7 +366,7 @@ package body Kit.Schema.Types is
    -- Convert_To_String --
    -----------------------
 
-   function Convert_To_String (Item   : Kit_Type;
+   function Convert_To_String (Item   : Root_Kit_Type;
                                Object_Name : String)
                                return Aquarius.Drys.Expression'Class
    is
@@ -555,7 +564,7 @@ package body Kit.Schema.Types is
       use Aquarius.Drys;
       Result : Aquarius.Drys.Statements.Procedure_Call_Statement'Class :=
                  Aquarius.Drys.Statements.New_Procedure_Call_Statement
-                   ("Kit_Type.Create");
+                   ("Root_Kit_Type.Create");
    begin
       Result.Add_Actual_Argument (Literal (Text_Type_Record_Size));
       Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
@@ -568,6 +577,80 @@ package body Kit.Schema.Types is
 
    procedure Create_Standard_Types is
    begin
+      declare
+         Result : Enumerated.Enumerated_Type;
+      begin
+         Result.Create ("boolean");
+         Root_Kit_Type (Result).User_Defined := False;
+         Result.Add_Literal ("False");
+         Result.Add_Literal ("True");
+         Standard_Boolean_Type := new Enumerated.Enumerated_Type'(Result);
+      end;
+
+      declare
+         Result : Float_Type;
+      begin
+         Result.Create ("float");
+         Result.User_Defined := False;
+         Result.Size := Float'Size / 8;
+         Result.Long := False;
+         Standard_Float_Type :=
+           new Float_Type'(Result);
+      end;
+
+      declare
+         Result : Integer_Type;
+      begin
+         Result.Create ("integer");
+         Result.User_Defined := False;
+         Result.Size := Integer'Size / 8;
+         Result.Low := Integer'First;
+         Result.High := Integer'Last;
+         Standard_Integer_Type := new Integer_Type'(Result);
+      end;
+
+      declare
+         Result : Float_Type;
+      begin
+         Result.Create ("long_float");
+         Result.User_Defined := False;
+         Result.Size := Long_Float'Size / 8;
+         Result.Long := True;
+         Standard_Long_Float_Type :=
+           new Float_Type'(Result);
+      end;
+
+      declare
+         Result : Integer_Type;
+      begin
+         Result.Create ("natural");
+         Result.User_Defined := False;
+         Result.Size := Integer'Size / 8;
+         Result.Low := 0;
+         Result.High := Integer'Last;
+         Standard_Natural_Type := new Integer_Type'(Result);
+      end;
+
+      declare
+         Result : Integer_Type;
+      begin
+         Result.Create ("positive");
+         Result.User_Defined := False;
+         Result.Size := Integer'Size / 8;
+         Result.Low := 1;
+         Result.High := Integer'Last;
+         Standard_Positive_Type := new Integer_Type'(Result);
+      end;
+
+      declare
+         Result : Enumerated.Record_Type_Enumeration;
+      begin
+         Result.Create ("record_type");
+         Result.Add_Literal ("R_None");
+         Root_Kit_Type'Class (Result).User_Defined := False;
+         Standard_Rec_Type := new Enumerated.Record_Type_Enumeration'(Result);
+      end;
+
       New_Type (Standard_Integer);
       New_Type (Standard_Positive);
       New_Type (Standard_Natural);
@@ -576,6 +659,7 @@ package body Kit.Schema.Types is
       New_Type (Standard_Boolean);
       New_Type (Standard_Record_Type);
       New_Type (Standard_Text);
+
    end Create_Standard_Types;
 
    -------------------
@@ -659,12 +743,12 @@ package body Kit.Schema.Types is
    -- First_Value --
    -----------------
 
-   function First_Value (Of_Type : Kit_Type)
+   function First_Value (Of_Type : Root_Kit_Type)
                          return Aquarius.Drys.Expression'Class
    is
    begin
       return Aquarius.Drys.Object
-        (Kit_Type'Class (Of_Type).Ada_Name
+        (Root_Kit_Type'Class (Of_Type).Ada_Name
          & "'First");
    end First_Value;
 
@@ -691,14 +775,14 @@ package body Kit.Schema.Types is
    is
    begin
       return Aquarius.Drys.Object
-        (Kit_Type'Class (Item).Ada_Name & "_Reference'First");
+        (Root_Kit_Type'Class (Item).Ada_Name & "_Reference'First");
    end First_Value;
 
    --------------
    -- Get_Type --
    --------------
 
-   function Get_Type (Name : String) return Kit_Type'Class is
+   function Get_Type (Name : String) return Kit_Type is
    begin
       return Type_Table.Element
         (Ada.Strings.Unbounded.To_Unbounded_String (Name));
@@ -708,7 +792,7 @@ package body Kit.Schema.Types is
    -- Has_Default_Value --
    -----------------------
 
-   function Has_Default_Value (Item : Kit_Type)
+   function Has_Default_Value (Item : Root_Kit_Type)
                                return Boolean
    is
       pragma Unreferenced (Item);
@@ -733,7 +817,7 @@ package body Kit.Schema.Types is
    -- Haskell_Type_Name --
    -----------------------
 
-   function Haskell_Type_Name (Item : Kit_Type) return String is
+   function Haskell_Type_Name (Item : Root_Kit_Type) return String is
    begin
       return Item.Haskell_Name;
    end Haskell_Type_Name;
@@ -790,7 +874,7 @@ package body Kit.Schema.Types is
    ---------------------
 
    function Is_Reference_To
-     (Item       : Kit_Type;
+     (Item       : Root_Kit_Type;
       Table_Name : String)
       return Boolean
    is
@@ -817,7 +901,7 @@ package body Kit.Schema.Types is
    -- Is_String --
    ---------------
 
-   function Is_String (Item : Kit_Type) return Boolean is
+   function Is_String (Item : Root_Kit_Type) return Boolean is
       pragma Unreferenced (Item);
    begin
       return False;
@@ -838,7 +922,7 @@ package body Kit.Schema.Types is
    -- Is_Table_Reference --
    ------------------------
 
-   function Is_Table_Reference (Item : Kit_Type) return Boolean is
+   function Is_Table_Reference (Item : Root_Kit_Type) return Boolean is
       pragma Unreferenced (Item);
    begin
       return False;
@@ -873,7 +957,7 @@ package body Kit.Schema.Types is
    -----------------------
 
    procedure Iterate_All_Types
-     (Process : not null access procedure (User_Type : Kit_Type'Class))
+     (Process : not null access procedure (User_Type : Kit_Type))
    is
       use Type_Maps;
       It : Cursor := Type_Table.First;
@@ -889,7 +973,7 @@ package body Kit.Schema.Types is
    --------------------------------
 
    procedure Iterate_User_Defined_Types
-     (Process : not null access procedure (User_Type : Kit_Type'Class))
+     (Process : not null access procedure (User_Type : Kit_Type))
    is
       use Type_Maps;
       It : Cursor := Type_Table.First;
@@ -906,12 +990,12 @@ package body Kit.Schema.Types is
    -- Last_Value --
    ----------------
 
-   function Last_Value (Of_Type : Kit_Type)
+   function Last_Value (Of_Type : Root_Kit_Type)
                          return Aquarius.Drys.Expression'Class
    is
    begin
       return Aquarius.Drys.Object
-        (Kit_Type'Class (Of_Type).Ada_Name
+        (Root_Kit_Type'Class (Of_Type).Ada_Name
          & "'Last");
    end Last_Value;
 
@@ -938,14 +1022,14 @@ package body Kit.Schema.Types is
    is
    begin
       return Aquarius.Drys.Object
-        (Kit_Type'Class (Item).Ada_Name & "_Reference'Last");
+        (Root_Kit_Type'Class (Item).Ada_Name & "_Reference'Last");
    end Last_Value;
 
    --------------
    -- New_Type --
    --------------
 
-   procedure New_Type (New_Type  : Kit_Type'Class) is
+   procedure New_Type (New_Type  : Kit_Type) is
    begin
       Type_Table.Insert
         (Ada.Strings.Unbounded.To_Unbounded_String (New_Type.Name),
@@ -956,9 +1040,9 @@ package body Kit.Schema.Types is
    -- Record_Subtype --
    --------------------
 
-   function Record_Subtype (Item : Kit_Type) return String is
+   function Record_Subtype (Item : Root_Kit_Type) return String is
    begin
-      return Kit_Type'Class (Item).Return_Subtype;
+      return Root_Kit_Type'Class (Item).Return_Subtype;
    end Record_Subtype;
 
    --------------------
@@ -990,12 +1074,12 @@ package body Kit.Schema.Types is
    -----------------------------
 
    function Reference_Database_Type
-     (Of_Kit_Type : Kit_Type)
+     (Of_Kit_Type : Root_Kit_Type)
       return Aquarius.Drys.Expression'Class
    is
    begin
       return Aquarius.Drys.Object
-        ("Kit_Type.Get_By_Name (""" & Of_Kit_Type.Standard_Name
+        ("Root_Kit_Type.Get_By_Name (""" & Of_Kit_Type.Standard_Name
          & """).Reference");
    end Reference_Database_Type;
 
@@ -1004,7 +1088,7 @@ package body Kit.Schema.Types is
    ---------------------------
 
    function Referenced_Table_Name
-     (Item : Kit_Type'Class)
+     (Item : Root_Kit_Type'Class)
       return String
    is
    begin
@@ -1091,7 +1175,7 @@ package body Kit.Schema.Types is
    ------------------
 
    function Return_Value
-     (Value_Type  : Kit_Type;
+     (Value_Type  : Root_Kit_Type;
       Target_Name : String)
       return Aquarius.Drys.Expression'Class
    is
@@ -1136,7 +1220,7 @@ package body Kit.Schema.Types is
    ---------------
 
    procedure Set_Value
-     (Value_Type  : Kit_Type;
+     (Value_Type  : Root_Kit_Type;
       Target_Name : String;
       Value_Name  : String;
       Sequence    : in out Aquarius.Drys.Statement_Sequencer'Class)
@@ -1197,7 +1281,7 @@ package body Kit.Schema.Types is
    -- Size --
    ----------
 
-   function Size (Item : Kit_Type) return Natural is
+   function Size (Item : Root_Kit_Type) return Natural is
    begin
       return Item.Size;
    end Size;
@@ -1206,107 +1290,70 @@ package body Kit.Schema.Types is
    -- Standard_Boolean --
    ----------------------
 
-   function Standard_Boolean return Kit_Type'Class is
+   function Standard_Boolean return Kit_Type is
    begin
-      return Result : Enumerated.Enumerated_Type do
-         Result.Create ("boolean");
-         Kit_Type (Result).User_Defined := False;
-         Result.Add_Literal ("False");
-         Result.Add_Literal ("True");
-      end return;
+      return Standard_Boolean_Type;
    end Standard_Boolean;
 
    --------------------
    -- Standard_Float --
    --------------------
 
-   function Standard_Float return Kit_Type'Class is
+   function Standard_Float return Kit_Type is
    begin
-      return Result : Float_Type do
-         Result.Create ("float");
-         Result.User_Defined := False;
-         Result.Size := Float'Size / 8;
-         Result.Long := False;
-      end return;
+      return Standard_Float_Type;
    end Standard_Float;
 
    ----------------------
    -- Standard_Integer --
    ----------------------
 
-   function Standard_Integer return Kit_Type'Class is
+   function Standard_Integer return Kit_Type is
    begin
-      return Result : Integer_Type do
-         Result.Create ("integer");
-         Result.User_Defined := False;
-         Result.Size := Integer'Size / 8;
-         Result.Low := Integer'First;
-         Result.High := Integer'Last;
-      end return;
+      return Standard_Integer_Type;
    end Standard_Integer;
 
    -------------------------
    -- Standard_Long_Float --
    -------------------------
 
-   function Standard_Long_Float return Kit_Type'Class is
+   function Standard_Long_Float return Kit_Type is
    begin
-      return Result : Float_Type do
-         Result.Create ("long_float");
-         Result.User_Defined := False;
-         Result.Size := Long_Float'Size / 8;
-         Result.Long := True;
-      end return;
+      return Standard_Long_Float_Type;
    end Standard_Long_Float;
 
    ----------------------
    -- Standard_Natural --
    ----------------------
 
-   function Standard_Natural return Kit_Type'Class is
+   function Standard_Natural return Kit_Type is
    begin
-      return Result : Integer_Type do
-         Result.Create ("natural");
-         Result.User_Defined := False;
-         Result.Size := Integer'Size / 8;
-         Result.Low := 0;
-         Result.High := Integer'Last;
-      end return;
+      return Standard_Natural_Type;
    end Standard_Natural;
 
    -----------------------
    -- Standard_Positive --
    -----------------------
 
-   function Standard_Positive return Kit_Type'Class is
+   function Standard_Positive return Kit_Type is
    begin
-      return Result : Integer_Type do
-         Result.Create ("positive");
-         Result.User_Defined := False;
-         Result.Size := Integer'Size / 8;
-         Result.Low := 1;
-         Result.High := Integer'Last;
-      end return;
+      return Standard_Positive_Type;
    end Standard_Positive;
 
    --------------------------
    -- Standard_Record_Type --
    --------------------------
 
-   function Standard_Record_Type return Kit_Type'Class is
+   function Standard_Record_Type return Kit_Type is
    begin
-      return Result : Kit.Schema.Types.Enumerated.Record_Type_Enumeration do
-         Result.Create ("record_type");
-         Result.Add_Literal ("R_None");
-         Kit_Type (Result).User_Defined := False;
-      end return;
+      return Standard_Rec_Type;
    end Standard_Record_Type;
 
    ---------------------
    -- Standard_String --
    ---------------------
 
-   function Standard_String (Length : Positive) return Kit_Type'Class is
+   function Standard_String (Length : Positive) return Kit_Type is
       use Ada.Strings.Unbounded;
       Name : constant String :=
                Standard_String_Name (Length);
@@ -1315,13 +1362,18 @@ package body Kit.Schema.Types is
       if Type_Table.Contains (U_Name) then
          return Type_Table.Element (U_Name);
       else
-         return Result : String_Type do
-            Result.Create (Name);
-            Result.User_Defined := False;
-            Result.Size := Length;
-            Result.Length := Length;
+         declare
+            String_Record : String_Type;
+            Result : Kit_Type;
+         begin
+            String_Record.Create (Name);
+            String_Record.User_Defined := False;
+            String_Record.Size := Length;
+            String_Record.Length := Length;
+            Result := new String_Type'(String_Record);
             Type_Table.Insert (U_Name, Result);
-         end return;
+            return Result;
+         end;
       end if;
    end Standard_String;
 
@@ -1340,7 +1392,7 @@ package body Kit.Schema.Types is
    -- Standard_Text --
    -------------------
 
-   function Standard_Text return Kit_Type'Class is
+   function Standard_Text return Kit_Type is
       use Ada.Strings.Unbounded;
       Name : constant String := "text";
       U_Name : constant Unbounded_String := To_Unbounded_String (Name);
@@ -1348,11 +1400,16 @@ package body Kit.Schema.Types is
       if Type_Table.Contains (U_Name) then
          return Type_Table.Element (U_Name);
       else
-         return Result : Text_Type do
-            Result.Create (Name);
-            Result.User_Defined := False;
-            Result.Size := Text_Type_Record_Size;
-         end return;
+         declare
+            Text_Record : Text_Type;
+            Result      : Kit_Type;
+         begin
+            Text_Record.Create (Name);
+            Text_Record.User_Defined := False;
+            Text_Record.Size := Text_Type_Record_Size;
+            Result := new Text_Type'(Text_Record);
+            return Result;
+         end;
       end if;
    end Standard_Text;
 
@@ -1361,7 +1418,7 @@ package body Kit.Schema.Types is
    ----------------------------
 
    function Storage_Array_Transfer
-     (Item          : Kit_Type'Class;
+     (Item          : Root_Kit_Type'Class;
       Object_Name   : String;
       Storage_Name  : String;
       Start, Finish : System.Storage_Elements.Storage_Offset;
@@ -1389,7 +1446,7 @@ package body Kit.Schema.Types is
    ----------------------------
 
    function Storage_Array_Transfer
-     (Item          : Kit_Type;
+     (Item          : Root_Kit_Type;
       To_Storage    : Boolean;
       Object_Name   : String;
       Storage_Name  : String;
@@ -1528,13 +1585,20 @@ package body Kit.Schema.Types is
 
    function Table_Reference_Type
      (Table_Name : String)
-      return Kit_Type'Class
+      return Kit_Type
    is
    begin
-      return Result : Table_Reference_Type_Record do
-         Result.Create (Table_Name);
-         Result.Size := 8;
-      end return;
+      if Standard_Reference_Type = null then
+         declare
+            Result : Table_Reference_Type_Record;
+         begin
+            Result.Create (Table_Name);
+            Result.Size := 8;
+            Standard_Reference_Type :=
+              new Table_Reference_Type_Record'(Result);
+         end;
+      end if;
+      return Standard_Reference_Type;
    end Table_Reference_Type;
 
    --------------------
@@ -1542,14 +1606,14 @@ package body Kit.Schema.Types is
    --------------------
 
    function To_Declaration
-     (From_Type : Kit_Type)
+     (From_Type : Root_Kit_Type)
       return Aquarius.Drys.Declaration'Class
    is
    begin
       return Aquarius.Drys.Declarations.New_Full_Type_Declaration
         (From_Type.Ada_Name,
          Aquarius.Drys.New_Derived_Type
-           (Kit_Type'Class (From_Type).Return_Subtype));
+           (Root_Kit_Type'Class (From_Type).Return_Subtype));
    end To_Declaration;
 
    ----------------------
@@ -1557,7 +1621,7 @@ package body Kit.Schema.Types is
    ----------------------
 
    function To_Storage_Array
-     (Item        : Kit_Type;
+     (Item        : Root_Kit_Type;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class
    is
@@ -1631,9 +1695,12 @@ package body Kit.Schema.Types is
    -- Unconstrained_Record_Subtype --
    ----------------------------------
 
-   function Unconstrained_Record_Subtype (Item : Kit_Type) return String is
+   function Unconstrained_Record_Subtype
+     (Item : Root_Kit_Type)
+      return String
+   is
    begin
-      return Kit_Type'Class (Item).Record_Subtype;
+      return Root_Kit_Type'Class (Item).Record_Subtype;
    end Unconstrained_Record_Subtype;
 
    ----------------------------------
@@ -1659,17 +1726,11 @@ package body Kit.Schema.Types is
       Record_Name  : access
         function (Index : Positive) return String)
    is
-      Name    : constant Ada.Strings.Unbounded.Unbounded_String :=
-                  Ada.Strings.Unbounded.To_Unbounded_String
-                    ("record_type");
-      Current : Kit.Schema.Types.Enumerated.Enumerated_Type'Class :=
-                  Kit.Schema.Types.Enumerated.Enumerated_Type'Class
-                    (Type_Table.Element (Name));
    begin
       for I in 1 .. Record_Count loop
-         Current.Add_Literal (Record_Name (I));
+         Enumerated.Enumerated_Type'Class (Standard_Rec_Type.all).Add_Literal
+           (Record_Name (I));
       end loop;
-      Type_Table.Replace (Name, Current);
    end Update_Record_Type;
 
 end Kit.Schema.Types;

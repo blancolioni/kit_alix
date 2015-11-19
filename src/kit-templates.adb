@@ -84,7 +84,9 @@ package body Kit.Templates is
 
       while not End_Of_File (F) loop
          declare
-            Line : constant String := Get_Line (F);
+            Line : constant String :=
+                     Ada.Strings.Fixed.Trim
+                       (Get_Line (F), Ada.Strings.Right);
          begin
             if Begins_Loop (Line) then
                declare

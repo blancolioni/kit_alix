@@ -200,7 +200,7 @@ package body Kit.Schema.Types.Enumerated is
          New_Function_Call_Expression
            (Item.Ada_Name & "'Pos",
             Object_Name),
-         Literal (Size (Kit_Type'Class (Item))));
+         Literal (Size (Root_Kit_Type'Class (Item))));
    end To_Storage_Array;
 
 end Kit.Schema.Types.Enumerated;
