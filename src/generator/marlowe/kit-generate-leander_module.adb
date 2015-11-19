@@ -14,7 +14,7 @@ package body Kit.Generate.Leander_Module is
    pragma Unreferenced (Create_Record_Type);
 
    procedure Create_Table
-     (Table : Kit.Schema.Tables.Table_Type'Class;
+     (Table : Kit.Schema.Tables.Table_Type;
       File  : Ada.Text_IO.File_Type);
 
    ------------------------
@@ -27,13 +27,13 @@ package body Kit.Generate.Leander_Module is
 
       First : Boolean := True;
 
-      procedure Add_Item (Item : Kit.Schema.Tables.Table_Type'Class);
+      procedure Add_Item (Item : Kit.Schema.Tables.Table_Type);
 
       --------------
       -- Add_Item --
       --------------
 
-      procedure Add_Item (Item : Kit.Schema.Tables.Table_Type'Class) is
+      procedure Add_Item (Item : Kit.Schema.Tables.Table_Type) is
       begin
          if First then
             Ada.Text_IO.Put (File, "    ");
@@ -54,35 +54,35 @@ package body Kit.Generate.Leander_Module is
    ------------------
 
    procedure Create_Table
-     (Table : Kit.Schema.Tables.Table_Type'Class;
+     (Table : Kit.Schema.Tables.Table_Type;
       File  : Ada.Text_IO.File_Type)
    is
       use Ada.Text_IO;
 
       Have_Base : Boolean := False;
 
-      procedure Put_Base_Class (Base : Kit.Schema.Tables.Table_Type'Class);
+      procedure Put_Base_Class (Base : Kit.Schema.Tables.Table_Type);
 
       procedure Put_Field (Field : Kit.Schema.Fields.Field_Type);
 
-      procedure Put_Key (Key : Kit.Schema.Keys.Key_Type'Class);
+      procedure Put_Key (Key : Kit.Schema.Keys.Key_Type);
 
       procedure Put_Key_Get
-        (Base : Kit.Schema.Tables.Table_Type'Class;
-         Key  : Kit.Schema.Keys.Key_Type'Class);
+        (Base : Kit.Schema.Tables.Table_Type;
+         Key  : Kit.Schema.Keys.Key_Type);
 
       procedure Put_Key_Select
-        (Base : Kit.Schema.Tables.Table_Type'Class;
-         Key  : Kit.Schema.Keys.Key_Type'Class);
+        (Base : Kit.Schema.Tables.Table_Type;
+         Key  : Kit.Schema.Keys.Key_Type);
 
       procedure Put_Class_Instance
-        (Base : Kit.Schema.Tables.Table_Type'Class);
+        (Base : Kit.Schema.Tables.Table_Type);
 
       --------------------
       -- Put_Base_Class --
       --------------------
 
-      procedure Put_Base_Class (Base : Kit.Schema.Tables.Table_Type'Class) is
+      procedure Put_Base_Class (Base : Kit.Schema.Tables.Table_Type) is
       begin
          if Have_Base then
             Put (File, ", ");
@@ -98,7 +98,7 @@ package body Kit.Generate.Leander_Module is
       ------------------------
 
       procedure Put_Class_Instance
-        (Base : Kit.Schema.Tables.Table_Type'Class)
+        (Base : Kit.Schema.Tables.Table_Type)
       is
 
          procedure Put_Field_Fetch
@@ -164,7 +164,7 @@ package body Kit.Generate.Leander_Module is
       -- Put_Key --
       -------------
 
-      procedure Put_Key (Key : Kit.Schema.Keys.Key_Type'Class) is
+      procedure Put_Key (Key : Kit.Schema.Keys.Key_Type) is
       begin
          if Key.Field_Count = 1 then
             Put_Line
@@ -182,8 +182,8 @@ package body Kit.Generate.Leander_Module is
       -----------------
 
       procedure Put_Key_Get
-        (Base : Kit.Schema.Tables.Table_Type'Class;
-         Key  : Kit.Schema.Keys.Key_Type'Class)
+        (Base : Kit.Schema.Tables.Table_Type;
+         Key  : Kit.Schema.Keys.Key_Type)
       is
          pragma Unreferenced (Base);
          Type_Name    : constant String :=
@@ -228,8 +228,8 @@ package body Kit.Generate.Leander_Module is
       --------------------
 
       procedure Put_Key_Select
-        (Base : Kit.Schema.Tables.Table_Type'Class;
-         Key  : Kit.Schema.Keys.Key_Type'Class)
+        (Base : Kit.Schema.Tables.Table_Type;
+         Key  : Kit.Schema.Keys.Key_Type)
       is
          pragma Unreferenced (Base);
          Type_Name    : constant String :=
@@ -323,14 +323,14 @@ package body Kit.Generate.Leander_Module is
 
       declare
          procedure Call_Create_Table
-           (Table : Kit.Schema.Tables.Table_Type'Class);
+           (Table : Kit.Schema.Tables.Table_Type);
 
          -----------------------
          -- Call_Create_Table --
          -----------------------
 
          procedure Call_Create_Table
-           (Table : Kit.Schema.Tables.Table_Type'Class)
+           (Table : Kit.Schema.Tables.Table_Type)
          is
          begin
             Create_Table (Table, Leander_Module_File);

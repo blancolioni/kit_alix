@@ -6,20 +6,10 @@ package body Kit.Schema.Databases is
 
    procedure Append
      (Db   : in out Database_Type;
-      Item : in     Kit.Schema.Tables.Table_Type'Class)
+      Item : in     Kit.Schema.Tables.Table_Type)
    is
-      New_Item : constant Database_Table :=
-                   new Kit.Schema.Tables.Table_Type'Class'(Item);
    begin
-      if False then
-         for I in 1 .. Db.Tables.Last_Index loop
-            if Item.References_Table (Db.Tables.Element (I).all) then
-               Db.Tables.Insert (I, New_Item);
-               return;
-            end if;
-         end loop;
-      end if;
-      Db.Tables.Append (new Kit.Schema.Tables.Table_Type'Class'(Item));
+      Db.Tables.Append (Item);
    end Append;
 
    --------------
@@ -55,12 +45,12 @@ package body Kit.Schema.Databases is
    -- Element --
    -------------
 
-   function Element
+   overriding function Element
      (Position : Table_Cursor)
-      return Kit.Schema.Tables.Table_Type'Class
+      return Kit.Schema.Tables.Table_Type
    is
    begin
-      return Table_Vectors.Element (Table_Vectors.Cursor (Position)).all;
+      return Table_Vectors.Element (Table_Vectors.Cursor (Position));
    end Element;
 
    -------------
@@ -69,12 +59,12 @@ package body Kit.Schema.Databases is
 
    function Element (Database : Database_Type;
                      Name     : String)
-                     return Kit.Schema.Tables.Table_Type'Class
+                     return Kit.Schema.Tables.Table_Type
    is
    begin
       for T of Database.Tables loop
          if T.Name = Name then
-            return T.all;
+            return T;
          end if;
       end loop;
       raise Constraint_Error with
@@ -87,10 +77,10 @@ package body Kit.Schema.Databases is
 
    function Element (Database : Database_Type;
                      Index    : Positive)
-                     return Kit.Schema.Tables.Table_Type'Class
+                     return Kit.Schema.Tables.Table_Type
    is
    begin
-      return Database.Tables.Element (Index).all;
+      return Database.Tables.Element (Index);
    end Element;
 
    -----------------
@@ -135,7 +125,7 @@ package body Kit.Schema.Databases is
 
    procedure Iterate (Database : Database_Type;
                       Process  : not null access
-                        procedure (Table : Kit.Schema.Tables.Table_Type'Class))
+                        procedure (Table : Kit.Schema.Tables.Table_Type))
    is
       procedure Call_Process (Position : Table_Vectors.Cursor);
 
@@ -145,7 +135,7 @@ package body Kit.Schema.Databases is
 
       procedure Call_Process (Position : Table_Vectors.Cursor) is
       begin
-         Process (Table_Vectors.Element (Position).all);
+         Process (Table_Vectors.Element (Position));
       end Call_Process;
 
    begin
@@ -180,7 +170,7 @@ package body Kit.Schema.Databases is
    is
    begin
       for T of Withed.Tables loop
-         Db.Append (T.all);
+         Db.Append (T);
       end loop;
    end With_Database;
 

@@ -6,47 +6,38 @@ with Kit.Schema.Fields;
 package Kit.Schema.Keys is
 
    type Root_Key_Type is
-     abstract new Kit.Names.Root_Named_Object with private;
+     new Kit.Names.Root_Named_Object with private;
 
-   procedure Create_Key
-     (Item           : in out Root_Key_Type'Class;
-      Name           : in     String;
-      Unique         : in     Boolean;
-      Base_Reference : in Boolean := False);
-
-   function Size (Key : Root_Key_Type) return Natural is abstract;
+   function Size (Key : Root_Key_Type) return Natural;
 
    function Unique (Key : Root_Key_Type) return Boolean;
    function Base_Reference (Key : Root_Key_Type) return Boolean;
 
-   type Key_Type is new Root_Key_Type with private;
-
-   overriding function Size (Key : Key_Type) return Natural;
    procedure Add_Field
-     (Key   : in out Key_Type;
+     (Key   : in out Root_Key_Type'Class;
       Field : Kit.Schema.Fields.Field_Type);
 
-   function Field_Count (Key : Key_Type) return Natural;
-   function Field (Key    : Key_Type;
+   function Field_Count (Key : Root_Key_Type'Class) return Natural;
+   function Field (Key    : Root_Key_Type'Class;
                    Index  : Positive)
                    return Kit.Schema.Fields.Field_Type;
-   function Contains (Key : Key_Type;
+   function Contains (Key : Root_Key_Type'Class;
                       Field_Name : String)
                       return Boolean;
 
-   function Contains (Key : Key_Type;
+   function Contains (Key : Root_Key_Type'Class;
                       Field : Kit.Schema.Fields.Field_Type)
                       return Boolean;
 
-private
+   type Key_Type is access all Root_Key_Type'Class;
 
-   type Root_Key_Type is
-     abstract new Kit.Names.Root_Named_Object
-   with
-      record
-         Unique         : Boolean;
-         Base_Reference : Boolean;
-      end record;
+   function Create_Key
+     (Name           : in     String;
+      Unique         : in     Boolean;
+      Base_Reference : in Boolean := False)
+      return Key_Type;
+
+private
 
    package Key_Field_Vector is
      new Ada.Containers.Vectors
@@ -54,10 +45,12 @@ private
         Element_Type => Kit.Schema.Fields.Field_Type,
         "="          => Kit.Schema.Fields."=");
 
-   type Key_Type is
-     new Root_Key_Type with
+   type Root_Key_Type is
+     new Kit.Names.Root_Named_Object with
       record
-         Fields     : Key_Field_Vector.Vector;
+         Unique         : Boolean;
+         Base_Reference : Boolean;
+         Fields         : Key_Field_Vector.Vector;
       end record;
 
 end Kit.Schema.Keys;

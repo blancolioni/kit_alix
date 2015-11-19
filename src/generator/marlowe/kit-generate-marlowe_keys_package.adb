@@ -16,26 +16,26 @@ package body Kit.Generate.Marlowe_Keys_Package is
                    (Db.Ada_Name & ".Marlowe_Keys");
 
       procedure Generate_Table_Keys
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       -------------------------
       -- Generate_Table_Keys --
       -------------------------
 
       procedure Generate_Table_Keys
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
          procedure Generate_Key
-           (Base : Kit.Schema.Tables.Table_Type'Class;
-            Key  : Kit.Schema.Keys.Key_Type'Class);
+           (Base : Kit.Schema.Tables.Table_Type;
+            Key  : Kit.Schema.Keys.Key_Type);
 
          ------------------
          -- Generate_Key --
          ------------------
 
          procedure Generate_Key
-           (Base : Kit.Schema.Tables.Table_Type'Class;
-            Key  : Kit.Schema.Keys.Key_Type'Class)
+           (Base : Kit.Schema.Tables.Table_Type;
+            Key  : Kit.Schema.Keys.Key_Type)
          is
             pragma Unreferenced (Base);
             use Kit.Schema.Tables;

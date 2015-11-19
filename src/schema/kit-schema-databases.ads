@@ -20,26 +20,26 @@ package Kit.Schema.Databases is
                      return Boolean;
    function Element (Database : Database_Type;
                      Name     : String)
-                     return Kit.Schema.Tables.Table_Type'Class;
+                     return Kit.Schema.Tables.Table_Type;
    function Element (Database : Database_Type;
                      Index    : Positive)
-                     return Kit.Schema.Tables.Table_Type'Class;
+                     return Kit.Schema.Tables.Table_Type;
 
    procedure Next (Position : in out Table_Cursor);
 
    function Element (Position : Table_Cursor)
-                    return Kit.Schema.Tables.Table_Type'Class;
+                    return Kit.Schema.Tables.Table_Type;
    function Has_Element (Position : Table_Cursor)
                         return Boolean;
 
    procedure Iterate (Database : Database_Type;
                       Process  : not null access
                         procedure
-                          (Table : Kit.Schema.Tables.Table_Type'Class));
+                          (Table : Kit.Schema.Tables.Table_Type));
 
    procedure Append
      (Db   : in out Database_Type;
-      Item : in     Kit.Schema.Tables.Table_Type'Class);
+      Item : in     Kit.Schema.Tables.Table_Type);
 
    procedure Create_Database (Db   : in out Database_Type;
                               Name : in     String);
@@ -56,9 +56,11 @@ package Kit.Schema.Databases is
 
 private
 
-   type Database_Table is access all Kit.Schema.Tables.Table_Type'Class;
    package Table_Vectors is
-      new Ada.Containers.Vectors (Positive, Database_Table);
+     new Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Kit.Schema.Tables.Table_Type,
+        "="          => Kit.Schema.Tables."=");
 
    type Database_Type is
      new Kit.Names.Root_Named_Object with

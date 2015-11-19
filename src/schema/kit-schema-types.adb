@@ -21,7 +21,6 @@ package body Kit.Schema.Types is
    Standard_Natural_Type    : Kit_Type;
    Standard_Positive_Type   : Kit_Type;
    Standard_Rec_Type        : Kit_Type;
-   Standard_Reference_Type  : Kit_Type;
 
    package Type_Maps is
      new Ada.Containers.Indefinite_Hashed_Maps
@@ -564,7 +563,7 @@ package body Kit.Schema.Types is
       use Aquarius.Drys;
       Result : Aquarius.Drys.Statements.Procedure_Call_Statement'Class :=
                  Aquarius.Drys.Statements.New_Procedure_Call_Statement
-                   ("Root_Kit_Type.Create");
+                   ("Kit_Type.Create");
    begin
       Result.Add_Actual_Argument (Literal (Text_Type_Record_Size));
       Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
@@ -1079,7 +1078,7 @@ package body Kit.Schema.Types is
    is
    begin
       return Aquarius.Drys.Object
-        ("Root_Kit_Type.Get_By_Name (""" & Of_Kit_Type.Standard_Name
+        ("Kit_Type.Get_By_Name (""" & Of_Kit_Type.Standard_Name
          & """).Reference");
    end Reference_Database_Type;
 
@@ -1587,18 +1586,13 @@ package body Kit.Schema.Types is
      (Table_Name : String)
       return Kit_Type
    is
+      Reference_Record : Table_Reference_Type_Record;
+      Result           : Kit_Type;
    begin
-      if Standard_Reference_Type = null then
-         declare
-            Result : Table_Reference_Type_Record;
-         begin
-            Result.Create (Table_Name);
-            Result.Size := 8;
-            Standard_Reference_Type :=
-              new Table_Reference_Type_Record'(Result);
-         end;
-      end if;
-      return Standard_Reference_Type;
+      Reference_Record.Create (Table_Name);
+      Reference_Record.Size := 8;
+      Result := new Table_Reference_Type_Record'(Reference_Record);
+      return Result;
    end Table_Reference_Type;
 
    --------------------

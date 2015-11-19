@@ -2,7 +2,6 @@ with Ada.Strings.Fixed;
 
 with Aquarius.Drys.Expressions;
 
-with Kit.Schema.Types;
 with Kit.String_Maps;
 
 package body Kit.Schema.Tables is
@@ -22,16 +21,16 @@ package body Kit.Schema.Tables is
    --------------
 
    procedure Add_Base
-     (Table     : in out Table_Type;
-      Item      : in     Table_Type'Class)
+     (Table     : in out Root_Table_Type;
+      Item      : in     Table_Type)
    is
-      procedure Update_Base_Layout (Base : Table_Type'Class);
+      procedure Update_Base_Layout (Base : Table_Type);
 
       ------------------------
       -- Update_Base_Layout --
       ------------------------
 
-      procedure Update_Base_Layout (Base : Table_Type'Class) is
+      procedure Update_Base_Layout (Base : Table_Type) is
          use type Marlowe.Table_Index;
          Base_Field : Kit.Schema.Fields.Field_Type;
       begin
@@ -44,9 +43,7 @@ package body Kit.Schema.Tables is
          Table.Base_Layout.Append (Base.Index);
          Base_Field := Kit.Schema.Fields.Create_Field
            (Name      => Base.Ada_Name,
-            With_Type =>
-              Kit.Schema.Types.Table_Reference_Type
-                (Base.Standard_Name));
+            With_Type => Base.Reference_Type);
 
          Base_Field.Set_Field_Options
            (Created        => False,
@@ -73,7 +70,7 @@ package body Kit.Schema.Tables is
       Item.Iterate (Update_Base_Layout'Access,
                     Inclusive => True);
 
-      Table.Bases.Append (new Table_Type'Class'(Item));
+      Table.Bases.Append (Item);
 
    end Add_Base;
 
@@ -82,12 +79,12 @@ package body Kit.Schema.Tables is
    -------------------
 
    procedure Add_Base_Keys
-     (Table     : in out Table_Type)
+     (Table     : in out Root_Table_Type)
    is
    begin
       for I in 1 .. Table.Bases.Last_Index loop
          declare
-            Base  : constant Table_Access := Table.Bases (I);
+            Base  : constant Table_Type := Table.Bases (I);
             Found : Boolean := False;
          begin
             for J in 1 .. Table.Bases.Last_Index loop
@@ -100,14 +97,14 @@ package body Kit.Schema.Tables is
             end loop;
             if not Found then
                declare
-                  Base_Key : Kit.Schema.Keys.Key_Type;
-               begin
-                  Base_Key.Create_Key (Base.Internal_Table_Name,
-                                       Unique => True,
-                                       Base_Reference => True);
-                  Kit.Schema.Keys.Add_Field
-                    (Base_Key, Table.Base_Field (Base.all));
+                  Base_Key : constant Kit.Schema.Keys.Key_Type :=
 
+                               Kit.Schema.Keys.Create_Key
+                                 (Base.Internal_Table_Name,
+                                  Unique => True,
+                                  Base_Reference => True);
+               begin
+                  Base_Key.Add_Field (Table.Base_Field (Base));
                   Table.Add_Key (Base_Key);
                end;
             end if;
@@ -120,13 +117,11 @@ package body Kit.Schema.Tables is
    -------------
 
    procedure Add_Key
-     (Table     : in out Table_Type;
-      Key       : in     Kit.Schema.Keys.Key_Type'Class)
+     (Table     : in out Root_Table_Type;
+      Key       : in     Kit.Schema.Keys.Key_Type)
    is
-      K : constant Table_Key_Access :=
-            new Kit.Schema.Keys.Key_Type'Class'(Key);
    begin
-      Table.Keys.Append (K);
+      Table.Keys.Append (Key);
       Table.Has_Key_Field := True;
    end Add_Key;
 
@@ -135,22 +130,22 @@ package body Kit.Schema.Tables is
    -------------------
 
    procedure Add_Key_Field
-     (Table      : in out Table_Type'Class;
-      Key        : in out Kit.Schema.Keys.Key_Type'Class;
-      Field_Name : in String)
+     (Table      : in out Root_Table_Type'Class;
+      Key        : Kit.Schema.Keys.Key_Type;
+      Field_Name : String)
    is
       Standard_Field_Name : constant String :=
                               Kit.Names.Standard_Name (Field_Name);
 
       Success             : Boolean := False;
 
-      procedure Add (Current : Table_Type'Class);
+      procedure Add (Current : Root_Table_Type'Class);
 
       ---------
       -- Add --
       ---------
 
-      procedure Add (Current : Table_Type'Class) is
+      procedure Add (Current : Root_Table_Type'Class) is
       begin
          for F of Current.Fields loop
             if F.Field.Standard_Name = Standard_Field_Name then
@@ -181,11 +176,11 @@ package body Kit.Schema.Tables is
    ------------
 
    procedure Append
-     (Table     : in out Table_Type;
+     (Table     : in out Root_Table_Type;
       Item      : in     Kit.Schema.Fields.Field_Type)
    is
       use type System.Storage_Elements.Storage_Offset;
-      Field : constant Table_Field_Access := new Table_Field;
+      Field : Table_Field;
    begin
       Field.Field := Item;
       Field.Start := Table.Fields_Length;
@@ -210,7 +205,7 @@ package body Kit.Schema.Tables is
    -------------------------
 
    function Base_Component_Name
-     (Table : Table_Type'Class)
+     (Table : Root_Table_Type'Class)
       return String
    is
    begin
@@ -222,8 +217,8 @@ package body Kit.Schema.Tables is
    ----------------
 
    function Base_Field
-     (Table : Table_Type'Class;
-      Base  : Table_Type'Class)
+     (Table : Root_Table_Type'Class;
+      Base  : Table_Type)
       return Kit.Schema.Fields.Field_Type
    is
    begin
@@ -240,9 +235,9 @@ package body Kit.Schema.Tables is
    ---------------------
 
    function Base_Field_Name
-     (Table  : Table_Type'Class;
+     (Table  : Root_Table_Type'Class;
       Object_Name : String;
-      Base        : Table_Type'Class;
+      Base        : Table_Type;
       Field       : Kit.Schema.Fields.Field_Type)
       return String
    is
@@ -256,8 +251,8 @@ package body Kit.Schema.Tables is
    -- Base_Index --
    ----------------
 
-   function Base_Index (Table : Table_Type;
-                        Base  : Table_Type'Class)
+   function Base_Index (Table : Root_Table_Type;
+                        Base  : Table_Type)
                         return Positive
    is
       use type Marlowe.Table_Index;
@@ -276,7 +271,7 @@ package body Kit.Schema.Tables is
    ---------------------
 
    function Base_Index_Name
-     (Table : Table_Type'Class)
+     (Table : Root_Table_Type'Class)
       return String
    is
    begin
@@ -288,7 +283,7 @@ package body Kit.Schema.Tables is
    -------------------
 
    function Contains_Base
-     (Table : Table_Type;
+     (Table : Root_Table_Type;
       Name     : String)
       return Boolean
    is
@@ -306,7 +301,7 @@ package body Kit.Schema.Tables is
    --------------------
 
    function Contains_Field
-     (Table : Table_Type;
+     (Table : Root_Table_Type;
       Name     : String)
       return Boolean
    is
@@ -329,16 +324,19 @@ package body Kit.Schema.Tables is
    -- Create --
    ------------
 
-   overriding
-   procedure Create
-     (Item : in out Table_Type;
-      Name : in     String)
+   function Create_Table
+     (Name : in     String)
+      return Table_Type
    is
       use type Marlowe.Table_Index;
+      Item : constant Table_Type := new Root_Table_Type;
    begin
-      Kit.Names.Create (Kit.Names.Root_Named_Object (Item), Name);
+      Kit.Names.Root_Named_Object (Item.all).Create (Name);
       Item.Magic := Get_Magic_Number (Name);
       Item.Index := Current_Table;
+      Item.Table_Reference_Type :=
+        Kit.Schema.Types.Table_Reference_Type
+          (Name);
       Item.Fields_Length := 0;
       Item.Header_Length := 4;
       Item.Bases.Clear;
@@ -349,7 +347,8 @@ package body Kit.Schema.Tables is
       Item.Has_Compound_Key_Field := False;
       Item.Fields.Clear;
       Current_Table := Current_Table + 1;
-   end Create;
+      return Item;
+   end Create_Table;
 
    ------------------------
    -- Create_Visit_Order --
@@ -360,13 +359,13 @@ package body Kit.Schema.Tables is
       Table       : Table_Type)
    is
 
-      procedure Recurse (Base : Table_Access);
+      procedure Recurse (Base : Table_Type);
 
       -------------
       -- Recurse --
       -------------
 
-      procedure Recurse (Base : Table_Access) is
+      procedure Recurse (Base : Table_Type) is
          use type Marlowe.Table_Index;
       begin
          if not Result.Contains (Base) then
@@ -376,8 +375,8 @@ package body Kit.Schema.Tables is
                  > Result.Element (I - 1).Index
                then
                   declare
-                     T1 : constant Table_Access := Result (I);
-                     T2 : constant Table_Access := Result (I - 1);
+                     T1 : constant Table_Type := Result (I);
+                     T2 : constant Table_Type := Result (I - 1);
                   begin
                      Result.Replace_Element (I - 1, T1);
                      Result.Replace_Element (I, T2);
@@ -406,9 +405,9 @@ package body Kit.Schema.Tables is
    ------------------------------
 
    function Database_Index_Component
-     (Table       : Table_Type'Class;
+     (Table       : Root_Table_Type'Class;
       Object_Name : String;
-      Base        : Table_Type'Class)
+      Base        : Table_Type)
       return String
    is
    begin
@@ -426,10 +425,10 @@ package body Kit.Schema.Tables is
    ------------------------------
 
    function Database_Index_Component
-     (Table       : Table_Type'Class;
+     (Table       : Root_Table_Type'Class;
       Object_Name : String;
-      Base_1      : Table_Type'Class;
-      Base_2      : Table_Type'Class)
+      Base_1      : Table_Type;
+      Base_2      : Table_Type)
       return String
    is
       pragma Unreferenced (Table);
@@ -444,7 +443,7 @@ package body Kit.Schema.Tables is
    ------------------------
 
    procedure Enable_Map_Package
-     (Item : in out Table_Type)
+     (Item : in out Root_Table_Type)
    is
    begin
       Item.With_Map_Package := True;
@@ -455,7 +454,7 @@ package body Kit.Schema.Tables is
    ---------------------------
 
    procedure Enable_Vector_Package
-     (Item : in out Table_Type)
+     (Item : in out Root_Table_Type)
    is
    begin
       Item.With_Vector_Package := True;
@@ -465,7 +464,7 @@ package body Kit.Schema.Tables is
    -- Field_Start --
    -----------------
 
-   function Field_Start (Table : Table_Type;
+   function Field_Start (Table : Root_Table_Type;
                          Field : Kit.Schema.Fields.Field_Type)
                          return System.Storage_Elements.Storage_Offset
    is
@@ -473,7 +472,7 @@ package body Kit.Schema.Tables is
       for I in 1 .. Table.Fields.Last_Index loop
          declare
             use type System.Storage_Elements.Storage_Offset;
-            F : constant Table_Field_Access := Table.Fields.Element (I);
+            F : Table_Field renames Table.Fields.Element (I);
          begin
             if F.Field.Name = Field.Name then
                return Table.Header_Length + F.Start;
@@ -489,29 +488,35 @@ package body Kit.Schema.Tables is
    --------------
 
    function Find_Key
-     (Table    : Table_Type'Class;
+     (Table    : not null access constant Root_Table_Type'Class;
       Property : not null access
-        function (K : Kit.Schema.Keys.Key_Type'Class)
+        function (K : Kit.Schema.Keys.Key_Type)
       return Boolean)
-      return Kit.Schema.Keys.Key_Type'Class
+      return Kit.Schema.Keys.Key_Type
    is
 
+      use type Kit.Schema.Keys.Key_Type;
+
       Visited : Table_Vectors.Vector;
-      Result  : Table_Key_Access := null;
+      Result  : Kit.Schema.Keys.Key_Type := null;
 
-      procedure Process (Base : Table_Type'Class);
+      procedure Process
+        (Base : not null access constant Root_Table_Type'Class);
 
-      procedure Recurse (Base : Table_Access);
+      procedure Recurse
+        (Base : not null access constant Root_Table_Type'Class);
 
       -------------
       -- Process --
       -------------
 
-      procedure Process (Base : Table_Type'Class) is
+      procedure Process
+        (Base : not null access constant Root_Table_Type'Class)
+      is
       begin
          Result := null;
          for K of Base.Keys loop
-            if Property (K.all) then
+            if Property (K) then
                Result := K;
                exit;
             end if;
@@ -522,7 +527,9 @@ package body Kit.Schema.Tables is
       -- Recurse --
       -------------
 
-      procedure Recurse (Base : Table_Access) is
+      procedure Recurse
+        (Base : not null access constant Root_Table_Type'Class)
+      is
       begin
          if not Visited.Contains (Base) then
             Visited.Append (Base);
@@ -531,7 +538,7 @@ package body Kit.Schema.Tables is
                exit when Result /= null;
             end loop;
             if Result = null then
-               Process (Base.all);
+               Process (Base);
             end if;
          end if;
       end Recurse;
@@ -546,7 +553,7 @@ package body Kit.Schema.Tables is
          end loop;
       end if;
 
-      return Result.all;
+      return Result;
 
    end Find_Key;
 
@@ -572,7 +579,7 @@ package body Kit.Schema.Tables is
    -- Has_Compound_Key_Field --
    ----------------------------
 
-   function Has_Compound_Key_Field (Item : Table_Type) return Boolean is
+   function Has_Compound_Key_Field (Item : Root_Table_Type) return Boolean is
    begin
       return Item.Has_Compound_Key_Field;
    end Has_Compound_Key_Field;
@@ -581,7 +588,7 @@ package body Kit.Schema.Tables is
    -- Has_Display_Field --
    -----------------------
 
-   function Has_Display_Field (Item : Table_Type) return Boolean is
+   function Has_Display_Field (Item : Root_Table_Type) return Boolean is
    begin
       return Item.Has_Display_Field;
    end Has_Display_Field;
@@ -590,7 +597,7 @@ package body Kit.Schema.Tables is
    -- Has_Key_Field --
    -------------------
 
-   function Has_Key_Field (Item : Table_Type) return Boolean is
+   function Has_Key_Field (Item : Root_Table_Type) return Boolean is
    begin
       return Item.Has_Key_Field;
    end Has_Key_Field;
@@ -599,7 +606,7 @@ package body Kit.Schema.Tables is
    -- Has_String_Type --
    ---------------------
 
-   function Has_String_Type (Item : Table_Type) return Boolean is
+   function Has_String_Type (Item : Root_Table_Type) return Boolean is
    begin
       return Item.Has_String_Type;
    end Has_String_Type;
@@ -608,7 +615,7 @@ package body Kit.Schema.Tables is
    -- Has_Text_Type --
    -------------------
 
-   function Has_Text_Type (Item : Table_Type) return Boolean is
+   function Has_Text_Type (Item : Root_Table_Type) return Boolean is
    begin
       return Item.Has_Text_Type;
    end Has_Text_Type;
@@ -618,7 +625,7 @@ package body Kit.Schema.Tables is
    -------------------------
 
    function Implementation_Name
-     (Item : Table_Type)
+     (Item : Root_Table_Type)
       return String
    is
    begin
@@ -629,7 +636,10 @@ package body Kit.Schema.Tables is
    -- Implementation_Record_Type --
    --------------------------------
 
-   function Implementation_Record_Type (Item : Table_Type) return String is
+   function Implementation_Record_Type
+     (Item : Root_Table_Type)
+      return String
+   is
    begin
       return Item.Ada_Name & "_Database_Record";
    end Implementation_Record_Type;
@@ -639,7 +649,7 @@ package body Kit.Schema.Tables is
    -----------------
 
    function Index_Image
-     (Table : Table_Type'Class)
+     (Table : Root_Table_Type'Class)
       return String
    is
    begin
@@ -652,7 +662,7 @@ package body Kit.Schema.Tables is
    -- Inherited_Field --
    ---------------------
 
-   function Inherited_Field (Table : Table_Type;
+   function Inherited_Field (Table : Root_Table_Type;
                              Field : Kit.Schema.Fields.Field_Type)
                              return Boolean
    is
@@ -670,7 +680,7 @@ package body Kit.Schema.Tables is
    --------------------
 
    function Interface_Name
-     (Item : Table_Type)
+     (Item : Root_Table_Type)
       return String
    is
    begin
@@ -682,7 +692,7 @@ package body Kit.Schema.Tables is
    -------------------------
 
    function Internal_Table_Name
-     (Table : Table_Type'Class)
+     (Table : Root_Table_Type'Class)
       return String
    is
    begin
@@ -693,9 +703,9 @@ package body Kit.Schema.Tables is
    -- Iterate --
    -------------
 
-   procedure Iterate (Table     : Table_Type;
+   procedure Iterate (Table     : not null access Root_Table_Type'Class;
                       Process   : not null access
-                        procedure (Item : Table_Type'Class);
+                        procedure (Item : Table_Type);
                       Inclusive : Boolean;
                       Table_First : Boolean := False)
    is
@@ -704,23 +714,23 @@ package body Kit.Schema.Tables is
 
    begin
       if Inclusive and Table_First then
-         Process (Table);
+         Process (Table_Type (Table));
       end if;
 
-      Create_Visit_Order (Visit, Table);
+      Create_Visit_Order (Visit, Table_Type (Table));
 
       if Table_First then
          for T of Visit loop
-            Process (T.all);
+            Process (T);
          end loop;
       else
          for T of reverse Visit loop
-            Process (T.all);
+            Process (T);
          end loop;
       end if;
 
       if Inclusive and not Table_First then
-         Process (Table);
+         Process (Table_Type (Table));
       end if;
 
    end Iterate;
@@ -730,7 +740,7 @@ package body Kit.Schema.Tables is
    -------------
 
    procedure Iterate
-     (Table : Table_Type;
+     (Table : Root_Table_Type;
       Process  : not null access
                         procedure (Item : Kit.Schema.Fields.Field_Type))
    is
@@ -754,9 +764,9 @@ package body Kit.Schema.Tables is
    -----------------
 
    procedure Iterate_All
-     (Table : Table_Type'Class;
+     (Table : not null access Root_Table_Type'Class;
       Process  : not null access
-        procedure (Table : Table_Type'Class;
+        procedure (Table : Table_Type;
                    Field : Kit.Schema.Fields.Field_Type);
       Table_First : Boolean := False)
    is
@@ -764,13 +774,13 @@ package body Kit.Schema.Tables is
       Visited_Fields : Field_Vectors.Vector;
       Queue          : Table_Vectors.Vector;
 
-      procedure Iterate_Fields (T : Table_Type'Class);
+      procedure Iterate_Fields (T : Table_Type);
 
       --------------------
       -- Iterate_Fields --
       --------------------
 
-      procedure Iterate_Fields (T : Table_Type'Class) is
+      procedure Iterate_Fields (T : Table_Type) is
       begin
          for F of T.Fields loop
             if not Visited_Fields.Contains (F) then
@@ -783,7 +793,7 @@ package body Kit.Schema.Tables is
    begin
 
       if Table_First then
-         Iterate_Fields (Table);
+         Iterate_Fields (Table_Type (Table));
       end if;
 
       for B of Table.Bases loop
@@ -792,7 +802,7 @@ package body Kit.Schema.Tables is
 
       while not Queue.Is_Empty loop
          declare
-            Item : constant Table_Access := Queue.First_Element;
+            Item : constant Table_Type := Queue.First_Element;
          begin
             Queue.Delete_First;
             Visited.Append (Item);
@@ -801,12 +811,12 @@ package body Kit.Schema.Tables is
                   Queue.Append (B);
                end if;
             end loop;
-            Iterate_Fields (Item.all);
+            Iterate_Fields (Item);
          end;
       end loop;
 
       if not Table_First then
-         Iterate_Fields (Table);
+         Iterate_Fields (Table_Type (Table));
       end if;
 
    end Iterate_All;
@@ -816,12 +826,12 @@ package body Kit.Schema.Tables is
    ---------
 
    function Key
-     (Table : Table_Type;
+     (Table : Root_Table_Type;
       Name  : String)
-      return Kit.Schema.Keys.Key_Type'Class
+      return Kit.Schema.Keys.Key_Type
    is
 
-      function Same_Name (K : Kit.Schema.Keys.Key_Type'Class)
+      function Same_Name (K : Kit.Schema.Keys.Key_Type)
                           return Boolean
       is (K.Standard_Name = Name);
 
@@ -852,8 +862,8 @@ package body Kit.Schema.Tables is
    ------------------------
 
    function Key_Reference_Name
-     (Table : Table_Type'Class;
-      Key   : Kit.Schema.Keys.Key_Type'Class)
+     (Table : Root_Table_Type'Class;
+      Key   : Kit.Schema.Keys.Key_Type)
       return String
    is
    begin
@@ -865,7 +875,7 @@ package body Kit.Schema.Tables is
    ------------------------
 
    function Key_Reference_Name
-     (Table    : Table_Type'Class;
+     (Table    : Root_Table_Type'Class;
       Key_Name : String)
       return String
    is
@@ -880,8 +890,8 @@ package body Kit.Schema.Tables is
    --------------------
 
    function Key_To_Storage
-     (Table       : Table_Type'Class;
-      Key         : Kit.Schema.Keys.Key_Type'Class;
+     (Table       : Root_Table_Type'Class;
+      Key         : Kit.Schema.Keys.Key_Type;
       Object_Name : String)
       return Aquarius.Drys.Expression'Class
    is
@@ -915,7 +925,7 @@ package body Kit.Schema.Tables is
    ------------
 
    function Length
-     (Item : Table_Type)
+     (Item : Root_Table_Type)
       return System.Storage_Elements.Storage_Count
    is
       use type System.Storage_Elements.Storage_Offset;
@@ -929,7 +939,7 @@ package body Kit.Schema.Tables is
    ------------------
 
    function Magic_Number
-     (Item : Table_Type)
+     (Item : Root_Table_Type)
       return Natural
    is
    begin
@@ -941,7 +951,7 @@ package body Kit.Schema.Tables is
    ------------------
 
    function Package_Name
-     (Item : Table_Type)
+     (Item : Root_Table_Type)
       return String
    is
    begin
@@ -953,7 +963,7 @@ package body Kit.Schema.Tables is
    ---------------------
 
    function Reference_Index
-     (Item : Table_Type)
+     (Item : Root_Table_Type)
       return Marlowe.Table_Index
    is
    begin
@@ -964,24 +974,36 @@ package body Kit.Schema.Tables is
    -- Reference_Type --
    --------------------
 
-   function Reference_Type (Item : Table_Type) return String is
+   function Reference_Type
+     (Item : Root_Table_Type)
+      return Kit.Schema.Types.Kit_Type
+   is
+   begin
+      return Item.Table_Reference_Type;
+   end Reference_Type;
+
+   -------------------------
+   -- Reference_Type_Name --
+   -------------------------
+
+   function Reference_Type_Name (Item : Root_Table_Type) return String is
    begin
       return Item.Ada_Name & "_Reference";
-   end Reference_Type;
+   end Reference_Type_Name;
 
    ----------------------
    -- References_Table --
    ----------------------
 
-   function References_Table (Item    : Table_Type;
-                              Other   : Table_Type'Class)
-                              return Boolean
+   function References_Table
+     (Item    : Root_Table_Type;
+      Other   : Table_Type)
+      return Boolean
    is
    begin
       for I in 1 .. Item.Fields.Last_Index loop
          declare
-            F : constant Table_Field_Access :=
-                  Item.Fields.Element (I);
+            F : Table_Field renames Item.Fields.Element (I);
          begin
             if F.Field.Get_Field_Type.Is_Reference_To (Other.Name) then
                return True;
@@ -1000,35 +1022,20 @@ package body Kit.Schema.Tables is
    -- Same_Field --
    ----------------
 
-   function Same_Field (Left, Right : Table_Field_Access) return Boolean is
+   function Same_Field
+     (Left, Right : Table_Field)
+      return Boolean
+   is
    begin
       return Left.Field.Ada_Name = Right.Field.Ada_Name;
    end Same_Field;
-
-   --------------
-   -- Same_Key --
-   --------------
-
-   function Same_Key (Left, Right : Table_Key_Access) return Boolean is
-   begin
-      return Left.Standard_Name = Right.Standard_Name;
-   end Same_Key;
-
-   ----------------
-   -- Same_Table --
-   ----------------
-
-   function Same_Table (Left, Right : Table_Access) return Boolean is
-   begin
-      return Left.Ada_Name = Right.Ada_Name;
-   end Same_Table;
 
    -----------------
    -- Scan_Fields --
    -----------------
 
    procedure Scan_Fields
-     (Table : Table_Type;
+     (Table : Root_Table_Type;
       Process  : not null access
         procedure (Field : Kit.Schema.Fields.Field_Type))
    is
@@ -1052,13 +1059,13 @@ package body Kit.Schema.Tables is
    ---------------
 
    procedure Scan_Keys
-     (Table : Table_Type;
+     (Table : Root_Table_Type;
       Process  : not null access
-        procedure (Item : Kit.Schema.Keys.Key_Type'Class))
+        procedure (Item : Kit.Schema.Keys.Key_Type))
    is
    begin
       for K of Table.Keys loop
-         Process (K.all);
+         Process (K);
       end loop;
    end Scan_Keys;
 
@@ -1067,22 +1074,22 @@ package body Kit.Schema.Tables is
    ---------------
 
    procedure Scan_Keys
-     (Table : Table_Type;
+     (Table : not null access Root_Table_Type'Class;
       Process          : not null access procedure
-        (Base   : Table_Type'Class;
-         Key    : Kit.Schema.Keys.Key_Type'Class);
+        (Base   : Table_Type;
+         Key    : Kit.Schema.Keys.Key_Type);
       Include_Base_Keys : Boolean := True)
    is
 
       Processed_Keys : Kit.String_Maps.String_Map;
 
-      procedure Scan_Base (Base : Table_Type'Class);
+      procedure Scan_Base (Base : Table_Type);
 
       ---------------
       -- Scan_Base --
       ---------------
 
-      procedure Scan_Base (Base : Table_Type'Class) is
+      procedure Scan_Base (Base : Table_Type) is
       begin
          for K of Base.Keys loop
             if not Include_Base_Keys
@@ -1091,7 +1098,7 @@ package body Kit.Schema.Tables is
             then
                null;
             elsif not Processed_Keys.Contains (K.Ada_Name) then
-               Process (Base, K.all);
+               Process (Base, K);
                Processed_Keys.Insert (K.Ada_Name);
             end if;
          end loop;
@@ -1106,27 +1113,27 @@ package body Kit.Schema.Tables is
    ---------------
 
    procedure Scan_Keys
-     (Table    : Table_Type;
+     (Table : not null access Root_Table_Type'Class;
       Containing_Field : Kit.Schema.Fields.Field_Type;
       Process          : not null access procedure
-        (Table  : Table_Type'Class;
-         Base   : Table_Type'Class;
-         Key    : Kit.Schema.Keys.Key_Type'Class))
+        (Table  : Table_Type;
+         Base   : Table_Type;
+         Key    : Kit.Schema.Keys.Key_Type))
    is
 
-      procedure Call_Process (Base : Table_Type'Class;
-                              Key  : Kit.Schema.Keys.Key_Type'Class);
+      procedure Call_Process (Base : Table_Type;
+                              Key  : Kit.Schema.Keys.Key_Type);
 
       ------------------
       -- Call_Process --
       ------------------
 
-      procedure Call_Process (Base : Table_Type'Class;
-                              Key  : Kit.Schema.Keys.Key_Type'Class)
+      procedure Call_Process (Base : Table_Type;
+                              Key  : Kit.Schema.Keys.Key_Type)
       is
       begin
          if Key.Contains (Containing_Field) then
-            Process (Table, Base, Key);
+            Process (Table_Type (Table), Base, Key);
          end if;
       end Call_Process;
 
@@ -1138,11 +1145,11 @@ package body Kit.Schema.Tables is
    -- To_Storage --
    ----------------
 
-   function To_Storage (Table       : Table_Type'Class;
-                        Base_Table  : Table_Type'Class;
-                        Key_Table   : Table_Type'Class;
+   function To_Storage (Table       : Root_Table_Type;
+                        Base_Table  : Table_Type;
+                        Key_Table   : Table_Type;
                         Object_Name : String;
-                        Key         : Kit.Schema.Keys.Key_Type'Class;
+                        Key         : Kit.Schema.Keys.Key_Type;
                         New_Field   : Kit.Schema.Fields.Field_Type;
                         Field_Value : String;
                         With_Index  : Boolean)
@@ -1170,7 +1177,7 @@ package body Kit.Schema.Tables is
          declare
             Result : Function_Call_Expression :=
                        New_Function_Call_Expression
-                         (Ada_Name (Key_Table)
+                         (Key_Table.Ada_Name
                           & "_Impl."
                           & Key.Ada_Name & "_To_Storage");
          begin
@@ -1210,11 +1217,11 @@ package body Kit.Schema.Tables is
    -- To_Storage --
    ----------------
 
-   function To_Storage (Table       : Table_Type'Class;
-                        Base_Table  : Table_Type'Class;
-                        Key_Table   : Table_Type'Class;
+   function To_Storage (Table       : Root_Table_Type;
+                        Base_Table  : Table_Type;
+                        Key_Table   : Table_Type;
                         Object_Name : String;
-                        Key         : Kit.Schema.Keys.Key_Type'Class;
+                        Key         : Kit.Schema.Keys.Key_Type;
                         With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class
    is
@@ -1240,7 +1247,7 @@ package body Kit.Schema.Tables is
          declare
             Result : Function_Call_Expression :=
                        New_Function_Call_Expression
-                         (Ada_Name (Key_Table)
+                         (Key_Table.Ada_Name
                           & "_Impl."
                           & Key.Ada_Name & "_To_Storage");
          begin
@@ -1286,7 +1293,7 @@ package body Kit.Schema.Tables is
 
    function To_Storage (Key_Value_Name   : String;
                         Index_Value_Name : String;
-                        Key              : Kit.Schema.Keys.Key_Type'Class)
+                        Key              : Kit.Schema.Keys.Key_Type)
                         return Aquarius.Drys.Expression'Class
    is
       use Aquarius.Drys;
@@ -1322,7 +1329,7 @@ package body Kit.Schema.Tables is
    ---------------
 
    function Type_Name
-     (Item : Table_Type)
+     (Item : Root_Table_Type)
       return String
    is
    begin
@@ -1333,7 +1340,7 @@ package body Kit.Schema.Tables is
    -- With_Map_Package --
    ----------------------
 
-   function With_Map_Package (Item : Table_Type) return Boolean is
+   function With_Map_Package (Item : Root_Table_Type) return Boolean is
    begin
       return Item.With_Map_Package;
    end With_Map_Package;
@@ -1342,7 +1349,7 @@ package body Kit.Schema.Tables is
    -- With_Vector_Package --
    -------------------------
 
-   function With_Vector_Package (Item : Table_Type) return Boolean is
+   function With_Vector_Package (Item : Root_Table_Type) return Boolean is
    begin
       return Item.With_Vector_Package;
    end With_Vector_Package;

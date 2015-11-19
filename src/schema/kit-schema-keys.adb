@@ -5,7 +5,7 @@ package body Kit.Schema.Keys is
    ---------------
 
    procedure Add_Field
-     (Key   : in out Key_Type;
+     (Key   : in out Root_Key_Type'Class;
       Field : Kit.Schema.Fields.Field_Type)
    is
    begin
@@ -26,7 +26,7 @@ package body Kit.Schema.Keys is
    --------------
 
    function Contains
-     (Key : Key_Type;
+     (Key : Root_Key_Type'Class;
       Field_Name : String)
       return Boolean
    is
@@ -44,7 +44,7 @@ package body Kit.Schema.Keys is
    --------------
 
    function Contains
-     (Key : Key_Type;
+     (Key : Root_Key_Type'Class;
       Field : Kit.Schema.Fields.Field_Type)
       return Boolean
    is
@@ -56,16 +56,18 @@ package body Kit.Schema.Keys is
    -- Create_Key --
    ----------------
 
-   procedure Create_Key
-     (Item           : in out Root_Key_Type'Class;
-      Name           : in     String;
+   function Create_Key
+     (Name           : in     String;
       Unique         : in     Boolean;
       Base_Reference : in Boolean := False)
+      return Key_Type
    is
+      Item           : Root_Key_Type;
    begin
       Kit.Names.Root_Named_Object (Item).Create (Name);
       Item.Unique := Unique;
       Item.Base_Reference := Base_Reference;
+      return new Root_Key_Type'(Item);
    end Create_Key;
 
    -----------
@@ -73,7 +75,7 @@ package body Kit.Schema.Keys is
    -----------
 
    function Field
-     (Key    : Key_Type;
+     (Key    : Root_Key_Type'Class;
       Index  : Positive)
       return Kit.Schema.Fields.Field_Type
    is
@@ -85,7 +87,7 @@ package body Kit.Schema.Keys is
    -- Field_Count --
    -----------------
 
-   function Field_Count (Key : Key_Type) return Natural is
+   function Field_Count (Key : Root_Key_Type'Class) return Natural is
    begin
       return Key.Fields.Last_Index;
    end Field_Count;
@@ -94,8 +96,9 @@ package body Kit.Schema.Keys is
    -- Size --
    ----------
 
-   overriding function Size
-     (Key : Key_Type) return Natural
+   function Size
+     (Key : Root_Key_Type)
+      return Natural
    is
       Result : Natural := 0;
    begin

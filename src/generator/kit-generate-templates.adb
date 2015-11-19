@@ -21,14 +21,14 @@ package body Kit.Generate.Templates is
       procedure General_Packages;
 
       procedure Extra_Packages
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       --------------------
       -- Extra_Packages --
       --------------------
 
       procedure Extra_Packages
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
          use Kit.Templates;
 

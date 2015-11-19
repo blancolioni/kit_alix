@@ -41,16 +41,15 @@ package body Kit.Parser is
      with Pre => Tok = Tok_Type;
 
    procedure Parse_Bases (Db    : Kit.Schema.Databases.Database_Type;
-                          Table : in out Kit.Schema.Tables.Table_Type);
+                          Table : Kit.Schema.Tables.Table_Type);
 
    function At_Field return Boolean;
    procedure Parse_Field (Db    : Kit.Schema.Databases.Database_Type;
-                          Table : in out Kit.Schema.Tables.Table_Type);
+                          Table : Kit.Schema.Tables.Table_Type);
 
    function At_Type return Boolean;
    function Parse_Type
      (Db           : Kit.Schema.Databases.Database_Type;
-      Table_Name   : String;
       Context_Name : String)
       return Kit.Schema.Types.Kit_Type;
 
@@ -93,7 +92,7 @@ package body Kit.Parser is
    -----------------
 
    procedure Parse_Bases (Db    : Kit.Schema.Databases.Database_Type;
-                          Table : in out Kit.Schema.Tables.Table_Type)
+                          Table : Kit.Schema.Tables.Table_Type)
    is
    begin
       while Tok = Tok_Identifier loop
@@ -117,7 +116,7 @@ package body Kit.Parser is
    -----------------
 
    procedure Parse_Field (Db    : Kit.Schema.Databases.Database_Type;
-                          Table : in out Kit.Schema.Tables.Table_Type)
+                          Table : Kit.Schema.Tables.Table_Type)
    is
       Is_Key    : Boolean := False;
       Is_Unique : Boolean := False;
@@ -154,9 +153,10 @@ package body Kit.Parser is
             Scan;
 
             declare
-               Key : Kit.Schema.Keys.Key_Type;
+               Key : constant Kit.Schema.Keys.Key_Type :=
+                       Kit.Schema.Keys.Create_Key
+                         (Field_Name, Is_Unique);
             begin
-               Key.Create_Key (Field_Name, Is_Unique);
 
                loop
                   if Table.Contains_Field (Tok_Text) then
@@ -182,14 +182,11 @@ package body Kit.Parser is
 
          elsif Tok /= Tok_Colon then
 
-            if Field_Name = Table.Name
-              or else Db.Contains (Field_Name)
-            then
+            if Db.Contains (Field_Name) then
 
                declare
                   Field_Type : constant Kit.Schema.Types.Kit_Type :=
-                                 Kit.Schema.Types.Table_Reference_Type
-                                   (Field_Name);
+                                 Db.Element (Field_Name).Reference_Type;
                   Field      : constant Kit.Schema.Fields.Field_Type :=
                                  Kit.Schema.Fields.Create_Field
                                    (Field_Name, Field_Type);
@@ -209,9 +206,10 @@ package body Kit.Parser is
                      end if;
 
                      declare
-                        Key : Kit.Schema.Keys.Key_Type;
+                        Key : constant Kit.Schema.Keys.Key_Type :=
+                                Kit.Schema.Keys.Create_Key
+                                  (Field_Name, Unique => Is_Unique);
                      begin
-                        Key.Create_Key (Field_Name, Unique => Is_Unique);
                         Table.Add_Key_Field (Key, Field_Name);
                         Table.Add_Key (Key);
                      end;
@@ -236,7 +234,7 @@ package body Kit.Parser is
 
             declare
                Field_Type : constant Kit.Schema.Types.Kit_Type :=
-                              Parse_Type (Db, Table.Name, Field_Name);
+                              Parse_Type (Db, Field_Name);
                Field      : constant Kit.Schema.Fields.Field_Type :=
                               Kit.Schema.Fields.Create_Field
                                 (Field_Name, Field_Type);
@@ -252,9 +250,10 @@ package body Kit.Parser is
 
             if Is_Key then
                declare
-                  Key : Kit.Schema.Keys.Key_Type;
+                  Key : constant Kit.Schema.Keys.Key_Type :=
+                          Kit.Schema.Keys.Create_Key
+                            (Field_Name, Unique => Is_Unique);
                begin
-                  Key.Create_Key (Field_Name, Unique => Is_Unique);
                   Table.Add_Key_Field (Key, Field_Name);
                   Table.Add_Key (Key);
                end;
@@ -344,13 +343,16 @@ package body Kit.Parser is
       else
          declare
             Record_Name : constant String := Tok_Text;
-            Table       : Kit.Schema.Tables.Table_Type;
+            Table       : constant Kit.Schema.Tables.Table_Type :=
+                            Kit.Schema.Tables.Create_Table
+                              (Record_Name);
          begin
             if Db.Contains (Record_Name) then
                Error (Record_Name & ": already defined");
             else
-               Table.Create (Record_Name);
+               Db.Append (Table);
             end if;
+
             Scan;
 
             if Record_Name /= "kit_root_record" then
@@ -427,8 +429,6 @@ package body Kit.Parser is
                end if;
             end if;
 
-            Db.Append (Table);
-
          end;
       end if;
 
@@ -440,7 +440,6 @@ package body Kit.Parser is
 
    function Parse_Type
      (Db           : Kit.Schema.Databases.Database_Type;
-      Table_Name   : String;
       Context_Name : String)
       return Kit.Schema.Types.Kit_Type
    is
@@ -475,8 +474,8 @@ package body Kit.Parser is
                   Scan;
                   return Kit.Schema.Types.Standard_String (Length);
                end;
-            elsif Name = Table_Name or else Db.Contains (Name) then
-               return Kit.Schema.Types.Table_Reference_Type (Name);
+            elsif Db.Contains (Name) then
+               return Db.Element (Name).Reference_Type;
             else
                Error (Location, Raw_Name & ": no such type or record name");
                return Kit.Schema.Types.Standard_Integer;
@@ -547,7 +546,7 @@ package body Kit.Parser is
 
          declare
             New_Type : constant Kit.Schema.Types.Kit_Type :=
-                         Parse_Type (Db, "", Name);
+                         Parse_Type (Db, Name);
          begin
             Kit.Schema.Types.New_Type (New_Type);
          end;

@@ -18,7 +18,7 @@ package body Kit.Generate.Table_Name_Map is
                    (Db.Ada_Name & ".Table_Names");
 
       procedure Generate_Table_Name
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       type Table_Function_Type is (Table_Name, Source_Name);
 
@@ -31,7 +31,7 @@ package body Kit.Generate.Table_Name_Map is
       -------------------------
 
       procedure Generate_Table_Name
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
          use Aquarius.Drys, Aquarius.Drys.Declarations;
       begin
@@ -65,14 +65,14 @@ package body Kit.Generate.Table_Name_Map is
                           ("Table");
 
          procedure Add_Table_Case
-           (Table : Kit.Schema.Tables.Table_Type'Class);
+           (Table : Kit.Schema.Tables.Table_Type);
 
          --------------------
          -- Add_Table_Case --
          --------------------
 
          procedure Add_Table_Case
-           (Table : Kit.Schema.Tables.Table_Type'Class)
+           (Table : Kit.Schema.Tables.Table_Type)
          is
             Seq : Sequence_Of_Statements;
             Result : constant String :=

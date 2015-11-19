@@ -12,24 +12,24 @@ package body Kit.Generate.Private_Interface is
 
    procedure Create_Compound_Key_To_Storage_Functions
      (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type'Class;
+      Table : in     Kit.Schema.Tables.Table_Type;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Database_Record
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Memory_Record
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
    pragma Unreferenced (Create_Memory_Record);
 
    procedure Create_Read_Write_Procedures
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Key_Mutexes
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    ----------------------------------------------
@@ -38,16 +38,16 @@ package body Kit.Generate.Private_Interface is
 
    procedure Create_Compound_Key_To_Storage_Functions
      (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type'Class;
+      Table : in     Kit.Schema.Tables.Table_Type;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
 
       procedure Create_Key_To_Storage
-        (Key   : Kit.Schema.Keys.Key_Type'Class);
+        (Key   : Kit.Schema.Keys.Key_Type);
 
       function To_Storage_Expression
-        (Key   : Kit.Schema.Keys.Key_Type'Class;
+        (Key   : Kit.Schema.Keys.Key_Type;
          Index : Positive)
          return Aquarius.Drys.Expression'Class;
 
@@ -56,7 +56,7 @@ package body Kit.Generate.Private_Interface is
       ---------------------------
 
       procedure Create_Key_To_Storage
-        (Key   : Kit.Schema.Keys.Key_Type'Class)
+        (Key   : Kit.Schema.Keys.Key_Type)
       is
          use Kit.Schema.Tables;
       begin
@@ -87,7 +87,7 @@ package body Kit.Generate.Private_Interface is
       ---------------------------
 
       function To_Storage_Expression
-        (Key   : Kit.Schema.Keys.Key_Type'Class;
+        (Key   : Kit.Schema.Keys.Key_Type;
          Index : Positive)
          return Aquarius.Drys.Expression'Class
       is
@@ -115,7 +115,7 @@ package body Kit.Generate.Private_Interface is
    ----------------------------
 
    procedure Create_Database_Record
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -125,13 +125,13 @@ package body Kit.Generate.Private_Interface is
       Record_Defn : Aquarius.Drys.Types.Record_Type_Definition;
 
       procedure Add_Component (Field : Kit.Schema.Fields.Field_Type);
-      procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type'Class);
+      procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type);
 
       --------------------
       -- Add_Base_Index --
       --------------------
 
-      procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type'Class) is
+      procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type) is
       begin
          Record_Defn.Add_Component ("T" & Base.Index_Image & "_Idx",
                                     "Marlowe.Database_Index");
@@ -204,19 +204,19 @@ package body Kit.Generate.Private_Interface is
    ------------------------
 
    procedure Create_Key_Mutexes
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
-      procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type'Class;
-                           Key  : Kit.Schema.Keys.Key_Type'Class);
+      procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type;
+                           Key  : Kit.Schema.Keys.Key_Type);
 
       ---------------
       -- Add_Mutex --
       ---------------
 
-      procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type'Class;
-                           Key  : Kit.Schema.Keys.Key_Type'Class)
+      procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type;
+                           Key  : Kit.Schema.Keys.Key_Type)
       is
          pragma Unreferenced (Base);
       begin
@@ -241,7 +241,7 @@ package body Kit.Generate.Private_Interface is
    --------------------------
 
    procedure Create_Memory_Record
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -276,7 +276,7 @@ package body Kit.Generate.Private_Interface is
    ----------------------------------
 
    procedure Create_Read_Write_Procedures
-     (Table : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table : in     Kit.Schema.Tables.Table_Type;
       Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -394,7 +394,7 @@ package body Kit.Generate.Private_Interface is
 
    function Generate_Private_Interface
      (Db    : in out Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type'Class;
+      Table : in     Kit.Schema.Tables.Table_Type;
       Top   : in     Aquarius.Drys.Declarations.Package_Type'Class)
       return Aquarius.Drys.Declarations.Package_Type'Class
    is
