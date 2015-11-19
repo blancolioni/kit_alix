@@ -92,7 +92,7 @@ package body Kit.Generate.Private_Interface is
          return Aquarius.Drys.Expression'Class
       is
          use Aquarius.Drys.Expressions;
-         Field : constant Kit.Schema.Fields.Field_Type'Class :=
+         Field : constant Kit.Schema.Fields.Field_Type :=
                    Key.Field (Index);
          This  : constant Aquarius.Drys.Expression'Class :=
                    Field.Get_Field_Type.To_Storage_Array
@@ -124,7 +124,7 @@ package body Kit.Generate.Private_Interface is
 
       Record_Defn : Aquarius.Drys.Types.Record_Type_Definition;
 
-      procedure Add_Component (Field : Kit.Schema.Fields.Field_Type'Class);
+      procedure Add_Component (Field : Kit.Schema.Fields.Field_Type);
       procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type'Class);
 
       --------------------
@@ -141,7 +141,7 @@ package body Kit.Generate.Private_Interface is
       -- Add_Component --
       -------------------
 
-      procedure Add_Component (Field : Kit.Schema.Fields.Field_Type'Class) is
+      procedure Add_Component (Field : Kit.Schema.Fields.Field_Type) is
          use Kit.Schema.Tables;
       begin
          if Field.Get_Field_Type.Has_Default_Value then
@@ -316,14 +316,14 @@ package body Kit.Generate.Private_Interface is
 
          Block : Aquarius.Drys.Blocks.Block_Type;
 
-         procedure Handle_Storage (Field : Kit.Schema.Fields.Field_Type'Class);
+         procedure Handle_Storage (Field : Kit.Schema.Fields.Field_Type);
 
          --------------------
          -- Handle_Storage --
          --------------------
 
          procedure Handle_Storage
-           (Field : Kit.Schema.Fields.Field_Type'Class)
+           (Field : Kit.Schema.Fields.Field_Type)
          is
             Start  : constant Storage_Offset := Table.Field_Start (Field);
             Finish : constant Storage_Offset :=

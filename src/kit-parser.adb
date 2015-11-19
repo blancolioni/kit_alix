@@ -57,7 +57,7 @@ package body Kit.Parser is
    function Parse_Qualified_Identifier return String;
 
    procedure Parse_Field_Options
-     (Field : in out Kit.Schema.Fields.Field_Type'Class);
+     (Field : Kit.Schema.Fields.Field_Type);
 
    --------------------
    -- At_Declaration --
@@ -190,9 +190,10 @@ package body Kit.Parser is
                   Field_Type : constant Kit.Schema.Types.Kit_Type :=
                                  Kit.Schema.Types.Table_Reference_Type
                                    (Field_Name);
-                  Field      : Kit.Schema.Fields.Field_Type;
+                  Field      : constant Kit.Schema.Fields.Field_Type :=
+                                 Kit.Schema.Fields.Create_Field
+                                   (Field_Name, Field_Type);
                begin
-                  Field.Create_Field (Field_Name, Field_Type);
 
                   if Tok = Tok_Is then
                      Scan;
@@ -236,9 +237,10 @@ package body Kit.Parser is
             declare
                Field_Type : constant Kit.Schema.Types.Kit_Type :=
                               Parse_Type (Db, Table.Name, Field_Name);
-               Field      : Kit.Schema.Fields.Field_Type;
+               Field      : constant Kit.Schema.Fields.Field_Type :=
+                              Kit.Schema.Fields.Create_Field
+                                (Field_Name, Field_Type);
             begin
-               Field.Create_Field (Field_Name, Field_Type);
 
                if Tok = Tok_Is then
                   Scan;
@@ -275,7 +277,7 @@ package body Kit.Parser is
    -------------------------
 
    procedure Parse_Field_Options
-     (Field : in out Kit.Schema.Fields.Field_Type'Class)
+     (Field : Kit.Schema.Fields.Field_Type)
    is
       Readable  : Boolean := False;
       Writeable : Boolean := False;

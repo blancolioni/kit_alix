@@ -3,49 +3,51 @@ with Kit.Schema.Types;
 
 package Kit.Schema.Fields is
 
-   type Field_Type is
+   type Root_Field_Type is
      new Kit.Names.Root_Named_Object with private;
 
    function Size
-     (Item : Field_Type)
+     (Item : Root_Field_Type)
       return Natural;
 
    procedure Set_Field_Options
-     (Field          : in out Field_Type'Class;
+     (Field          : in out Root_Field_Type'Class;
       Created        : Boolean := False;
       Readable       : Boolean := False;
       Writable       : Boolean := False;
       Base_Reference : Boolean := False);
 
    procedure Set_Display_Field
-     (Field : in out Field_Type'Class);
+     (Field : in out Root_Field_Type'Class);
 
-   procedure Create_Field
-     (Item       : in out Field_Type;
-      Name       : in     String;
-      Field_Type : in     Kit.Schema.Types.Kit_Type);
-
-   function Get_Field_Type (Item : Field_Type)
+   function Get_Field_Type (Item : Root_Field_Type)
                            return Kit.Schema.Types.Kit_Type;
 
-   function Created (Field : Field_Type) return Boolean;
+   function Created (Field : Root_Field_Type) return Boolean;
    --  return True if Field should be part of the Create subprograms
 
-   function Readable (Field : Field_Type) return Boolean;
+   function Readable (Field : Root_Field_Type) return Boolean;
    --  return true if Field can be read
 
-   function Writeable (Field : Field_Type) return Boolean;
+   function Writeable (Field : Root_Field_Type) return Boolean;
    --  return true if Field can be written
 
-   function Display (Field : Field_Type) return Boolean;
+   function Display (Field : Root_Field_Type) return Boolean;
    --  return true if Field should be used to represent its record
    --  instead of the record's database index.
 
-   function Base_Reference (Field : Field_Type) return Boolean;
+   function Base_Reference (Field : Root_Field_Type) return Boolean;
+
+   type Field_Type is access all Root_Field_Type'Class;
+
+   function Create_Field
+     (Name      : in     String;
+      With_Type : in     Kit.Schema.Types.Kit_Type)
+      return Field_Type;
 
 private
 
-   type Field_Type is
+   type Root_Field_Type is
      new Kit.Names.Root_Named_Object with
       record
          Size           : Natural;

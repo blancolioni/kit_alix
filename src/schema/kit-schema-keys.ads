@@ -24,18 +24,18 @@ package Kit.Schema.Keys is
    overriding function Size (Key : Key_Type) return Natural;
    procedure Add_Field
      (Key   : in out Key_Type;
-      Field : not null access Kit.Schema.Fields.Field_Type'Class);
+      Field : Kit.Schema.Fields.Field_Type);
 
    function Field_Count (Key : Key_Type) return Natural;
    function Field (Key    : Key_Type;
                    Index  : Positive)
-                   return Kit.Schema.Fields.Field_Type'Class;
+                   return Kit.Schema.Fields.Field_Type;
    function Contains (Key : Key_Type;
                       Field_Name : String)
                       return Boolean;
 
    function Contains (Key : Key_Type;
-                      Field : Kit.Schema.Fields.Field_Type'Class)
+                      Field : Kit.Schema.Fields.Field_Type)
                       return Boolean;
 
 private
@@ -48,10 +48,11 @@ private
          Base_Reference : Boolean;
       end record;
 
-   type Field_Access is access all Kit.Schema.Fields.Field_Type'Class;
-
    package Key_Field_Vector is
-      new Ada.Containers.Vectors (Positive, Field_Access);
+     new Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Kit.Schema.Fields.Field_Type,
+        "="          => Kit.Schema.Fields."=");
 
    type Key_Type is
      new Root_Key_Type with

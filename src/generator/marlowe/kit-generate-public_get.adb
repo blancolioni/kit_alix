@@ -79,7 +79,7 @@ package body Kit.Generate.Public_Get is
 
       for I in 1 .. Key.Field_Count loop
          declare
-            Field : Kit.Schema.Fields.Field_Type'Class renames
+            Field : Kit.Schema.Fields.Field_Type renames
                       Key.Field (I);
          begin
             Ask.Add_Actual_Argument
@@ -103,7 +103,7 @@ package body Kit.Generate.Public_Get is
       begin
          for I in 1 .. Key.Field_Count loop
             declare
-               Field : Kit.Schema.Fields.Field_Type'Class renames
+               Field : Kit.Schema.Fields.Field_Type renames
                          Key.Field (I);
             begin
                Fn.Add_Formal_Argument
@@ -1005,7 +1005,7 @@ package body Kit.Generate.Public_Get is
                                              (if Is_Finish
                                               then "Finish_"
                                               else "Start_");
-                              Field      : Kit.Schema.Fields.Field_Type'Class
+                              Field      : Kit.Schema.Fields.Field_Type
                               renames Key.Field (I);
                               Field_Type : Kit.Schema.Types.Kit_Type
                               renames Field.Get_Field_Type;
@@ -1034,7 +1034,7 @@ package body Kit.Generate.Public_Get is
                   else
                      for I in 1 .. Key.Field_Count loop
                         declare
-                           Field : Kit.Schema.Fields.Field_Type'Class
+                           Field : Kit.Schema.Fields.Field_Type
                            renames Key.Field (I);
                         begin
                            Fn.Add_Formal_Argument
@@ -1279,7 +1279,7 @@ package body Kit.Generate.Public_Get is
          begin
             for I in 1 .. Key.Field_Count loop
                declare
-                  Field : Kit.Schema.Fields.Field_Type'Class
+                  Field : Kit.Schema.Fields.Field_Type
                   renames Key.Field (I);
                begin
                   Fn.Add_Formal_Argument

@@ -6,10 +6,10 @@ package body Kit.Schema.Keys is
 
    procedure Add_Field
      (Key   : in out Key_Type;
-      Field : not null access Kit.Schema.Fields.Field_Type'Class)
+      Field : Kit.Schema.Fields.Field_Type)
    is
    begin
-      Key.Fields.Append (Field_Access (Field));
+      Key.Fields.Append (Field);
    end Add_Field;
 
    --------------------
@@ -45,7 +45,7 @@ package body Kit.Schema.Keys is
 
    function Contains
      (Key : Key_Type;
-      Field : Kit.Schema.Fields.Field_Type'Class)
+      Field : Kit.Schema.Fields.Field_Type)
       return Boolean
    is
    begin
@@ -75,10 +75,10 @@ package body Kit.Schema.Keys is
    function Field
      (Key    : Key_Type;
       Index  : Positive)
-      return Kit.Schema.Fields.Field_Type'Class
+      return Kit.Schema.Fields.Field_Type
    is
    begin
-      return Key.Fields.Element (Index).all;
+      return Key.Fields.Element (Index);
    end Field;
 
    -----------------

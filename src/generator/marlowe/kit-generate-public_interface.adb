@@ -43,7 +43,7 @@ package body Kit.Generate.Public_Interface is
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type'Class;
       Base  : in     Kit.Schema.Tables.Table_Type'Class;
-      Field : in     Kit.Schema.Fields.Field_Type'Class;
+      Field : in     Kit.Schema.Fields.Field_Type;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
 
    procedure Create_Identity_Function
@@ -328,7 +328,7 @@ package body Kit.Generate.Public_Interface is
    is
       procedure Add_Field_Constant
         (Base : Kit.Schema.Tables.Table_Type'Class;
-         Item : Kit.Schema.Fields.Field_Type'Class);
+         Item : Kit.Schema.Fields.Field_Type);
 
       ------------------------
       -- Add_Field_Constant --
@@ -336,7 +336,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Add_Field_Constant
         (Base : Kit.Schema.Tables.Table_Type'Class;
-         Item : Kit.Schema.Fields.Field_Type'Class)
+         Item : Kit.Schema.Fields.Field_Type)
       is
          pragma Unreferenced (Base);
          Name : constant String := Item.Ada_Name;
@@ -363,7 +363,7 @@ package body Kit.Generate.Public_Interface is
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type'Class;
       Base  : in     Kit.Schema.Tables.Table_Type'Class;
-      Field : in     Kit.Schema.Fields.Field_Type'Class;
+      Field : in     Kit.Schema.Fields.Field_Type;
       Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -847,7 +847,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Select_Field
         (Base  : Kit.Schema.Tables.Table_Type'Class;
-         Field : Kit.Schema.Fields.Field_Type'Class);
+         Field : Kit.Schema.Fields.Field_Type);
 
       ------------------
       -- Select_Field --
@@ -855,7 +855,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Select_Field
         (Base  : Kit.Schema.Tables.Table_Type'Class;
-         Field : Kit.Schema.Fields.Field_Type'Class)
+         Field : Kit.Schema.Fields.Field_Type)
       is
          pragma Unreferenced (Base);
          Seq : Sequence_Of_Statements;
@@ -941,7 +941,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Set_Field
         (Base  : Kit.Schema.Tables.Table_Type'Class;
-         Field : Kit.Schema.Fields.Field_Type'Class);
+         Field : Kit.Schema.Fields.Field_Type);
 
       ---------------
       -- Set_Field --
@@ -949,7 +949,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Set_Field
         (Base  : Kit.Schema.Tables.Table_Type'Class;
-         Field : Kit.Schema.Fields.Field_Type'Class)
+         Field : Kit.Schema.Fields.Field_Type)
       is
          pragma Unreferenced (Base);
          Seq : Sequence_Of_Statements;
@@ -1387,14 +1387,14 @@ package body Kit.Generate.Public_Interface is
 
       procedure Add_Field_Type_With
         (Base  : Kit.Schema.Tables.Table_Type'Class;
-         Field : Kit.Schema.Fields.Field_Type'Class);
+         Field : Kit.Schema.Fields.Field_Type);
       procedure Add_Base_With (It : Kit.Schema.Tables.Table_Type'Class);
       procedure Add_Base (It : Kit.Schema.Tables.Table_Type'Class);
 
       procedure Add_Fetch (Base  : Kit.Schema.Tables.Table_Type'Class;
-                           Field : Kit.Schema.Fields.Field_Type'Class);
+                           Field : Kit.Schema.Fields.Field_Type);
       procedure Add_Store (Base  : Kit.Schema.Tables.Table_Type'Class;
-                           Field : Kit.Schema.Fields.Field_Type'Class);
+                           Field : Kit.Schema.Fields.Field_Type);
 
       procedure Create_Key_Get
         (Base  : Kit.Schema.Tables.Table_Type'Class;
@@ -1464,7 +1464,7 @@ package body Kit.Generate.Public_Interface is
 
          procedure Initialise_Field
            (Base     : Kit.Schema.Tables.Table_Type'Class;
-            Field    : Kit.Schema.Fields.Field_Type'Class);
+            Field    : Kit.Schema.Fields.Field_Type);
 
          --------------------------
          -- Add_Create_Arguments --
@@ -1475,7 +1475,7 @@ package body Kit.Generate.Public_Interface is
          is
             procedure Add_Formal_Argument
               (Base     : Kit.Schema.Tables.Table_Type'Class;
-               Field    : Kit.Schema.Fields.Field_Type'Class);
+               Field    : Kit.Schema.Fields.Field_Type);
 
             -------------------------
             -- Add_Formal_Argument --
@@ -1483,7 +1483,7 @@ package body Kit.Generate.Public_Interface is
 
             procedure Add_Formal_Argument
               (Base     : Kit.Schema.Tables.Table_Type'Class;
-               Field    : Kit.Schema.Fields.Field_Type'Class)
+               Field    : Kit.Schema.Fields.Field_Type)
             is
                pragma Unreferenced (Base);
             begin
@@ -1610,7 +1610,7 @@ package body Kit.Generate.Public_Interface is
 
          procedure Initialise_Field
            (Base     : Kit.Schema.Tables.Table_Type'Class;
-            Field    : Kit.Schema.Fields.Field_Type'Class)
+            Field    : Kit.Schema.Fields.Field_Type)
          is
             pragma Unreferenced (Base);
          begin
@@ -1720,7 +1720,7 @@ package body Kit.Generate.Public_Interface is
       ---------------
 
       procedure Add_Fetch (Base  : Kit.Schema.Tables.Table_Type'Class;
-                           Field : Kit.Schema.Fields.Field_Type'Class)
+                           Field : Kit.Schema.Fields.Field_Type)
       is
       begin
          if not Field.Readable then
@@ -1783,7 +1783,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Add_Field_Type_With
         (Base  : Kit.Schema.Tables.Table_Type'Class;
-         Field : Kit.Schema.Fields.Field_Type'Class)
+         Field : Kit.Schema.Fields.Field_Type)
       is
       begin
          if Field.Get_Field_Type.Is_Table_Reference then
@@ -1808,7 +1808,7 @@ package body Kit.Generate.Public_Interface is
       ---------------
 
       procedure Add_Store (Base  : Kit.Schema.Tables.Table_Type'Class;
-                           Field : Kit.Schema.Fields.Field_Type'Class)
+                           Field : Kit.Schema.Fields.Field_Type)
       is
       begin
          if Field.Writeable then
