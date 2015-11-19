@@ -30,7 +30,7 @@ package body Kit.Generate.Database_Package is
                    (Db.Name & ".Database");
 
       procedure Add_Implementation_With
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       function Create_Database_Procedure
         (Operation : Database_Operation)
@@ -44,7 +44,7 @@ package body Kit.Generate.Database_Package is
       -----------------------------
 
       procedure Add_Implementation_With
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
       begin
          Result.With_Package
@@ -93,31 +93,31 @@ package body Kit.Generate.Database_Package is
          Block : Aquarius.Drys.Blocks.Block_Type;
 
          procedure Create_Table
-           (Table : Kit.Schema.Tables.Table_Type'Class);
+           (Table : Kit.Schema.Tables.Table_Type);
 
          procedure Open_Table
-           (Table : Kit.Schema.Tables.Table_Type'Class);
+           (Table : Kit.Schema.Tables.Table_Type);
 
          ------------------
          -- Create_Table --
          ------------------
 
          procedure Create_Table
-           (Table : Kit.Schema.Tables.Table_Type'Class)
+           (Table : Kit.Schema.Tables.Table_Type)
          is
             use Aquarius.Drys.Statements;
 
             procedure Create_Key
-              (Base : Kit.Schema.Tables.Table_Type'Class;
-               Key  : Kit.Schema.Keys.Key_Type'Class);
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type);
 
             ----------------
             -- Create_Key --
             ----------------
 
             procedure Create_Key
-              (Base : Kit.Schema.Tables.Table_Type'Class;
-               Key  : Kit.Schema.Keys.Key_Type'Class)
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type)
             is
                pragma Unreferenced (Base);
                use Aquarius.Drys;
@@ -161,21 +161,21 @@ package body Kit.Generate.Database_Package is
          ----------------
 
          procedure Open_Table
-           (Table : Kit.Schema.Tables.Table_Type'Class)
+           (Table : Kit.Schema.Tables.Table_Type)
          is
             use Aquarius.Drys.Statements;
 
             procedure Open_Key
-              (Base : Kit.Schema.Tables.Table_Type'Class;
-               Key  : Kit.Schema.Keys.Key_Type'Class);
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type);
 
             --------------
             -- Open_Key --
             --------------
 
             procedure Open_Key
-              (Base : Kit.Schema.Tables.Table_Type'Class;
-               Key  : Kit.Schema.Keys.Key_Type'Class)
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type)
             is
                pragma Unreferenced (Base);
                use Aquarius.Drys.Expressions;
@@ -339,10 +339,10 @@ package body Kit.Generate.Database_Package is
       use Aquarius.Drys.Statements;
 
       procedure Create_Table
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       procedure Create_Table_Fields
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       procedure Create_Type (T  : Kit.Schema.Types.Kit_Type);
 
@@ -353,7 +353,7 @@ package body Kit.Generate.Database_Package is
       ------------------
 
       procedure Create_Table
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
          Create : constant Declaration'Class :=
                     New_Constant_Declaration
@@ -366,9 +366,7 @@ package body Kit.Generate.Database_Package is
                           Literal (Natural (Table.Length))));
       begin
          Init_Block.Add_Declaration (Create);
-         Init_Block.Append
-           (Kit.Schema.Types.Table_Reference_Type
-              (Table.Standard_Name).Create_Database_Record);
+         Init_Block.Append (Table.Reference_Type.Create_Database_Record);
       end Create_Table;
 
       -------------------------
@@ -376,7 +374,7 @@ package body Kit.Generate.Database_Package is
       -------------------------
 
       procedure Create_Table_Fields
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
 
          Ref_Name : constant String :=
@@ -385,20 +383,20 @@ package body Kit.Generate.Database_Package is
          procedure Create_Field
            (Field       : Kit.Schema.Fields.Field_Type);
 
-         procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type'Class);
+         procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type);
 
          procedure Create_Key
-           (Key : Kit.Schema.Keys.Key_Type'Class);
+           (Key : Kit.Schema.Keys.Key_Type);
 
          procedure Insert_Display_Field
-           (Base  : Kit.Schema.Tables.Table_Type'Class;
+           (Base  : Kit.Schema.Tables.Table_Type;
             Field : Kit.Schema.Fields.Field_Type);
 
          -----------------
          -- Create_Base --
          -----------------
 
-         procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type'Class) is
+         procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type) is
             New_Base : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
                             ("Kit_Record_Base.Create");
@@ -459,7 +457,7 @@ package body Kit.Generate.Database_Package is
          ----------------
 
          procedure Create_Key
-           (Key : Kit.Schema.Keys.Key_Type'Class)
+           (Key : Kit.Schema.Keys.Key_Type)
          is
             use Kit.Schema.Tables;
             New_Key : Function_Call_Expression'Class :=
@@ -512,7 +510,7 @@ package body Kit.Generate.Database_Package is
          --------------------------
 
          procedure Insert_Display_Field
-           (Base  : Kit.Schema.Tables.Table_Type'Class;
+           (Base  : Kit.Schema.Tables.Table_Type;
             Field : Kit.Schema.Fields.Field_Type)
          is
          begin
@@ -543,7 +541,9 @@ package body Kit.Generate.Database_Package is
 
       procedure Create_Type (T  : Kit.Schema.Types.Kit_Type) is
       begin
-         Seq.Append (T.Create_Database_Record);
+         if not T.Is_Table_Reference then
+            Seq.Append (T.Create_Database_Record);
+         end if;
       end Create_Type;
 
    begin

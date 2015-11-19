@@ -14,13 +14,13 @@ with Kit.Schema.Types;
 package body Kit.Generate.Public_Get is
 
    procedure Create_Iterator_Start_Function
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Container     : in     Boolean;
       First         : in     Boolean);
 
    procedure Create_Iterator_Next_Function
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       With_Iterator : in     Boolean;
       Inline        : in     Boolean;
@@ -28,7 +28,7 @@ package body Kit.Generate.Public_Get is
 
    procedure Check_Deferred_Keys
      (Seq       : in out Aquarius.Drys.Statement_Sequencer'Class;
-      Key_Table : Kit.Schema.Tables.Table_Type'Class);
+      Key_Table : Kit.Schema.Tables.Table_Type);
 
    --  Create a call to Kit_Deferred_Keys.Check_Keys for
    --  the index of each table which is a base of Key_Table (inclusive).
@@ -40,15 +40,15 @@ package body Kit.Generate.Public_Get is
 
    procedure Check_Deferred_Keys
      (Seq       : in out Aquarius.Drys.Statement_Sequencer'Class;
-      Key_Table : Kit.Schema.Tables.Table_Type'Class)
+      Key_Table : Kit.Schema.Tables.Table_Type)
    is
-      procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type'Class);
+      procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type);
 
       ----------------
       -- Check_Keys --
       ----------------
 
-      procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type'Class) is
+      procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type) is
       begin
          Seq.Append
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
@@ -66,9 +66,9 @@ package body Kit.Generate.Public_Get is
    ----------------------------------
 
    procedure Create_Default_Key_Functions
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
-      Key           : in     Kit.Schema.Keys.Key_Type'Class)
+      Key           : in     Kit.Schema.Keys.Key_Type)
    is
       use Aquarius.Drys.Declarations;
       Ask   : Aquarius.Drys.Expressions.Function_Call_Expression :=
@@ -127,7 +127,7 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Generic_Get_Function
      (Db            : in     Kit.Schema.Databases.Database_Type;
-      Table         : in     Kit.Schema.Tables.Table_Type'Class;
+      Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Key_Value     : in     Boolean)
    is
@@ -141,15 +141,15 @@ package body Kit.Generate.Public_Get is
 
       Function_Name          : constant String := "Select_By";
 
-      procedure Process_Key (Base  : Kit.Schema.Tables.Table_Type'Class;
-                             Key   : Kit.Schema.Keys.Key_Type'Class);
+      procedure Process_Key (Base  : Kit.Schema.Tables.Table_Type;
+                             Key   : Kit.Schema.Keys.Key_Type);
 
       -----------------
       -- Process_Key --
       -----------------
 
-      procedure Process_Key (Base  : Kit.Schema.Tables.Table_Type'Class;
-                             Key   : Kit.Schema.Keys.Key_Type'Class)
+      procedure Process_Key (Base  : Kit.Schema.Tables.Table_Type;
+                             Key   : Kit.Schema.Keys.Key_Type)
       is
          pragma Unreferenced (Base);
          use Aquarius.Drys.Expressions;
@@ -205,7 +205,7 @@ package body Kit.Generate.Public_Get is
    ---------------------------
 
    procedure Create_Get_From_Index
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
       use Aquarius.Drys;
@@ -244,7 +244,7 @@ package body Kit.Generate.Public_Get is
         (New_Assignment_Statement
            ("Element.Local.M_Index",
             New_Function_Call_Expression
-              (Table.Reference_Type, "Index")));
+              (Table.Reference_Type_Name, "Index")));
 
       declare
          Exists_Sequence : Sequence_Of_Statements;
@@ -296,7 +296,7 @@ package body Kit.Generate.Public_Get is
    ---------------------
 
    procedure Create_Iterator
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
 
@@ -351,7 +351,7 @@ package body Kit.Generate.Public_Get is
    -----------------------------------
 
    procedure Create_Iterator_Next_Function
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       With_Iterator : in     Boolean;
       Inline        : in     Boolean;
@@ -425,7 +425,7 @@ package body Kit.Generate.Public_Get is
             New_Assignment_Statement
               ("Item.Local.M_Index",
                New_Function_Call_Expression
-                 (Table.Reference_Type,
+                 (Table.Reference_Type_Name,
                   New_Function_Call_Expression
                     ("Marlowe.Key_Storage.To_Database_Index",
                      New_Function_Call_Expression
@@ -494,7 +494,7 @@ package body Kit.Generate.Public_Get is
    ------------------------------------
 
    procedure Create_Iterator_Start_Function
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Container     : in     Boolean;
       First         : in     Boolean)
@@ -749,7 +749,7 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Reference_Get_Function
      (Db            : in     Kit.Schema.Databases.Database_Type;
-      Table         : in     Kit.Schema.Tables.Table_Type'Class;
+      Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
@@ -862,8 +862,8 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Selection_Function
      (Db            : in     Kit.Schema.Databases.Database_Type;
-      Table         : in     Kit.Schema.Tables.Table_Type'Class;
-      Key_Table     : in     Kit.Schema.Tables.Table_Type'Class;
+      Table         : in     Kit.Schema.Tables.Table_Type;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Key_Name      : in     String;
       Key_Value     : in     Boolean;
@@ -875,7 +875,7 @@ package body Kit.Generate.Public_Get is
       use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
 
       Return_Sequence  : Sequence_Of_Statements;
-      Key              : constant Kit.Schema.Keys.Key_Type'Class :=
+      Key              : constant Kit.Schema.Keys.Key_Type :=
                            Table.Key (Key_Name);
       function Function_Name return String;
 
@@ -994,7 +994,7 @@ package body Kit.Generate.Public_Get is
          begin
             if Key_Value then
                declare
-                  Key : constant Kit.Schema.Keys.Key_Type'Class :=
+                  Key : constant Kit.Schema.Keys.Key_Type :=
                           Table.Key (Key_Name);
                begin
                   if Bounds then
@@ -1060,8 +1060,8 @@ package body Kit.Generate.Public_Get is
    --------------------------------
 
    procedure Create_Unique_Get_Function
-     (Table         : in     Kit.Schema.Tables.Table_Type'Class;
-      Key_Table     : in     Kit.Schema.Tables.Table_Type'Class;
+     (Table         : in     Kit.Schema.Tables.Table_Type;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
       Key_Name      : in     String)
    is
@@ -1069,7 +1069,7 @@ package body Kit.Generate.Public_Get is
       use Aquarius.Drys.Declarations;
       use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
 
-      Key              : constant Kit.Schema.Keys.Key_Type'Class :=
+      Key              : constant Kit.Schema.Keys.Key_Type :=
                            Table.Key (Key_Name);
 
       procedure Create_Function
@@ -1235,7 +1235,7 @@ package body Kit.Generate.Public_Get is
                     (Target => "Result.Local.M_Index",
                      Value  =>
                        New_Function_Call_Expression
-                         (Table.Reference_Type, "Db_Index")));
+                         (Table.Reference_Type_Name, "Db_Index")));
 
                Fetch.Fetch_From_Index (Table       => Table,
                                        Object_Name => "Result",

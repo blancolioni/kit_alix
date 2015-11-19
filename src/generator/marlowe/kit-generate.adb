@@ -85,29 +85,29 @@ package body Kit.Generate is
       Top : in out Aquarius.Drys.Declarations.Package_Type)
    is
       procedure Add_Table_Keys
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       --------------------
       -- Add_Table_Keys --
       --------------------
 
       procedure Add_Table_Keys
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
 
          Key_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
 
          procedure Add_Key_Type_Literal
-           (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Keys.Key_Type'Class);
+           (Base : Kit.Schema.Tables.Table_Type;
+            Item : Kit.Schema.Keys.Key_Type);
 
          --------------------------
          -- Add_Key_Type_Literal --
          --------------------------
 
          procedure Add_Key_Type_Literal
-           (Base : Kit.Schema.Tables.Table_Type'Class;
-            Item : Kit.Schema.Keys.Key_Type'Class)
+           (Base : Kit.Schema.Tables.Table_Type;
+            Item : Kit.Schema.Keys.Key_Type)
          is
             pragma Unreferenced (Base);
          begin
@@ -271,14 +271,14 @@ package body Kit.Generate is
    is
 
       procedure Add_Reference_Type
-        (Item : Kit.Schema.Tables.Table_Type'Class);
+        (Item : Kit.Schema.Tables.Table_Type);
 
       ------------------------
       -- Add_Reference_Type --
       ------------------------
 
       procedure Add_Reference_Type
-        (Item : Kit.Schema.Tables.Table_Type'Class)
+        (Item : Kit.Schema.Tables.Table_Type)
       is
          use Aquarius.Drys, Aquarius.Drys.Declarations;
          use Aquarius.Drys.Expressions;
@@ -374,14 +374,14 @@ package body Kit.Generate is
       Table_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
 
       procedure Add_Table_Type_Literal
-        (Item : Kit.Schema.Tables.Table_Type'Class);
+        (Item : Kit.Schema.Tables.Table_Type);
 
       ----------------------------
       -- Add_Table_Type_Literal --
       ----------------------------
 
       procedure Add_Table_Type_Literal
-        (Item : Kit.Schema.Tables.Table_Type'Class)
+        (Item : Kit.Schema.Tables.Table_Type)
       is
       begin
          Table_Type_Definition.New_Literal ("R_" & Item.Name);
@@ -476,20 +476,20 @@ package body Kit.Generate is
       function Get_Record_Literal_Name (Index : Positive) return String;
 
       procedure Get_From_Cache
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       procedure Public_Interface
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       procedure Private_Interface
-        (Table : Kit.Schema.Tables.Table_Type'Class);
+        (Table : Kit.Schema.Tables.Table_Type);
 
       --------------------
       -- Get_From_Cache --
       --------------------
 
       procedure Get_From_Cache
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
       begin
          Project.Add_Package
@@ -511,7 +511,7 @@ package body Kit.Generate is
       -----------------------
 
       procedure Private_Interface
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
       begin
          Project.Add_Package
@@ -524,7 +524,7 @@ package body Kit.Generate is
       ----------------------
 
       procedure Public_Interface
-        (Table : Kit.Schema.Tables.Table_Type'Class)
+        (Table : Kit.Schema.Tables.Table_Type)
       is
       begin
          Project.Add_Package
