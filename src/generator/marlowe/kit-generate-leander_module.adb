@@ -157,7 +157,7 @@ package body Kit.Generate.Leander_Module is
            (File,
             "  " & Table.Haskell_Variable_Name & Field.Haskell_Name
             & " :: a -> IO "
-            & Kit.Schema.Types.Haskell_Type_Name (Field.Get_Field_Type));
+            & Field.Get_Field_Type.Haskell_Type_Name);
       end Put_Field;
 
       -------------
@@ -172,8 +172,7 @@ package body Kit.Generate.Leander_Module is
                "  " & Table.Haskell_Variable_Name
                & "GetBy" & Key.Haskell_Name
                & " :: "
-               & Kit.Schema.Types.Haskell_Type_Name
-                 (Key.Field (1).Get_Field_Type)
+               & Key.Field (1).Get_Field_Type.Haskell_Type_Name
                & " -> IO a");
          end if;
       end Put_Key;

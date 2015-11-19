@@ -863,9 +863,8 @@ package body Kit.Generate.Public_Interface is
          if Field.Readable then
             Seq.Append
               (New_Return_Statement
-                 (Kit.Schema.Types.Convert_To_String
-                    (Field.Get_Field_Type,
-                     "Item." & Field.Ada_Name)));
+                 (Field.Get_Field_Type.Convert_To_String
+                      ("Item." & Field.Ada_Name)));
             Got_Field := True;
          else
             Seq.Append
@@ -959,9 +958,7 @@ package body Kit.Generate.Public_Interface is
             Seq.Append
               (New_Procedure_Call_Statement
                  ("Item.Set_" & Field.Ada_Name,
-                  Kit.Schema.Types.Convert_From_String
-                    (Field.Get_Field_Type,
-                     "Value")));
+                  Field.Get_Field_Type.Convert_From_String ("Value")));
             Got_Field := True;
          else
             Seq.Append

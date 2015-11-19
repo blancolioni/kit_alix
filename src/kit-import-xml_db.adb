@@ -50,7 +50,7 @@ package body Kit.Import.XML_DB is
      (Db        : Kit.Schema.Databases.Database_Access;
       Type_Name : String;
       Reference : String)
-      return Kit.Schema.Types.Kit_Type'Class;
+      return Kit.Schema.Types.Kit_Type;
 
    --------------
    -- Get_Type --
@@ -60,7 +60,7 @@ package body Kit.Import.XML_DB is
      (Db        : Kit.Schema.Databases.Database_Access;
       Type_Name : String;
       Reference : String)
-      return Kit.Schema.Types.Kit_Type'Class
+      return Kit.Schema.Types.Kit_Type
    is
       pragma Unreferenced (Db);
    begin

@@ -52,7 +52,7 @@ package body Kit.Parser is
      (Db           : Kit.Schema.Databases.Database_Type;
       Table_Name   : String;
       Context_Name : String)
-      return Kit.Schema.Types.Kit_Type'Class;
+      return Kit.Schema.Types.Kit_Type;
 
    function Parse_Qualified_Identifier return String;
 
@@ -187,7 +187,7 @@ package body Kit.Parser is
             then
 
                declare
-                  Field_Type : constant Kit.Schema.Types.Kit_Type'Class :=
+                  Field_Type : constant Kit.Schema.Types.Kit_Type :=
                                  Kit.Schema.Types.Table_Reference_Type
                                    (Field_Name);
                   Field      : Kit.Schema.Fields.Field_Type;
@@ -234,7 +234,7 @@ package body Kit.Parser is
             end if;
 
             declare
-               Field_Type : constant Kit.Schema.Types.Kit_Type'Class :=
+               Field_Type : constant Kit.Schema.Types.Kit_Type :=
                               Parse_Type (Db, Table.Name, Field_Name);
                Field      : Kit.Schema.Fields.Field_Type;
             begin
@@ -440,7 +440,7 @@ package body Kit.Parser is
      (Db           : Kit.Schema.Databases.Database_Type;
       Table_Name   : String;
       Context_Name : String)
-      return Kit.Schema.Types.Kit_Type'Class
+      return Kit.Schema.Types.Kit_Type
    is
       Location : constant GCS.Positions.File_Position :=
                    Get_Current_Position;
@@ -505,7 +505,7 @@ package body Kit.Parser is
                Error ("missing ')'");
             end if;
 
-            return Result;
+            return new Kit.Schema.Types.Enumerated.Enumerated_Type'(Result);
          end;
       else
          raise Program_Error with "expected to be at a type";
@@ -544,7 +544,7 @@ package body Kit.Parser is
          Scan;
 
          declare
-            New_Type : constant Kit.Schema.Types.Kit_Type'Class :=
+            New_Type : constant Kit.Schema.Types.Kit_Type :=
                          Parse_Type (Db, "", Name);
          begin
             Kit.Schema.Types.New_Type (New_Type);

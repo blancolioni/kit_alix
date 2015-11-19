@@ -344,7 +344,7 @@ package body Kit.Generate.Database_Package is
       procedure Create_Table_Fields
         (Table : Kit.Schema.Tables.Table_Type'Class);
 
-      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type'Class);
+      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type);
 
       Init_Block : Aquarius.Drys.Blocks.Block_Type;
 
@@ -541,7 +541,7 @@ package body Kit.Generate.Database_Package is
       -- Create_Type --
       -----------------
 
-      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type'Class) is
+      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type) is
       begin
          Seq.Append (T.Create_Database_Record);
       end Create_Type;
