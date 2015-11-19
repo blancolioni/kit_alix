@@ -13,8 +13,7 @@ package body Kit.Generate.Templates is
    ----------------------------
 
    procedure Copy_Template_Packages
-     (Database         : not null access
-        Kit.Schema.Databases.Database_Type'Class;
+     (Database         : Kit.Schema.Databases.Database_Type;
       Target_Directory : String)
    is
 

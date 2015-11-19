@@ -7,21 +7,21 @@ with Kit.Schema.Tables;
 
 package Kit.Schema.Databases is
 
-   type Database_Type is
+   type Root_Database_Type is
      new Kit.Names.Root_Named_Object with private;
 
    type Table_Cursor is private;
 
-   function Table_Count (Db : Database_Type) return Natural;
+   function Table_Count (Db : Root_Database_Type) return Natural;
 
-   function First_Table (Database : Database_Type) return Table_Cursor;
-   function Contains (Database : Database_Type;
+   function First_Table (Database : Root_Database_Type) return Table_Cursor;
+   function Contains (Database : Root_Database_Type;
                       Name     : String)
                      return Boolean;
-   function Element (Database : Database_Type;
+   function Element (Database : Root_Database_Type;
                      Name     : String)
                      return Kit.Schema.Tables.Table_Type;
-   function Element (Database : Database_Type;
+   function Element (Database : Root_Database_Type;
                      Index    : Positive)
                      return Kit.Schema.Tables.Table_Type;
 
@@ -32,27 +32,29 @@ package Kit.Schema.Databases is
    function Has_Element (Position : Table_Cursor)
                         return Boolean;
 
-   procedure Iterate (Database : Database_Type;
+   procedure Iterate (Database : Root_Database_Type;
                       Process  : not null access
                         procedure
                           (Table : Kit.Schema.Tables.Table_Type));
 
    procedure Append
-     (Db   : in out Database_Type;
+     (Db   : in out Root_Database_Type;
       Item : in     Kit.Schema.Tables.Table_Type);
 
-   procedure Create_Database (Db   : in out Database_Type;
-                              Name : in     String);
-
-   procedure With_Database (Db     : in out Database_Type'Class;
-                            Withed : in     Database_Type'Class);
-
-   procedure Write (Db     : Database_Type;
+   procedure Write (Db     : Root_Database_Type;
                     Writer : in out Aquarius.Writer.Writer_Interface'Class);
 
-   function Has_Display_Field (Db : Database_Type) return Boolean;
+   function Has_Display_Field (Db : Root_Database_Type) return Boolean;
 
-   type Database_Access is access Database_Type;
+   type Database_Type is access all Root_Database_Type'Class;
+
+   function Create_Database
+     (Name : in     String)
+      return Database_Type;
+
+   procedure With_Database
+     (Db     : in out Root_Database_Type'Class;
+      Withed : in     Database_Type);
 
 private
 
@@ -62,7 +64,7 @@ private
         Element_Type => Kit.Schema.Tables.Table_Type,
         "="          => Kit.Schema.Tables."=");
 
-   type Database_Type is
+   type Root_Database_Type is
      new Kit.Names.Root_Named_Object with
       record
          Tables : Table_Vectors.Vector;

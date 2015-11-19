@@ -10,7 +10,7 @@ package body Kit.Generate.Table_Name_Map is
    ----------------------
 
    function Generate_Package
-     (Db : in out Kit.Schema.Databases.Database_Type)
+     (Db : Kit.Schema.Databases.Database_Type)
       return Aquarius.Drys.Declarations.Package_Type
    is
       Result : Aquarius.Drys.Declarations.Package_Type :=

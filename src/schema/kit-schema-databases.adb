@@ -5,7 +5,7 @@ package body Kit.Schema.Databases is
    ------------
 
    procedure Append
-     (Db   : in out Database_Type;
+     (Db   : in out Root_Database_Type;
       Item : in     Kit.Schema.Tables.Table_Type)
    is
    begin
@@ -17,7 +17,7 @@ package body Kit.Schema.Databases is
    --------------
 
    function Contains
-     (Database : Database_Type;
+     (Database : Root_Database_Type;
       Name     : String)
       return Boolean
    is
@@ -34,11 +34,15 @@ package body Kit.Schema.Databases is
    -- Create_Database --
    ---------------------
 
-   procedure Create_Database (Db   : in out Database_Type;
-                              Name : in     String)
+   function Create_Database
+     (Name : in     String)
+      return Database_Type
    is
+      Result : constant Database_Type :=
+                 new Root_Database_Type;
    begin
-      Kit.Names.Create (Kit.Names.Root_Named_Object (Db), Name);
+      Result.Create (Name);
+      return Result;
    end Create_Database;
 
    -------------
@@ -57,7 +61,7 @@ package body Kit.Schema.Databases is
    -- Element --
    -------------
 
-   function Element (Database : Database_Type;
+   function Element (Database : Root_Database_Type;
                      Name     : String)
                      return Kit.Schema.Tables.Table_Type
    is
@@ -75,7 +79,7 @@ package body Kit.Schema.Databases is
    -- Element --
    -------------
 
-   function Element (Database : Database_Type;
+   function Element (Database : Root_Database_Type;
                      Index    : Positive)
                      return Kit.Schema.Tables.Table_Type
    is
@@ -87,7 +91,7 @@ package body Kit.Schema.Databases is
    -- First_Table --
    -----------------
 
-   function First_Table (Database : Database_Type) return Table_Cursor is
+   function First_Table (Database : Root_Database_Type) return Table_Cursor is
    begin
       return Table_Cursor (Database.Tables.First);
    end First_Table;
@@ -96,7 +100,7 @@ package body Kit.Schema.Databases is
    -- Has_Display_Field --
    -----------------------
 
-   function Has_Display_Field (Db : Database_Type) return Boolean is
+   function Has_Display_Field (Db : Root_Database_Type) return Boolean is
    begin
       for T of Db.Tables loop
          if T.Has_Display_Field then
@@ -123,7 +127,7 @@ package body Kit.Schema.Databases is
    -- Iterate --
    -------------
 
-   procedure Iterate (Database : Database_Type;
+   procedure Iterate (Database : Root_Database_Type;
                       Process  : not null access
                         procedure (Table : Kit.Schema.Tables.Table_Type))
    is
@@ -156,7 +160,7 @@ package body Kit.Schema.Databases is
    -- Table_Count --
    -----------------
 
-   function Table_Count (Db : Database_Type) return Natural is
+   function Table_Count (Db : Root_Database_Type) return Natural is
    begin
       return Db.Tables.Last_Index;
    end Table_Count;
@@ -165,8 +169,9 @@ package body Kit.Schema.Databases is
    -- With_Database --
    -------------------
 
-   procedure With_Database (Db     : in out Database_Type'Class;
-                            Withed : in     Database_Type'Class)
+   procedure With_Database
+     (Db     : in out Root_Database_Type'Class;
+      Withed : in     Database_Type)
    is
    begin
       for T of Withed.Tables loop
@@ -178,7 +183,7 @@ package body Kit.Schema.Databases is
    -- Write --
    -----------
 
-   procedure Write (Db     : Database_Type;
+   procedure Write (Db     : Root_Database_Type;
                     Writer : in out Aquarius.Writer.Writer_Interface'Class)
    is
    begin
