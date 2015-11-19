@@ -4,7 +4,7 @@ package body Kit.Schema.Fields is
    -- Base_Reference --
    --------------------
 
-   function Base_Reference (Field : Field_Type) return Boolean is
+   function Base_Reference (Field : Root_Field_Type) return Boolean is
    begin
       return Field.Base_Reference;
    end Base_Reference;
@@ -13,22 +13,24 @@ package body Kit.Schema.Fields is
    -- Create_Field --
    ------------------
 
-   procedure Create_Field
-     (Item       : in out Field_Type;
-      Name       : in     String;
-      Field_Type : in     Kit.Schema.Types.Kit_Type)
+   function Create_Field
+     (Name      : in     String;
+      With_Type : in     Kit.Schema.Types.Kit_Type)
+      return Field_Type
    is
+      Item : constant Field_Type := new Root_Field_Type;
    begin
       Item.Create (Name);
-      Item.Field_Type := Field_Type;
+      Item.Field_Type := With_Type;
       Item.Size := Item.Field_Type.Size;
+      return Item;
    end Create_Field;
 
    -------------
    -- Created --
    -------------
 
-   function Created (Field : Field_Type) return Boolean is
+   function Created (Field : Root_Field_Type) return Boolean is
    begin
       return Field.Created;
    end Created;
@@ -37,7 +39,7 @@ package body Kit.Schema.Fields is
    -- Display --
    -------------
 
-   function Display (Field : Field_Type) return Boolean is
+   function Display (Field : Root_Field_Type) return Boolean is
    begin
       return Field.Display;
    end Display;
@@ -47,7 +49,7 @@ package body Kit.Schema.Fields is
    --------------------
 
    function Get_Field_Type
-     (Item : Field_Type)
+     (Item : Root_Field_Type)
       return Kit.Schema.Types.Kit_Type
    is
    begin
@@ -58,7 +60,7 @@ package body Kit.Schema.Fields is
    -- Readable --
    --------------
 
-   function Readable (Field : Field_Type) return Boolean is
+   function Readable (Field : Root_Field_Type) return Boolean is
    begin
       return Field.Readable;
    end Readable;
@@ -68,7 +70,7 @@ package body Kit.Schema.Fields is
    -----------------------
 
    procedure Set_Display_Field
-     (Field : in out Field_Type'Class)
+     (Field : in out Root_Field_Type'Class)
    is
    begin
       Field.Display := True;
@@ -79,7 +81,7 @@ package body Kit.Schema.Fields is
    -----------------------
 
    procedure Set_Field_Options
-     (Field          : in out Field_Type'Class;
+     (Field          : in out Root_Field_Type'Class;
       Created        : Boolean := False;
       Readable       : Boolean := False;
       Writable       : Boolean := False;
@@ -96,7 +98,7 @@ package body Kit.Schema.Fields is
    -- Size --
    ----------
 
-   function Size (Item : Field_Type) return Natural is
+   function Size (Item : Root_Field_Type) return Natural is
    begin
       return Item.Size;
    end Size;
@@ -105,7 +107,7 @@ package body Kit.Schema.Fields is
    -- Writeable --
    ---------------
 
-   function Writeable (Field : Field_Type) return Boolean is
+   function Writeable (Field : Root_Field_Type) return Boolean is
    begin
       return Field.Writeable;
    end Writeable;

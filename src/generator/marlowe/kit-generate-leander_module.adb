@@ -63,7 +63,7 @@ package body Kit.Generate.Leander_Module is
 
       procedure Put_Base_Class (Base : Kit.Schema.Tables.Table_Type'Class);
 
-      procedure Put_Field (Field : Kit.Schema.Fields.Field_Type'Class);
+      procedure Put_Field (Field : Kit.Schema.Fields.Field_Type);
 
       procedure Put_Key (Key : Kit.Schema.Keys.Key_Type'Class);
 
@@ -102,14 +102,14 @@ package body Kit.Generate.Leander_Module is
       is
 
          procedure Put_Field_Fetch
-           (Field  : Kit.Schema.Fields.Field_Type'Class);
+           (Field  : Kit.Schema.Fields.Field_Type);
 
          ---------------------
          -- Put_Field_Fetch --
          ---------------------
 
          procedure Put_Field_Fetch
-           (Field  : Kit.Schema.Fields.Field_Type'Class)
+           (Field  : Kit.Schema.Fields.Field_Type)
          is
             Type_Name : constant String :=
                           Field.Get_Field_Type.Haskell_Type_Name;
@@ -151,7 +151,7 @@ package body Kit.Generate.Leander_Module is
       -- Put_Field --
       ---------------
 
-      procedure Put_Field (Field : Kit.Schema.Fields.Field_Type'Class) is
+      procedure Put_Field (Field : Kit.Schema.Fields.Field_Type) is
       begin
          Put_Line
            (File,

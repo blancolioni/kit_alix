@@ -383,7 +383,7 @@ package body Kit.Generate.Database_Package is
                       Table.Ada_Name & "_Ref";
 
          procedure Create_Field
-           (Field       : Kit.Schema.Fields.Field_Type'Class);
+           (Field       : Kit.Schema.Fields.Field_Type);
 
          procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type'Class);
 
@@ -392,7 +392,7 @@ package body Kit.Generate.Database_Package is
 
          procedure Insert_Display_Field
            (Base  : Kit.Schema.Tables.Table_Type'Class;
-            Field : Kit.Schema.Fields.Field_Type'Class);
+            Field : Kit.Schema.Fields.Field_Type);
 
          -----------------
          -- Create_Base --
@@ -418,7 +418,7 @@ package body Kit.Generate.Database_Package is
          ------------------
 
          procedure Create_Field
-           (Field       : Kit.Schema.Fields.Field_Type'Class)
+           (Field       : Kit.Schema.Fields.Field_Type)
          is
             New_Field : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
@@ -513,7 +513,7 @@ package body Kit.Generate.Database_Package is
 
          procedure Insert_Display_Field
            (Base  : Kit.Schema.Tables.Table_Type'Class;
-            Field : Kit.Schema.Fields.Field_Type'Class)
+            Field : Kit.Schema.Fields.Field_Type)
          is
          begin
             if Field.Display then

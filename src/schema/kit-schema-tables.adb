@@ -42,11 +42,12 @@ package body Kit.Schema.Tables is
          end loop;
 
          Table.Base_Layout.Append (Base.Index);
-         Base_Field.Create_Field
-           (Base.Ada_Name,
-            Field_Type =>
+         Base_Field := Kit.Schema.Fields.Create_Field
+           (Name      => Base.Ada_Name,
+            With_Type =>
               Kit.Schema.Types.Table_Reference_Type
                 (Base.Standard_Name));
+
          Base_Field.Set_Field_Options
            (Created        => False,
             Readable       => False,
@@ -181,12 +182,12 @@ package body Kit.Schema.Tables is
 
    procedure Append
      (Table     : in out Table_Type;
-      Item      : in     Kit.Schema.Fields.Field_Type'Class)
+      Item      : in     Kit.Schema.Fields.Field_Type)
    is
       use type System.Storage_Elements.Storage_Offset;
       Field : constant Table_Field_Access := new Table_Field;
    begin
-      Field.Field := new Kit.Schema.Fields.Field_Type'Class'(Item);
+      Field.Field := Item;
       Field.Start := Table.Fields_Length;
       Field.Length :=
         System.Storage_Elements.Storage_Count (Item.Get_Field_Type.Size);
@@ -223,7 +224,7 @@ package body Kit.Schema.Tables is
    function Base_Field
      (Table : Table_Type'Class;
       Base  : Table_Type'Class)
-      return Field_Access
+      return Kit.Schema.Fields.Field_Type
    is
    begin
       for Field of Table.Fields loop
@@ -242,7 +243,7 @@ package body Kit.Schema.Tables is
      (Table  : Table_Type'Class;
       Object_Name : String;
       Base        : Table_Type'Class;
-      Field       : Kit.Schema.Fields.Field_Type'Class)
+      Field       : Kit.Schema.Fields.Field_Type)
       return String
    is
       pragma Unreferenced (Table);
@@ -465,7 +466,7 @@ package body Kit.Schema.Tables is
    -----------------
 
    function Field_Start (Table : Table_Type;
-                         Field : Kit.Schema.Fields.Field_Type'Class)
+                         Field : Kit.Schema.Fields.Field_Type)
                          return System.Storage_Elements.Storage_Offset
    is
    begin
@@ -652,7 +653,7 @@ package body Kit.Schema.Tables is
    ---------------------
 
    function Inherited_Field (Table : Table_Type;
-                             Field : Kit.Schema.Fields.Field_Type'Class)
+                             Field : Kit.Schema.Fields.Field_Type)
                              return Boolean
    is
    begin
@@ -731,7 +732,7 @@ package body Kit.Schema.Tables is
    procedure Iterate
      (Table : Table_Type;
       Process  : not null access
-                        procedure (Item : Kit.Schema.Fields.Field_Type'Class))
+                        procedure (Item : Kit.Schema.Fields.Field_Type))
    is
       procedure Call_Process (Position : Field_Vectors.Cursor);
 
@@ -741,7 +742,7 @@ package body Kit.Schema.Tables is
 
       procedure Call_Process (Position : Field_Vectors.Cursor) is
       begin
-         Process (Field_Vectors.Element (Position).Field.all);
+         Process (Field_Vectors.Element (Position).Field);
       end Call_Process;
 
    begin
@@ -756,7 +757,7 @@ package body Kit.Schema.Tables is
      (Table : Table_Type'Class;
       Process  : not null access
         procedure (Table : Table_Type'Class;
-                   Field : Kit.Schema.Fields.Field_Type'Class);
+                   Field : Kit.Schema.Fields.Field_Type);
       Table_First : Boolean := False)
    is
       Visited        : Table_Vectors.Vector;
@@ -774,7 +775,7 @@ package body Kit.Schema.Tables is
          for F of T.Fields loop
             if not Visited_Fields.Contains (F) then
                Visited_Fields.Append (F);
-               Process (T, F.Field.all);
+               Process (T, F.Field);
             end if;
          end loop;
       end Iterate_Fields;
@@ -1029,7 +1030,7 @@ package body Kit.Schema.Tables is
    procedure Scan_Fields
      (Table : Table_Type;
       Process  : not null access
-        procedure (Field : Kit.Schema.Fields.Field_Type'Class))
+        procedure (Field : Kit.Schema.Fields.Field_Type))
    is
       procedure Call_Process (Position : Field_Vectors.Cursor);
 
@@ -1039,7 +1040,7 @@ package body Kit.Schema.Tables is
 
       procedure Call_Process (Position : Field_Vectors.Cursor) is
       begin
-         Process (Field_Vectors.Element (Position).Field.all);
+         Process (Field_Vectors.Element (Position).Field);
       end Call_Process;
 
    begin
@@ -1106,7 +1107,7 @@ package body Kit.Schema.Tables is
 
    procedure Scan_Keys
      (Table    : Table_Type;
-      Containing_Field : Kit.Schema.Fields.Field_Type'Class;
+      Containing_Field : Kit.Schema.Fields.Field_Type;
       Process          : not null access procedure
         (Table  : Table_Type'Class;
          Base   : Table_Type'Class;
@@ -1142,7 +1143,7 @@ package body Kit.Schema.Tables is
                         Key_Table   : Table_Type'Class;
                         Object_Name : String;
                         Key         : Kit.Schema.Keys.Key_Type'Class;
-                        New_Field   : Kit.Schema.Fields.Field_Type'Class;
+                        New_Field   : Kit.Schema.Fields.Field_Type;
                         Field_Value : String;
                         With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class

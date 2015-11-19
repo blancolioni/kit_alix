@@ -73,14 +73,14 @@ package Kit.Schema.Tables is
    procedure Scan_Fields
      (Table    : Table_Type;
       Process : not null access procedure
-        (Field : Kit.Schema.Fields.Field_Type'Class));
+        (Field : Kit.Schema.Fields.Field_Type));
 
    function Contains_Field (Table : Table_Type;
                             Name     : String)
                            return Boolean;
 
    function Inherited_Field (Table : Table_Type;
-                             Field : Kit.Schema.Fields.Field_Type'Class)
+                             Field : Kit.Schema.Fields.Field_Type)
                              return Boolean;
 
    function Contains_Base (Table : Table_Type;
@@ -92,7 +92,7 @@ package Kit.Schema.Tables is
                         return Positive;
 
    function Field_Start (Table : Table_Type;
-                         Field : Kit.Schema.Fields.Field_Type'Class)
+                         Field : Kit.Schema.Fields.Field_Type)
                          return System.Storage_Elements.Storage_Offset;
 
    procedure Scan_Keys
@@ -109,7 +109,7 @@ package Kit.Schema.Tables is
 
    procedure Scan_Keys
      (Table    : Table_Type;
-      Containing_Field : Kit.Schema.Fields.Field_Type'Class;
+      Containing_Field : Kit.Schema.Fields.Field_Type;
       Process          : not null access procedure
         (Table  : Table_Type'Class;
          Base   : Table_Type'Class;
@@ -118,13 +118,13 @@ package Kit.Schema.Tables is
    procedure Iterate
      (Table : Table_Type;
       Process  : not null access
-        procedure (Item : Kit.Schema.Fields.Field_Type'Class));
+        procedure (Item : Kit.Schema.Fields.Field_Type));
 
    procedure Iterate_All
      (Table : Table_Type'Class;
       Process  : not null access
         procedure (Table : Table_Type'Class;
-                   Field : Kit.Schema.Fields.Field_Type'Class);
+                   Field : Kit.Schema.Fields.Field_Type);
       Table_First : Boolean := False);
 
    function To_Storage (Table       : Table_Type'Class;
@@ -140,7 +140,7 @@ package Kit.Schema.Tables is
                         Key_Table   : Table_Type'Class;
                         Object_Name : String;
                         Key         : Kit.Schema.Keys.Key_Type'Class;
-                        New_Field   : Kit.Schema.Fields.Field_Type'Class;
+                        New_Field   : Kit.Schema.Fields.Field_Type;
                         Field_Value : String;
                         With_Index  : Boolean)
                         return Aquarius.Drys.Expression'Class;
@@ -158,7 +158,7 @@ package Kit.Schema.Tables is
 
    procedure Append
      (Table     : in out Table_Type;
-      Item      : in     Kit.Schema.Fields.Field_Type'Class);
+      Item      : in     Kit.Schema.Fields.Field_Type);
 
    procedure Add_Key
      (Table     : in out Table_Type;
@@ -215,7 +215,7 @@ package Kit.Schema.Tables is
      (Table  : Table_Type'Class;
       Object_Name : String;
       Base        : Table_Type'Class;
-      Field       : Kit.Schema.Fields.Field_Type'Class)
+      Field       : Kit.Schema.Fields.Field_Type)
       return String;
 
    function Index_Image
@@ -240,13 +240,11 @@ package Kit.Schema.Tables is
 
 private
 
-   type Field_Access is access all Kit.Schema.Fields.Field_Type'Class;
-
    type Table_Field is
       record
          Start    : System.Storage_Elements.Storage_Offset;
          Length   : System.Storage_Elements.Storage_Count;
-         Field    : Field_Access;
+         Field    : Kit.Schema.Fields.Field_Type;
       end record;
 
    type Table_Field_Access is access Table_Field;
@@ -308,6 +306,6 @@ private
    function Base_Field
      (Table : Table_Type'Class;
       Base  : Table_Type'Class)
-      return Field_Access;
+      return Kit.Schema.Fields.Field_Type;
 
 end Kit.Schema.Tables;

@@ -208,14 +208,14 @@ package body Kit.Import.XML_DB is
 
             declare
                use Ada.Strings.Unbounded;
-               Field : Kit.Schema.Fields.Field_Type;
+               Field : constant Kit.Schema.Fields.Field_Type :=
+                         Kit.Schema.Fields.Create_Field
+                           (Name      => To_String (Document.Field_Name),
+                            With_Type =>
+                              Get_Type
+                                (Document.Db, To_String (Document.Field_Type),
+                                 To_String (Document.Reference)));
             begin
-               Field.Create_Field
-                 (To_String (Document.Field_Name),
-                  Get_Type
-                    (Document.Db, To_String (Document.Field_Type),
-                     To_String (Document.Reference)));
-
                Document.Table.Append
                  (Item      => Field);
             end;
