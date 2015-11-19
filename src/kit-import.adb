@@ -10,12 +10,14 @@ package body Kit.Import is
    ----------------------
 
    function Import_Directory
-     (Directory_Path : String;
-      Db             : Kit.Schema.Databases.Database_Access)
-      return Natural
+     (Directory_Path : String)
+      return Kit.Schema.Databases.Database_Type
    is
 
-      Result : Natural := 0;
+      Count : Natural := 0;
+      Result : constant Kit.Schema.Databases.Database_Type :=
+                 Kit.Schema.Databases.Create_Database
+                   (Ada.Directories.Simple_Name (Directory_Path));
 
       procedure Call_Importer
         (Directory_Entry : Ada.Directories.Directory_Entry_Type);
@@ -31,15 +33,13 @@ package body Kit.Import is
         (Directory_Entry : Ada.Directories.Directory_Entry_Type)
       is
          use Ada.Directories;
+         Child_Db : constant Kit.Schema.Databases.Database_Type :=
+                      Kit.XML_Reader.Read_XML_File
+                        (Full_Name (Directory_Entry));
       begin
---           Ada.Text_IO.Put (Simple_Name (Directory_Entry));
---           Ada.Text_IO.Flush;
 
-         Kit.XML_Reader.Read_XML_File (Full_Name (Directory_Entry), Db);
-
---           Ada.Text_IO.New_Line;
-
-         Result := Result + 1;
+         Result.With_Database (Child_Db);
+         Count := Count + 1;
 
       end Call_Importer;
 

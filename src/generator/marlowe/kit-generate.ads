@@ -13,7 +13,8 @@ package Kit.Generate is
    function Data_Store_Type_Name return String;
    function Data_Store_Cursor_Name return String;
 
-   function Generate_Database (Db : in out Kit.Schema.Databases.Database_Type)
-                              return Aquarius.Drys.Projects.Project;
+   function Generate_Database
+     (Db : Kit.Schema.Databases.Database_Type)
+      return Aquarius.Drys.Projects.Project;
 
 end Kit.Generate;

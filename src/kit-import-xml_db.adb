@@ -19,7 +19,7 @@ package body Kit.Import.XML_DB is
    type XML_DB_Reader_Type is
      new XML.XML_Document with
       record
-         Db : Kit.Schema.Databases.Database_Access;
+         Db : Kit.Schema.Databases.Database_Type;
          State : Reader_State := Start;
          Table      : Kit.Schema.Tables.Table_Type;
          Field_Name : Ada.Strings.Unbounded.Unbounded_String;
@@ -47,7 +47,7 @@ package body Kit.Import.XML_DB is
       Attribute_Value : String);
 
    function Get_Type
-     (Db        : Kit.Schema.Databases.Database_Access;
+     (Db        : Kit.Schema.Databases.Database_Type;
       Type_Name : String;
       Reference : String)
       return Kit.Schema.Types.Kit_Type;
@@ -57,7 +57,7 @@ package body Kit.Import.XML_DB is
    --------------
 
    function Get_Type
-     (Db        : Kit.Schema.Databases.Database_Access;
+     (Db        : Kit.Schema.Databases.Database_Type;
       Type_Name : String;
       Reference : String)
       return Kit.Schema.Types.Kit_Type
@@ -234,12 +234,13 @@ package body Kit.Import.XML_DB is
      (Document : in out XML_DB_Reader_Type;
       Tag_Name : String)
    is
+      use type Kit.Schema.Databases.Database_Type;
    begin
       case Document.State is
          when Start =>
             Document.State := Top_Level;
-            if Document.Db.Name = "" then
-               Document.Db.Create_Database (Tag_Name);
+            if Document.Db = null then
+               Document.Db := Kit.Schema.Databases.Create_Database (Tag_Name);
             elsif Document.Db.Name /= Tag_Name then
                Ada.Text_IO.Put_Line
                  (Ada.Text_IO.Standard_Error,
@@ -305,7 +306,7 @@ package body Kit.Import.XML_DB is
    -------------------
 
    function XML_DB_Reader
-     (Db : Kit.Schema.Databases.Database_Access)
+     (Db : Kit.Schema.Databases.Database_Type)
       return XML.XML_Document'Class
    is
    begin

@@ -21,10 +21,9 @@ with Kit.Generate.Templates;
 with GCS.Errors;
 
 procedure Kit.Driver is
-   Db : constant Kit.Schema.Databases.Database_Access :=
-          new Kit.Schema.Databases.Database_Type;
    Target_Directory : constant String :=
                         Ada.Directories.Current_Directory;
+   Db : Kit.Schema.Databases.Database_Type;
 begin
 
    if Ada.Command_Line.Argument_Count /= 1 then
@@ -45,9 +44,9 @@ begin
    begin
       Ada.Text_IO.Put_Line ("Reading: " & File_Name);
       if Extension = "xml" then
-         Kit.XML_Reader.Read_XML_File (File_Name, Db);
+         Db := Kit.XML_Reader.Read_XML_File (File_Name);
       elsif Extension = "kit" or else Extension = "k3" then
-         Kit.Parser.Read_Kit_File (Ada.Command_Line.Argument (1), Db.all);
+         Db := Kit.Parser.Read_Kit_File (Ada.Command_Line.Argument (1));
 
          if GCS.Errors.Has_Errors then
             Ada.Command_Line.Set_Exit_Status (1);
@@ -56,13 +55,7 @@ begin
       elsif Ada.Directories.Kind (File_Name) =
         Ada.Directories.Directory
       then
-         declare
-            Count : constant Natural :=
-                      Kit.Import.Import_Directory (File_Name, Db);
-         begin
-            Ada.Text_IO.Put_Line ("Files imported:"
-                                  & Natural'Image (Count));
-         end;
+         Db := Kit.Import.Import_Directory (File_Name);
       else
          Ada.Text_IO.Put_Line
            ("unknown file type: " & File_Name);
@@ -75,7 +68,7 @@ begin
    Ada.Text_IO.Put_Line ("Creating database");
    declare
       Project : constant Aquarius.Drys.Projects.Project :=
-                  Kit.Generate.Generate_Database (Db.all);
+                  Kit.Generate.Generate_Database (Db);
       File    : Aquarius.Drys.File_Writer.File_Writer;
    begin
       Ada.Text_IO.Put_Line ("Writing source files");
@@ -83,7 +76,7 @@ begin
       Kit.Generate.Templates.Copy_Template_Packages
         (Db, Target_Directory);
       Kit.Generate.Leander_Module.Generate_Leander_Module
-        (Db.all, Target_Directory);
+        (Db, Target_Directory);
    end;
 
    Ada.Text_IO.Put_Line ("Done");

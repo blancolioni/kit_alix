@@ -33,11 +33,11 @@ package body Kit.Parser is
 
    function At_Declaration return Boolean;
 
-   procedure Parse_Record (Db : in out Kit.Schema.Databases.Database_Type)
+   procedure Parse_Record (Db : Kit.Schema.Databases.Database_Type)
      with Pre => Tok = Tok_Record;
 
    procedure Parse_Type_Declaration
-     (Db : in out Kit.Schema.Databases.Database_Type)
+     (Db : Kit.Schema.Databases.Database_Type)
      with Pre => Tok = Tok_Type;
 
    procedure Parse_Bases (Db    : Kit.Schema.Databases.Database_Type;
@@ -333,7 +333,9 @@ package body Kit.Parser is
    -- Parse_Record --
    ------------------
 
-   procedure Parse_Record (Db : in out Kit.Schema.Databases.Database_Type) is
+   procedure Parse_Record
+     (Db : Kit.Schema.Databases.Database_Type)
+   is
    begin
       Scan;   --  Tok_Record
 
@@ -519,7 +521,7 @@ package body Kit.Parser is
    ----------------------------
 
    procedure Parse_Type_Declaration
-     (Db : in out Kit.Schema.Databases.Database_Type)
+     (Db : Kit.Schema.Databases.Database_Type)
    is
    begin
       Scan;  --  Tok_Type
@@ -564,20 +566,22 @@ package body Kit.Parser is
    -- Read_Kit_File --
    -------------------
 
-   procedure Read_Kit_File
-     (Path : String;
-      Db   : out Kit.Schema.Databases.Database_Type)
+   function Read_Kit_File
+     (Path : String)
+      return Kit.Schema.Databases.Database_Type
    is
       Withed : List_Of_Withed_Databases.List;
+      Result : Kit.Schema.Databases.Database_Type;
    begin
 
       Open (Path);
 
-      Read_Package (Db, Path, Withed,
+      Read_Package (Result, Path, Withed,
                     With_System     => True,
                     Create_Database => True);
 
       Close;
+      return Result;
    end Read_Kit_File;
 
    ------------------
@@ -656,7 +660,7 @@ package body Kit.Parser is
          Expect (Tok_Is, (Tok_Record, Tok_End));
 
          if Create_Database then
-            Db.Create_Database (Package_Name);
+            Db := Kit.Schema.Databases.Create_Database (Package_Name);
          end if;
 
          if With_System and then Package_Name /= "kit.db" then

@@ -465,7 +465,7 @@ package body Kit.Generate is
    -----------------------
 
    function Generate_Database
-     (Db : in out Kit.Schema.Databases.Database_Type)
+     (Db : Kit.Schema.Databases.Database_Type)
       return Aquarius.Drys.Projects.Project
    is
       Top_Package : Aquarius.Drys.Declarations.Package_Type :=
