@@ -62,7 +62,6 @@ package body Kit.Import.XML_DB is
       Reference : String)
       return Kit.Schema.Types.Kit_Type
    is
-      pragma Unreferenced (Db);
    begin
       if Reference /= "" then
          declare
@@ -73,16 +72,10 @@ package body Kit.Import.XML_DB is
                       (if Index = 0
                        then Reference
                        else Reference (Reference'First .. Index - 1));
+            Table : constant Kit.Schema.Tables.Table_Type :=
+                      Db.Element (Name);
          begin
---              if not Db.Contains (Name) then
---                 declare
---                    Table : Kit.Schema.Tables.Table_Type;
---                 begin
---                    Table.Create (Name);
---                    Db.Append (Table);
---                 end;
---              end if;
-            return Kit.Schema.Types.Table_Reference_Type (Name);
+            return Table.Reference_Type;
          end;
       end if;
 
