@@ -85,8 +85,43 @@ package body Kit.Generate.Public_Interface is
                           Aquarius.Drys.Named_Subtype
                             (Table.Ada_Name & "_Implementation"));
 
+      procedure Create_Delete;
       procedure Create_Initialize;
       procedure Create_Finalize;
+
+      procedure Create_Delete is
+         use Aquarius.Drys.Statements;
+         Delete_Block : Aquarius.Drys.Blocks.Block_Type;
+      begin
+         Delete_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Database_Mutex.Shared_Lock"));
+
+         Delete_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Item.X_Lock"));
+
+         Delete_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              (Table.Implementation_Name & " (Item).Deleted := True"));
+
+         Delete_Block.Add_Statement
+           (New_Procedure_Call_Statement
+              ("Database_Mutex.Shared_Unlock"));
+
+         declare
+            Delete : constant Subprogram_Declaration'Class :=
+                       New_Procedure
+                        ("Delete",
+                         New_Inout_Argument ("Item",
+                           Aquarius.Drys.Named_Subtype
+                             (Table.Ada_Name & "_Type")),
+                         Delete_Block);
+         begin
+            Top.Append (Delete);
+         end;
+
+      end Create_Delete;
 
       ---------------------
       -- Create_Finalize --
@@ -96,48 +131,87 @@ package body Kit.Generate.Public_Interface is
          use Aquarius.Drys.Statements;
          Insert_Keys : Sequence_Of_Statements;
          Finalize_Block : Aquarius.Drys.Blocks.Block_Type;
+         Delete_Key_Statements : Sequence_Of_Statements;
 
-         procedure Insert_Table_Keys
-           (Base  : Kit.Schema.Tables.Table_Type);
+         procedure Key_Operation
+           (Operation_Name : String;
+            Target         : in out Sequence_Of_Statements);
 
-         -----------------------
-         -- Insert_Table_Keys --
-         -----------------------
+         procedure Set_Db_Deleted
+           (Base : Kit.Schema.Tables.Table_Type);
 
-         procedure Insert_Table_Keys
-           (Base  : Kit.Schema.Tables.Table_Type)
+         -------------------
+         -- Key_Operation --
+         -------------------
+
+         procedure Key_Operation
+           (Operation_Name : String;
+            Target         : in out Sequence_Of_Statements)
          is
-            procedure Insert_Key
-              (Key_Table : Kit.Schema.Tables.Table_Type;
-               Key       : Kit.Schema.Keys.Key_Type);
 
-            ----------------
-            -- Insert_Key --
-            ----------------
+            procedure Operate_Table_Keys
+              (Base  : Kit.Schema.Tables.Table_Type);
 
-            procedure Insert_Key
-              (Key_Table : Kit.Schema.Tables.Table_Type;
-               Key       : Kit.Schema.Keys.Key_Type)
+            ------------------------
+            -- Operate_Table_Keys --
+            ------------------------
+
+            procedure Operate_Table_Keys
+              (Base  : Kit.Schema.Tables.Table_Type)
             is
-               Insert : Procedure_Call_Statement :=
-                          New_Procedure_Call_Statement
-                            ("Marlowe_Keys.Handle.Insert");
+               procedure Operate_Key
+                 (Key_Table : Kit.Schema.Tables.Table_Type;
+                  Key       : Kit.Schema.Keys.Key_Type);
+
+               -----------------
+               -- Operate_Key --
+               -----------------
+
+               procedure Operate_Key
+                 (Key_Table : Kit.Schema.Tables.Table_Type;
+                  Key       : Kit.Schema.Keys.Key_Type)
+               is
+                  Insert : Procedure_Call_Statement :=
+                             New_Procedure_Call_Statement
+                               ("Marlowe_Keys.Handle."
+                               & Operation_Name);
+               begin
+                  Insert.Add_Actual_Argument ("Marlowe_Keys."
+                                              & Base.Key_Reference_Name
+                                                (Key));
+                  Insert.Add_Actual_Argument
+                    (Table.To_Storage (Base_Table  => Base,
+                                       Key_Table   => Key_Table,
+                                       Object_Name => "Item",
+                                       Key         => Key,
+                                       With_Index  => True));
+                  Target.Append (Insert);
+               end Operate_Key;
+
             begin
-               Insert.Add_Actual_Argument ("Marlowe_Keys."
-                                           & Base.Key_Reference_Name
-                                             (Key));
-               Insert.Add_Actual_Argument
-                 (Table.To_Storage (Base_Table  => Base,
-                                    Key_Table   => Key_Table,
-                                    Object_Name => "Item",
-                                    Key         => Key,
-                                    With_Index  => True));
-               Insert_Keys.Append (Insert);
-            end Insert_Key;
+               Base.Scan_Keys (Operate_Key'Access);
+            end Operate_Table_Keys;
 
          begin
-            Base.Scan_Keys (Insert_Key'Access);
-         end Insert_Table_Keys;
+            Table.Iterate (Operate_Table_Keys'Access,
+                           Inclusive   => True,
+                           Table_First => False);
+         end Key_Operation;
+
+         --------------------
+         -- Set_Db_Deleted --
+         --------------------
+
+         procedure Set_Db_Deleted
+           (Base : Kit.Schema.Tables.Table_Type)
+         is
+         begin
+            Delete_Key_Statements.Append
+              (New_Assignment_Statement
+                 (Target =>
+                      "Item.Local.T" & Base.Index_Image & "_Data.Db.Deleted",
+                  Value  => Object ("True")));
+         end Set_Db_Deleted;
 
       begin
 
@@ -170,9 +244,22 @@ package body Kit.Generate.Public_Interface is
                         Object ("Item.Local.M_Index")))));
          end if;
 
-         Table.Iterate (Insert_Table_Keys'Access,
-                        Inclusive   => True,
-                        Table_First => False);
+         Key_Operation ("Delete", Delete_Key_Statements);
+
+         Table.Iterate
+           (Process => Set_Db_Deleted'Access,
+            Inclusive => True);
+
+         declare
+            Deleted  : constant Expression'Class :=
+                         Object ("Item.Deleted");
+            If_Deleted : constant Statement'Class :=
+                           If_Statement (Deleted, Delete_Key_Statements);
+         begin
+            Finalize_Block.Add_Statement (If_Deleted);
+         end;
+
+         Key_Operation ("Insert", Insert_Keys);
 
          Insert_Keys.Append
            (New_Procedure_Call_Statement
@@ -315,6 +402,7 @@ package body Kit.Generate.Public_Interface is
    begin
       Create_Initialize;
       Create_Finalize;
+      Create_Delete;
    end Create_Control_Procedures;
 
    ----------------------------
@@ -783,8 +871,8 @@ package body Kit.Generate.Public_Interface is
            (New_Formal_Argument ("Value",
             Aquarius.Drys.Named_Subtype
               (Field.Get_Field_Type.Argument_Subtype)));
-
          Store.Set_Overriding;
+
          Top.Append_To_Body (Store);
       end;
 
