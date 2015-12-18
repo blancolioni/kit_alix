@@ -75,7 +75,7 @@ package body {database}.Kit_Locking is
             end loop;
          end if;
       end if;
-
+      Grant_Mutex.Unlock;
    end Check_Deadlock;
 
    ----------------------
@@ -90,6 +90,7 @@ package body {database}.Kit_Locking is
             loop
                select
                   accept Stop;
+                  exit;
                else
                   delay 5.0;
                   Check_Deadlock;
