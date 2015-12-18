@@ -1,3 +1,5 @@
+with Kit.Options;
+
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
 with Kit.Schema.Tables;
@@ -63,6 +65,12 @@ package body Kit.Generate.Database_Package is
          use Aquarius.Drys;
          Block : Aquarius.Drys.Blocks.Block_Type;
       begin
+         if Kit.Options.Generate_Deadlock_Detection then
+            Block.Add_Statement
+              (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                 ("Kit_Locking.Stop_Scanning"));
+         end if;
+
          Block.Add_Statement
            (Aquarius.Drys.Statements.New_Procedure_Call_Statement
               ("Kit_Deferred_Keys.Close_Deferred_Keys"));
@@ -245,6 +253,12 @@ package body Kit.Generate.Database_Package is
             Initialise_Database_Structure (Db, Block);
          end if;
 
+         if Kit.Options.Generate_Deadlock_Detection then
+            Block.Add_Statement
+              (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+                 ("Kit_Locking.Start_Scanning"));
+         end if;
+
          declare
             Result : Subprogram_Declaration'Class :=
                        New_Procedure (Operation_Name (Operation),
@@ -304,6 +318,11 @@ package body Kit.Generate.Database_Package is
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Deferred_Keys",
                            Body_With => True);
+
+      if Kit.Options.Generate_Deadlock_Detection then
+         Result.With_Package (Db.Ada_Name & ".Kit_Locking",
+                              Body_With => True);
+      end if;
 
       if False then
          Db.Iterate (Add_Implementation_With'Access);
