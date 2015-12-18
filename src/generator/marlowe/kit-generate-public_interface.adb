@@ -89,6 +89,10 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Initialize;
       procedure Create_Finalize;
 
+      -------------------
+      -- Create_Delete --
+      -------------------
+
       procedure Create_Delete is
          use Aquarius.Drys.Statements;
          Delete_Block : Aquarius.Drys.Blocks.Block_Type;
@@ -103,22 +107,34 @@ package body Kit.Generate.Public_Interface is
 
          Delete_Block.Add_Statement
            (New_Procedure_Call_Statement
-              (Table.Implementation_Name & " (Item).Deleted := True"));
+              ("Item.Deleted := True"));
 
          Delete_Block.Add_Statement
            (New_Procedure_Call_Statement
               ("Database_Mutex.Shared_Unlock"));
 
          declare
-            Delete : constant Subprogram_Declaration'Class :=
+            Delete : Subprogram_Declaration'Class :=
                        New_Procedure
                         ("Delete",
                          New_Inout_Argument ("Item",
                            Aquarius.Drys.Named_Subtype
-                             (Table.Ada_Name & "_Type")),
+                             (Table.Ada_Name & "_Implementation")),
                          Delete_Block);
          begin
-            Top.Append (Delete);
+            Delete.Set_Overriding;
+            Top.Append_To_Body (Delete);
+
+            if Table.Ada_Name = "Kit_Root_Record" then
+               Top.Append
+                 (New_Abstract_Procedure
+                    (Name => "Delete",
+                     Argument =>
+                       New_Inout_Argument
+                         ("Item",
+                          Aquarius.Drys.Named_Subtype
+                            (Table.Ada_Name & "_Interface"))));
+            end if;
          end;
 
       end Create_Delete;
