@@ -540,6 +540,7 @@ package body Kit.Generate is
                                     Get_Record_Literal_Name'Access);
 
       Top_Package.With_Package ("Marlowe", Private_With => True);
+      Top_Package.With_Package ("Marlowe.Key_Storage", Private_With => True);
       Top_Package.With_Package ("Kit.Mutex", Private_With => True);
 
       Top_Package.Append
@@ -548,6 +549,19 @@ package body Kit.Generate is
             Syn.Types.New_Range_Definition
               (Low  => "-2 ** 63",
                High => "2 ** 63 - 1")));
+
+      declare
+         Key_Package : Syn.Declarations.Package_Type :=
+                         Syn.Declarations.New_Package_Type
+                           ("Integer_64_Storage");
+      begin
+         Key_Package.Set_Generic_Instantiation
+           ("Marlowe.Key_Storage.Integral_Storage");
+         Key_Package.Add_Generic_Actual_Argument
+           ("Integer_64");
+         Key_Package.Set_Private_Spec;
+         Top_Package.Append (Key_Package);
+      end;
 
       Create_User_Defined_Types (Db, Top_Package);
 

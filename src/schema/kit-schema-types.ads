@@ -115,7 +115,9 @@ package Kit.Schema.Types is
       External_Package_Name  : String;
       External_Type_Name     : String;
       To_Database_Function   : String;
-      From_Database_Function : String);
+      From_Database_Function : String;
+      To_String_Function     : String;
+      From_String_Function   : String);
 
    function Is_External_Type
      (Item : Root_Kit_Type'Class)

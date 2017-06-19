@@ -418,6 +418,10 @@ package body Kit.Generate.Private_Interface is
       Create_Database_Record (Table, Impl_Package);
       Impl_Package.Add_Separator;
 
+      Impl_Package.Append_To_Body
+        (Syn.Declarations.Use_Type
+           ("System.Storage_Elements.Storage_Array"));
+
       declare
          Block : Syn.Blocks.Block_Type;
       begin
