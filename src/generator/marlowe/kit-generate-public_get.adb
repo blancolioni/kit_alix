@@ -154,8 +154,9 @@ package body Kit.Generate.Public_Get is
          pragma Unreferenced (Base);
          use Aquarius.Drys.Expressions;
          Function_Name : constant String :=
-                           "Select_By_"
-                           & Key.Ada_Name;
+                           (if Key_Value
+                            then "Select_By_" & Key.Ada_Name
+                            else "Scan_By_" & Key.Ada_Name);
          Call : Function_Call_Expression :=
                            New_Function_Call_Expression
                              (Function_Name);
@@ -886,8 +887,15 @@ package body Kit.Generate.Public_Get is
       -------------------
 
       function Function_Name return String is
+         Base_Name : constant String :=
+                       (if Bounds
+                        then "Select_Bounded_By_"
+                        elsif Key_Value
+                        then "Select_By_"
+                        else "Scan_By_");
+
       begin
-         return "Select_By_"
+         return Base_Name
            & Kit.Names.Ada_Name (Key_Name);
       end Function_Name;
 

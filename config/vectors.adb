@@ -30,7 +30,7 @@ package body {database}.{table}_Vectors is
    is
    begin
       if Base_{table}_Vector.Last_Index = 0 then
-         for {table} of {database}.{table}.Select_By_Top_Record loop
+         for {table} of {database}.{table}.Scan_By_Top_Record loop
             Base_{table}_Vector.Append ({table}.Reference);
          end loop;
       end if;
