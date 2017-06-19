@@ -1,9 +1,9 @@
 with System.Storage_Elements;
 
-with Aquarius.Drys.Blocks;
-with Aquarius.Drys.Expressions;
-with Aquarius.Drys.Statements;
-with Aquarius.Drys.Types;
+with Syn.Blocks;
+with Syn.Expressions;
+with Syn.Statements;
+with Syn.Types;
 
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
@@ -13,24 +13,24 @@ package body Kit.Generate.Private_Interface is
    procedure Create_Compound_Key_To_Storage_Functions
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Database_Record
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Impl  : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Memory_Record
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Impl  : in out Syn.Declarations.Package_Type'Class);
    pragma Unreferenced (Create_Memory_Record);
 
    procedure Create_Read_Write_Procedures
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Impl  : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Key_Mutexes
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Impl  : in out Syn.Declarations.Package_Type'Class);
 
    ----------------------------------------------
    -- Create_Compound_Key_To_Storage_Functions --
@@ -39,7 +39,7 @@ package body Kit.Generate.Private_Interface is
    procedure Create_Compound_Key_To_Storage_Functions
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
 
@@ -49,7 +49,7 @@ package body Kit.Generate.Private_Interface is
       function To_Storage_Expression
         (Key   : Kit.Schema.Keys.Key_Type;
          Index : Positive)
-         return Aquarius.Drys.Expression'Class;
+         return Syn.Expression'Class;
 
       ---------------------------
       -- Create_Key_To_Storage --
@@ -62,9 +62,9 @@ package body Kit.Generate.Private_Interface is
       begin
          if Key.Field_Count > 1 then
             declare
-               use Aquarius.Drys, Aquarius.Drys.Declarations;
+               use Syn, Syn.Declarations;
                Fn : Subprogram_Declaration'Class :=
-                      Aquarius.Drys.Declarations.New_Function
+                      Syn.Declarations.New_Function
                         (Key.Ada_Name & "_To_Storage",
                          "System.Storage_Elements.Storage_Array",
                          To_Storage_Expression
@@ -89,12 +89,12 @@ package body Kit.Generate.Private_Interface is
       function To_Storage_Expression
         (Key   : Kit.Schema.Keys.Key_Type;
          Index : Positive)
-         return Aquarius.Drys.Expression'Class
+         return Syn.Expression'Class
       is
-         use Aquarius.Drys.Expressions;
+         use Syn.Expressions;
          Field : constant Kit.Schema.Fields.Field_Type :=
                    Key.Field (Index);
-         This  : constant Aquarius.Drys.Expression'Class :=
+         This  : constant Syn.Expression'Class :=
                    Field.Get_Field_Type.To_Storage_Array
                      (Field.Ada_Name);
       begin
@@ -116,13 +116,13 @@ package body Kit.Generate.Private_Interface is
 
    procedure Create_Database_Record
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Impl  : in out Syn.Declarations.Package_Type'Class)
    is
 
       Have_String_With : Boolean := False;
       Have_Text_With   : Boolean := False;
 
-      Record_Defn : Aquarius.Drys.Types.Record_Type_Definition;
+      Record_Defn : Syn.Types.Record_Type_Definition;
 
       procedure Add_Component (Field : Kit.Schema.Fields.Field_Type);
       procedure Add_Base_Index (Base : Kit.Schema.Tables.Table_Type);
@@ -145,15 +145,15 @@ package body Kit.Generate.Private_Interface is
          use Kit.Schema.Tables;
       begin
          if Field.Get_Field_Type.Has_Default_Value then
-            Aquarius.Drys.Types.Add_Component
+            Syn.Types.Add_Component
               (Record_Defn, Field.Ada_Name,
-               Aquarius.Drys.Named_Subtype
+               Syn.Named_Subtype
                  (Field.Get_Field_Type.Record_Subtype),
                Field.Get_Field_Type.Default_Value);
          else
-            Aquarius.Drys.Types.Add_Component
+            Syn.Types.Add_Component
               (Record_Defn, Field.Ada_Name,
-               Aquarius.Drys.Named_Subtype
+               Syn.Named_Subtype
                  (Field.Get_Field_Type.Record_Subtype));
          end if;
 
@@ -177,13 +177,13 @@ package body Kit.Generate.Private_Interface is
 
       Record_Defn.Add_Component
         ("Magic",
-         Aquarius.Drys.Named_Subtype ("Integer"),
-         Aquarius.Drys.Object (Table.Ada_Name & "_Magic"));
+         Syn.Named_Subtype ("Integer"),
+         Syn.Object (Table.Ada_Name & "_Magic"));
 
       Record_Defn.Add_Component
         ("Deleted",
-         Aquarius.Drys.Named_Subtype ("Boolean"),
-         Aquarius.Drys.Object ("False"));
+         Syn.Named_Subtype ("Boolean"),
+         Syn.Object ("False"));
 
       if False then
          Table.Iterate (Process     => Add_Base_Index'Access,
@@ -193,7 +193,7 @@ package body Kit.Generate.Private_Interface is
       Table.Scan_Fields (Add_Component'Access);
 
       Impl.Append
-        (Aquarius.Drys.Declarations.New_Full_Type_Declaration
+        (Syn.Declarations.New_Full_Type_Declaration
            (Identifier => Table.Ada_Name & "_Database_Record",
             Definition => Record_Defn));
 
@@ -205,7 +205,7 @@ package body Kit.Generate.Private_Interface is
 
    procedure Create_Key_Mutexes
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Impl  : in out Syn.Declarations.Package_Type'Class)
    is
 
       procedure Add_Mutex (Base : Kit.Schema.Tables.Table_Type;
@@ -221,7 +221,7 @@ package body Kit.Generate.Private_Interface is
          pragma Unreferenced (Base);
       begin
          Impl.Append
-           (Aquarius.Drys.Declarations.New_Object_Declaration
+           (Syn.Declarations.New_Object_Declaration
               (Key.Ada_Name & "_Key_Mutex",
                "Kit.Mutex.Mutex_Type"));
       end Add_Mutex;
@@ -230,7 +230,7 @@ package body Kit.Generate.Private_Interface is
       Table.Scan_Keys (Add_Mutex'Access);
 
       Impl.Append
-        (Aquarius.Drys.Declarations.New_Object_Declaration
+        (Syn.Declarations.New_Object_Declaration
            ("File_Mutex",
             "Kit.Mutex.Mutex_Type"));
 
@@ -242,10 +242,10 @@ package body Kit.Generate.Private_Interface is
 
    procedure Create_Memory_Record
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Impl  : in out Syn.Declarations.Package_Type'Class)
    is
 
-      Record_Defn : Aquarius.Drys.Types.Record_Type_Definition;
+      Record_Defn : Syn.Types.Record_Type_Definition;
 
    begin
 
@@ -256,16 +256,16 @@ package body Kit.Generate.Private_Interface is
          Is_Access => True);
 
       Impl.Append
-        (Aquarius.Drys.Declarations.New_Full_Type_Declaration
+        (Syn.Declarations.New_Full_Type_Declaration
            (Identifier => Table.Ada_Name & "_Memory_Record",
             Definition => Record_Defn));
 
       Impl.Add_Separator;
       Impl.Append
-        (Aquarius.Drys.Declarations.New_Full_Type_Declaration
+        (Syn.Declarations.New_Full_Type_Declaration
            (Identifier => "Cached_" & Table.Ada_Name,
             Definition =>
-              Aquarius.Drys.New_Access_Type
+              Syn.New_Access_Type
                 (Table.Ada_Name & "_Memory_Record'Class",
                  Access_All => True)));
 
@@ -277,11 +277,11 @@ package body Kit.Generate.Private_Interface is
 
    procedure Create_Read_Write_Procedures
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Impl  : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Impl  : in out Syn.Declarations.Package_Type'Class)
    is
 
       function Call_Marlowe (Write : Boolean)
-                             return Aquarius.Drys.Statement'Class;
+                             return Syn.Statement'Class;
 
       procedure Create_Transfer (Write : Boolean);
 
@@ -290,10 +290,10 @@ package body Kit.Generate.Private_Interface is
       ------------------
 
       function Call_Marlowe (Write : Boolean)
-                             return Aquarius.Drys.Statement'Class
+                             return Syn.Statement'Class
       is
-         use Aquarius.Drys;
-         use Aquarius.Drys.Statements;
+         use Syn;
+         use Syn.Statements;
          Name : constant String := (if Write then "Write_Record"
                                     else "Get_Record");
          Stat : Procedure_Call_Statement :=
@@ -314,7 +314,7 @@ package body Kit.Generate.Private_Interface is
 
          use System.Storage_Elements;
 
-         Block : Aquarius.Drys.Blocks.Block_Type;
+         Block : Syn.Blocks.Block_Type;
 
          procedure Handle_Storage (Field : Kit.Schema.Fields.Field_Type);
 
@@ -343,7 +343,7 @@ package body Kit.Generate.Private_Interface is
 
       begin
          Block.Add_Declaration
-           (Aquarius.Drys.Declarations.New_Object_Declaration
+           (Syn.Declarations.New_Object_Declaration
               ("Storage",
                "System.Storage_Elements.Storage_Array "
                & "(0 .."
@@ -364,13 +364,13 @@ package body Kit.Generate.Private_Interface is
          end if;
 
          declare
-            P     : Aquarius.Drys.Declarations.Subprogram_Declaration'Class :=
-                      Aquarius.Drys.Declarations.New_Procedure
+            P     : Syn.Declarations.Subprogram_Declaration'Class :=
+                      Syn.Declarations.New_Procedure
                         (Name  => (if Write then "Write" else "Read"),
                          Block => Block);
-            Mode  : constant Aquarius.Drys.Declarations.Argument_Mode :=
-                      (if Write then Aquarius.Drys.Declarations.In_Argument
-                       else Aquarius.Drys.Declarations.Out_Argument);
+            Mode  : constant Syn.Declarations.Argument_Mode :=
+                      (if Write then Syn.Declarations.In_Argument
+                       else Syn.Declarations.Out_Argument);
          begin
             P.Add_Formal_Argument ("Ref", "Marlowe.Database_Index");
             P.Add_Formal_Argument ("Item", Mode,
@@ -395,10 +395,10 @@ package body Kit.Generate.Private_Interface is
    function Generate_Private_Interface
      (Db    : Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in     Aquarius.Drys.Declarations.Package_Type'Class)
-      return Aquarius.Drys.Declarations.Package_Type'Class
+      Top   : in     Syn.Declarations.Package_Type'Class)
+      return Syn.Declarations.Package_Type'Class
    is
-      Impl_Package : Aquarius.Drys.Declarations.Package_Type'Class :=
+      Impl_Package : Syn.Declarations.Package_Type'Class :=
                        Top.New_Child_Package (Table.Ada_Name & "_Impl");
    begin
       Impl_Package.Set_Private;
@@ -410,30 +410,30 @@ package body Kit.Generate.Private_Interface is
       Impl_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                                 Body_With => True);
       Impl_Package.Append
-        (Aquarius.Drys.Declarations.New_Constant_Declaration
+        (Syn.Declarations.New_Constant_Declaration
            (Table.Ada_Name & "_Magic",
-            Aquarius.Drys.Literal (Table.Magic_Number)));
+            Syn.Literal (Table.Magic_Number)));
       Impl_Package.Add_Separator;
 
       Create_Database_Record (Table, Impl_Package);
       Impl_Package.Add_Separator;
 
       declare
-         Block : Aquarius.Drys.Blocks.Block_Type;
+         Block : Syn.Blocks.Block_Type;
       begin
          Block.Add_Declaration
-           (Aquarius.Drys.Declarations.Use_Type
+           (Syn.Declarations.Use_Type
               ("System.Storage_Elements.Storage_Offset"));
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Return_Statement
-              (Aquarius.Drys.Expressions.Operator
+           (Syn.Statements.New_Return_Statement
+              (Syn.Expressions.Operator
                  ("/",
-                  Aquarius.Drys.Object
+                  Syn.Object
                     (Table.Ada_Name & "_Database_Record'Size"),
-                  Aquarius.Drys.Object ("System.Storage_Unit"))));
+                  Syn.Object ("System.Storage_Unit"))));
 
          Impl_Package.Append
-           (Aquarius.Drys.Declarations.New_Function
+           (Syn.Declarations.New_Function
               ("Disk_Storage_Units",
                "System.Storage_Elements.Storage_Count",
                Block));

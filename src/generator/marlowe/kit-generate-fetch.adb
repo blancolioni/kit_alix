@@ -1,5 +1,5 @@
-with Aquarius.Drys.Expressions;
-with Aquarius.Drys.Statements;
+with Syn.Expressions;
+with Syn.Statements;
 
 with Kit.Options;
 
@@ -12,7 +12,7 @@ package body Kit.Generate.Fetch is
    procedure Fetch_From_Index
      (Table       : Kit.Schema.Tables.Table_Type;
       Object_Name : String;
-      Target      : in out Aquarius.Drys.Statement_Sequencer'Class)
+      Target      : in out Syn.Statement_Sequencer'Class)
    is
 
       procedure Get_Base (Base   : Kit.Schema.Tables.Table_Type);
@@ -22,9 +22,9 @@ package body Kit.Generate.Fetch is
       --------------
 
       procedure Get_Base (Base   : Kit.Schema.Tables.Table_Type) is
-         use Aquarius.Drys;
-         use Aquarius.Drys.Expressions;
-         use Aquarius.Drys.Statements;
+         use Syn;
+         use Syn.Expressions;
+         use Syn.Statements;
 
          Base_Target    : constant String :=
                             Object_Name & Base.Base_Component_Name;
@@ -47,9 +47,9 @@ package body Kit.Generate.Fetch is
    begin
       if Kit.Options.Generate_Debug then
          declare
-            use Aquarius.Drys;
-            use Aquarius.Drys.Expressions;
-            use Aquarius.Drys.Statements;
+            use Syn;
+            use Syn.Expressions;
+            use Syn.Statements;
          begin
             Target.Append
               (New_Procedure_Call_Statement

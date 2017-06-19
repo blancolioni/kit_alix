@@ -1,7 +1,7 @@
-with Aquarius.Drys.Blocks;
-with Aquarius.Drys.Declarations;
-with Aquarius.Drys.Expressions;
-with Aquarius.Drys.Statements;
+with Syn.Blocks;
+with Syn.Declarations;
+with Syn.Expressions;
+with Syn.Statements;
 
 package body Kit.Schema.Types.Enumerated is
 
@@ -28,12 +28,12 @@ package body Kit.Schema.Types.Enumerated is
 
    overriding function Create_Database_Record
      (For_Type : Enumerated_Type)
-      return Aquarius.Drys.Statement'Class
+      return Syn.Statement'Class
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
-      use Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
+      use Syn.Statements;
       T : Enumerated_Type'Class renames
             Enumerated_Type'Class (For_Type);
       Create : constant Expression'Class :=
@@ -41,7 +41,7 @@ package body Kit.Schema.Types.Enumerated is
                    ("Kit_Enumeration.Create",
                     Literal (Size (T)),
                     Literal (T.Standard_Name));
-      Block        : Aquarius.Drys.Blocks.Block_Type;
+      Block        : Syn.Blocks.Block_Type;
    begin
       Block.Add_Declaration
         (New_Constant_Declaration
@@ -74,10 +74,10 @@ package body Kit.Schema.Types.Enumerated is
 
    overriding function Default_Value
      (Item : Enumerated_Type)
-      return Aquarius.Drys.Expression'Class
+      return Syn.Expression'Class
    is
    begin
-      return Aquarius.Drys.Object
+      return Syn.Object
         (Kit.Names.Ada_Name (Item.Literals.Element (1)));
    end Default_Value;
 
@@ -127,19 +127,19 @@ package body Kit.Schema.Types.Enumerated is
       Object_Name   : String;
       Storage_Name  : String;
       Start, Finish : System.Storage_Elements.Storage_Offset)
-      return Aquarius.Drys.Statement'Class
+      return Syn.Statement'Class
    is
-      Block : Aquarius.Drys.Blocks.Block_Type;
+      Block : Syn.Blocks.Block_Type;
    begin
       if To_Storage then
          Block.Add_Declaration
-           (Aquarius.Drys.Declarations.New_Constant_Declaration
+           (Syn.Declarations.New_Constant_Declaration
               ("T", "Marlowe.Key_Storage.Unsigned_Integer",
-               Aquarius.Drys.Object
+               Syn.Object
                  (Item.Ada_Name & "'Pos (" & Object_Name & ")")));
       else
          Block.Add_Declaration
-           (Aquarius.Drys.Declarations.New_Object_Declaration
+           (Syn.Declarations.New_Object_Declaration
               ("T", "Marlowe.Key_Storage.Unsigned_Integer"));
       end if;
 
@@ -157,12 +157,12 @@ package body Kit.Schema.Types.Enumerated is
 
       if not To_Storage then
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Assignment_Statement
+           (Syn.Statements.New_Assignment_Statement
               (Object_Name,
-               Aquarius.Drys.Object (Item.Ada_Name & "'Val (T)")));
+               Syn.Object (Item.Ada_Name & "'Val (T)")));
       end if;
 
-      return Aquarius.Drys.Statements.Declare_Statement (Block);
+      return Syn.Statements.Declare_Statement (Block);
 
    end Storage_Array_Transfer;
 
@@ -173,14 +173,14 @@ package body Kit.Schema.Types.Enumerated is
    overriding
    function To_Declaration
      (Item : Enumerated_Type)
-      return Aquarius.Drys.Declaration'Class
+      return Syn.Declaration'Class
    is
-      Definition : Aquarius.Drys.Enumeration_Type_Definition;
+      Definition : Syn.Enumeration_Type_Definition;
    begin
       for Literal of Item.Literals loop
          Definition.New_Literal (Literal);
       end loop;
-      return Aquarius.Drys.Declarations.New_Full_Type_Declaration
+      return Syn.Declarations.New_Full_Type_Declaration
         (Item.Ada_Name, Definition);
    end To_Declaration;
 
@@ -191,9 +191,9 @@ package body Kit.Schema.Types.Enumerated is
    overriding function To_Storage_Array
      (Item        : Enumerated_Type;
       Object_Name : String)
-      return Aquarius.Drys.Expression'Class
+      return Syn.Expression'Class
    is
-      use Aquarius.Drys, Aquarius.Drys.Expressions;
+      use Syn, Syn.Expressions;
    begin
       return New_Function_Call_Expression
         ("Marlowe.Key_Storage.To_Storage_Array",

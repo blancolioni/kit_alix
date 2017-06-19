@@ -1,4 +1,4 @@
-with Aquarius.Drys;
+with Syn;
 
 package body Kit.Generate.Get_From_Cache is
 
@@ -9,12 +9,12 @@ package body Kit.Generate.Get_From_Cache is
    function Generate_Get_From_Cache
      (Db    : Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in     Aquarius.Drys.Declarations.Package_Type'Class)
-      return Aquarius.Drys.Declarations.Package_Type'Class
+      Top   : in     Syn.Declarations.Package_Type'Class)
+      return Syn.Declarations.Package_Type'Class
    is
       Database_Package      : constant String :=
                                  Table.Ada_Name & "_Impl";
-      Table_Package : Aquarius.Drys.Declarations.Package_Type'Class :=
+      Table_Package : Syn.Declarations.Package_Type'Class :=
         Top.New_Child_Package (Table.Ada_Name & "_Cache");
    begin
       Table_Package.Set_Private;

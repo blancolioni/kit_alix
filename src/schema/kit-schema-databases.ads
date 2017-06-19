@@ -1,6 +1,6 @@
 private with Ada.Containers.Vectors;
 
-with Aquarius.Writer;
+with Syn.Writer;
 
 with Kit.Names;
 with Kit.Schema.Tables;
@@ -42,7 +42,7 @@ package Kit.Schema.Databases is
       Item : in     Kit.Schema.Tables.Table_Type);
 
    procedure Write (Db     : Root_Database_Type;
-                    Writer : in out Aquarius.Writer.Writer_Interface'Class);
+                    Writer : in out Syn.Writer.Writer_Interface'Class);
 
    function Has_Display_Field (Db : Root_Database_Type) return Boolean;
 

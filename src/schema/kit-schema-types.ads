@@ -1,6 +1,6 @@
 with System.Storage_Elements;
 
-with Aquarius.Drys;
+with Syn;
 
 with Kit.Names;
 
@@ -15,14 +15,14 @@ package Kit.Schema.Types is
    function Argument_Subtype (Item : Root_Kit_Type) return String;
    function Convert_To_String (Item   : Root_Kit_Type;
                                Object_Name : String)
-                               return Aquarius.Drys.Expression'Class;
+                               return Syn.Expression'Class;
    function Convert_From_String (Item   : Root_Kit_Type;
                                  Object_Name : String)
-                                 return Aquarius.Drys.Expression'Class;
+                                 return Syn.Expression'Class;
    function Has_Default_Value (Item : Root_Kit_Type)
                                return Boolean;
    function Default_Value (Item : Root_Kit_Type)
-                           return Aquarius.Drys.Expression'Class
+                           return Syn.Expression'Class
                            is abstract;
 
    function Haskell_Type_Name (Item : Root_Kit_Type) return String;
@@ -40,7 +40,7 @@ package Kit.Schema.Types is
    function To_Storage_Array
      (Item        : Root_Kit_Type;
       Object_Name : String)
-      return Aquarius.Drys.Expression'Class;
+      return Syn.Expression'Class;
 
    function Storage_Array_Transfer
      (Item          : Root_Kit_Type;
@@ -48,37 +48,37 @@ package Kit.Schema.Types is
       Object_Name   : String;
       Storage_Name  : String;
       Start, Finish : System.Storage_Elements.Storage_Offset)
-      return Aquarius.Drys.Statement'Class;
+      return Syn.Statement'Class;
 
    procedure Set_Value
      (Value_Type  : Root_Kit_Type;
       Target_Name : String;
       Value_Name  : String;
-      Sequence    : in out Aquarius.Drys.Statement_Sequencer'Class);
+      Sequence    : in out Syn.Statement_Sequencer'Class);
 
    function Return_Value
      (Value_Type  : Root_Kit_Type;
       Target_Name : String)
-      return Aquarius.Drys.Expression'Class;
+      return Syn.Expression'Class;
 
    function To_Declaration
      (From_Type : Root_Kit_Type)
-      return Aquarius.Drys.Declaration'Class;
+      return Syn.Declaration'Class;
 
    function Reference_Database_Type
      (Of_Kit_Type : Root_Kit_Type)
-      return Aquarius.Drys.Expression'Class;
+      return Syn.Expression'Class;
 
    function Create_Database_Record
      (For_Type : Root_Kit_Type)
-      return Aquarius.Drys.Statement'Class
+      return Syn.Statement'Class
       is abstract;
 
    function First_Value (Of_Type : Root_Kit_Type)
-                         return Aquarius.Drys.Expression'Class;
+                         return Syn.Expression'Class;
 
    function Last_Value (Of_Type : Root_Kit_Type)
-                        return Aquarius.Drys.Expression'Class;
+                        return Syn.Expression'Class;
 
    type Kit_Type is access all Root_Kit_Type'Class;
 
@@ -140,6 +140,6 @@ private
       Storage_Name  : String;
       Start, Finish : System.Storage_Elements.Storage_Offset;
       Proc_Name     : String)
-      return Aquarius.Drys.Statement'Class;
+      return Syn.Statement'Class;
 
 end Kit.Schema.Types;

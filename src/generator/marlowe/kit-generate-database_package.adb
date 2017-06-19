@@ -5,9 +5,9 @@ with Kit.Schema.Keys;
 with Kit.Schema.Tables;
 with Kit.Schema.Types;
 
-with Aquarius.Drys.Blocks;
-with Aquarius.Drys.Expressions;
-with Aquarius.Drys.Statements;
+with Syn.Blocks;
+with Syn.Expressions;
+with Syn.Statements;
 
 package body Kit.Generate.Database_Package is
 
@@ -17,7 +17,7 @@ package body Kit.Generate.Database_Package is
 
    procedure Initialise_Database_Structure
      (Db  : Kit.Schema.Databases.Database_Type;
-      Seq : in out Aquarius.Drys.Statement_Sequencer'Class);
+      Seq : in out Syn.Statement_Sequencer'Class);
 
    -------------------------------
    -- Generate_Database_Package --
@@ -25,10 +25,10 @@ package body Kit.Generate.Database_Package is
 
    function Generate_Database_Package
      (Db : Kit.Schema.Databases.Database_Type)
-      return Aquarius.Drys.Declarations.Package_Type
+      return Syn.Declarations.Package_Type
    is
-      Result : Aquarius.Drys.Declarations.Package_Type :=
-                 Aquarius.Drys.Declarations.New_Package_Type
+      Result : Syn.Declarations.Package_Type :=
+                 Syn.Declarations.New_Package_Type
                    (Db.Name & ".Database");
 
       procedure Add_Implementation_With
@@ -36,10 +36,10 @@ package body Kit.Generate.Database_Package is
 
       function Create_Database_Procedure
         (Operation : Database_Operation)
-         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class;
+         return Syn.Declarations.Subprogram_Declaration'Class;
 
       function Create_Close_Procedure
-        return Aquarius.Drys.Declarations.Subprogram_Declaration'Class;
+        return Syn.Declarations.Subprogram_Declaration'Class;
 
       -----------------------------
       -- Add_Implementation_With --
@@ -60,33 +60,33 @@ package body Kit.Generate.Database_Package is
       ----------------------------
 
       function Create_Close_Procedure
-        return Aquarius.Drys.Declarations.Subprogram_Declaration'Class
+        return Syn.Declarations.Subprogram_Declaration'Class
       is
-         use Aquarius.Drys;
-         Block : Aquarius.Drys.Blocks.Block_Type;
+         use Syn;
+         Block : Syn.Blocks.Block_Type;
       begin
          if Kit.Options.Generate_Deadlock_Detection then
             Block.Add_Statement
-              (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+              (Syn.Statements.New_Procedure_Call_Statement
                  ("Kit_Locking.Stop_Scanning"));
          end if;
 
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Kit_Deferred_Keys.Close_Deferred_Keys"));
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Kit.Cache.Close"));
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Database_Mutex.Lock"));
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Marlowe_Keys.Handle.Close"));
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Database_Mutex.Unlock"));
-         return Aquarius.Drys.Declarations.New_Procedure ("Close", Block);
+         return Syn.Declarations.New_Procedure ("Close", Block);
       end Create_Close_Procedure;
 
       -------------------------------
@@ -95,10 +95,10 @@ package body Kit.Generate.Database_Package is
 
       function Create_Database_Procedure
         (Operation : Database_Operation)
-         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class
+         return Syn.Declarations.Subprogram_Declaration'Class
       is
-         use Aquarius.Drys.Declarations;
-         Block : Aquarius.Drys.Blocks.Block_Type;
+         use Syn.Declarations;
+         Block : Syn.Blocks.Block_Type;
 
          procedure Create_Table
            (Table : Kit.Schema.Tables.Table_Type);
@@ -113,7 +113,7 @@ package body Kit.Generate.Database_Package is
          procedure Create_Table
            (Table : Kit.Schema.Tables.Table_Type)
          is
-            use Aquarius.Drys.Statements;
+            use Syn.Statements;
 
             procedure Create_Key
               (Base : Kit.Schema.Tables.Table_Type;
@@ -128,8 +128,8 @@ package body Kit.Generate.Database_Package is
                Key  : Kit.Schema.Keys.Key_Type)
             is
                pragma Unreferenced (Base);
-               use Aquarius.Drys;
-               use Aquarius.Drys.Expressions;
+               use Syn;
+               use Syn.Expressions;
                use Kit.Schema.Tables;
 
                Call_Add_Key : Function_Call_Expression :=
@@ -156,9 +156,9 @@ package body Kit.Generate.Database_Package is
                         ("Marlowe_Keys.Handle.Add_Table");
          begin
             Proc.Add_Actual_Argument
-              (Aquarius.Drys.Literal (Table.Standard_Name));
+              (Syn.Literal (Table.Standard_Name));
             Proc.Add_Actual_Argument
-              (Aquarius.Drys.Literal (Natural (Table.Length)));
+              (Syn.Literal (Natural (Table.Length)));
             Block.Add_Statement (Proc);
 
             Table.Scan_Keys (Create_Key'Access);
@@ -171,7 +171,7 @@ package body Kit.Generate.Database_Package is
          procedure Open_Table
            (Table : Kit.Schema.Tables.Table_Type)
          is
-            use Aquarius.Drys.Statements;
+            use Syn.Statements;
 
             procedure Open_Key
               (Base : Kit.Schema.Tables.Table_Type;
@@ -186,7 +186,7 @@ package body Kit.Generate.Database_Package is
                Key  : Kit.Schema.Keys.Key_Type)
             is
                pragma Unreferenced (Base);
-               use Aquarius.Drys.Expressions;
+               use Syn.Expressions;
                use Kit.Schema.Tables;
 
                Call_Open_Key : Function_Call_Expression :=
@@ -195,7 +195,7 @@ package body Kit.Generate.Database_Package is
                                       "Marlowe_Keys.Handle.Get_Reference");
             begin
                Call_Open_Key.Add_Actual_Argument
-                 (Aquarius.Drys.Literal
+                 (Syn.Literal
                     (Table.Name & "_" & Key.Standard_Name));
 
                Block.Add_Statement
@@ -211,31 +211,31 @@ package body Kit.Generate.Database_Package is
 
          end Open_Table;
 
-         Access_Db  : Aquarius.Drys.Statements.Procedure_Call_Statement :=
-                        Aquarius.Drys.Statements.New_Procedure_Call_Statement
+         Access_Db  : Syn.Statements.Procedure_Call_Statement :=
+                        Syn.Statements.New_Procedure_Call_Statement
                           ("Marlowe_Keys.Handle." &
                            Operation_Name (Operation));
       begin
 
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               (Procedure_Name => "Kit.Cache.Start_Cache"));
 
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Database_Mutex.Lock"));
 
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Assignment_Statement
+           (Syn.Statements.New_Assignment_Statement
               (Target => "Marlowe_Keys.Handle",
                Value  =>
-                 Aquarius.Drys.Expressions.New_Allocation_Expression
+                 Syn.Expressions.New_Allocation_Expression
                    (Allocated_Type => Data_Store_Type_Name)));
 
          Access_Db.Add_Actual_Argument
-           (Aquarius.Drys.Object ("Path"));
+           (Syn.Object ("Path"));
          Access_Db.Add_Actual_Argument
-           (Aquarius.Drys.Object ("Database_Magic_Number"));
+           (Syn.Object ("Database_Magic_Number"));
          Block.Add_Statement (Access_Db);
 
          case Operation is
@@ -246,7 +246,7 @@ package body Kit.Generate.Database_Package is
          end case;
 
          Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Database_Mutex.Unlock"));
 
          if Operation = Create then
@@ -255,7 +255,7 @@ package body Kit.Generate.Database_Package is
 
          if Kit.Options.Generate_Deadlock_Detection then
             Block.Add_Statement
-              (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+              (Syn.Statements.New_Procedure_Call_Statement
                  ("Kit_Locking.Start_Scanning"));
          end if;
 
@@ -268,7 +268,7 @@ package body Kit.Generate.Database_Package is
               (Arg_Name    => "Path",
                Arg_Type    => "String",
                Arg_Default =>
-                 Aquarius.Drys.Literal (Db.Name & ".marlowe"));
+                 Syn.Literal (Db.Name & ".marlowe"));
 
             return Result;
          end;
@@ -330,7 +330,7 @@ package body Kit.Generate.Database_Package is
 
       for I in Database_Operation loop
          declare
-            use Aquarius.Drys.Declarations;
+            use Syn.Declarations;
             Proc : constant Subprogram_Declaration'Class :=
                      Create_Database_Procedure (I);
          begin
@@ -349,13 +349,13 @@ package body Kit.Generate.Database_Package is
 
    procedure Initialise_Database_Structure
      (Db  : Kit.Schema.Databases.Database_Type;
-      Seq : in out Aquarius.Drys.Statement_Sequencer'Class)
+      Seq : in out Syn.Statement_Sequencer'Class)
    is
 
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
-      use Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
+      use Syn.Statements;
 
       procedure Create_Table
         (Table : Kit.Schema.Tables.Table_Type);
@@ -365,7 +365,7 @@ package body Kit.Generate.Database_Package is
 
       procedure Create_Type (T  : Kit.Schema.Types.Kit_Type);
 
-      Init_Block : Aquarius.Drys.Blocks.Block_Type;
+      Init_Block : Syn.Blocks.Block_Type;
 
       ------------------
       -- Create_Table --
@@ -440,7 +440,7 @@ package body Kit.Generate.Database_Package is
             New_Field : Procedure_Call_Statement'Class :=
                           New_Procedure_Call_Statement
                             ("Kit_Field.Create");
-            Block     : Aquarius.Drys.Blocks.Block_Type;
+            Block     : Syn.Blocks.Block_Type;
          begin
             Block.Add_Declaration
               (New_Constant_Declaration
@@ -481,7 +481,7 @@ package body Kit.Generate.Database_Package is
             use Kit.Schema.Tables;
             New_Key : Function_Call_Expression'Class :=
                         New_Function_Call_Expression ("Kit_Key.Create");
-            Block   : Aquarius.Drys.Blocks.Block_Type;
+            Block   : Syn.Blocks.Block_Type;
          begin
             New_Key.Add_Actual_Argument (Literal (Key.Standard_Name));
             New_Key.Add_Actual_Argument
@@ -498,7 +498,7 @@ package body Kit.Generate.Database_Package is
                   Key_Field : Procedure_Call_Statement'Class :=
                                 New_Procedure_Call_Statement
                                   ("Kit_Key_Field.Create");
-                  Field_Block : Aquarius.Drys.Blocks.Block_Type;
+                  Field_Block : Syn.Blocks.Block_Type;
                begin
                   Field_Block.Add_Declaration
                     (New_Constant_Declaration

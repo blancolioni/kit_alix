@@ -2,7 +2,7 @@ private with Ada.Containers.Vectors;
 
 with System.Storage_Elements;
 
-with Aquarius.Drys;
+with Syn;
 
 with Marlowe;
 
@@ -137,7 +137,7 @@ package Kit.Schema.Tables is
                         Object_Name : String;
                         Key         : Kit.Schema.Keys.Key_Type;
                         With_Index  : Boolean)
-                        return Aquarius.Drys.Expression'Class;
+                        return Syn.Expression'Class;
 
    function To_Storage (Table       : Root_Table_Type;
                         Base_Table  : Table_Type;
@@ -147,12 +147,12 @@ package Kit.Schema.Tables is
                         New_Field   : Kit.Schema.Fields.Field_Type;
                         Field_Value : String;
                         With_Index  : Boolean)
-                        return Aquarius.Drys.Expression'Class;
+                        return Syn.Expression'Class;
 
    function To_Storage (Key_Value_Name   : String;
                         Index_Value_Name : String;
                         Key         : Kit.Schema.Keys.Key_Type)
-                        return Aquarius.Drys.Expression'Class;
+                        return Syn.Expression'Class;
 
    procedure Iterate (Table     : not null access Root_Table_Type'Class;
                       Process   : not null access
@@ -240,7 +240,7 @@ package Kit.Schema.Tables is
      (Table       : Root_Table_Type'Class;
       Key         : Kit.Schema.Keys.Key_Type;
       Object_Name : String)
-      return Aquarius.Drys.Expression'Class;
+      return Syn.Expression'Class;
 
    function Create_Table (Name : String) return Table_Type;
 

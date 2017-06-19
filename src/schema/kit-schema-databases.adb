@@ -184,7 +184,7 @@ package body Kit.Schema.Databases is
    -----------
 
    procedure Write (Db     : Root_Database_Type;
-                    Writer : in out Aquarius.Writer.Writer_Interface'Class)
+                    Writer : in out Syn.Writer.Writer_Interface'Class)
    is
    begin
       Writer.Put_Line ("package " & Db.Name & " is");
