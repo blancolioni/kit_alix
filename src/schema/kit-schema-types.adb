@@ -14,13 +14,14 @@ package body Kit.Schema.Types is
 
    Text_Type_Record_Size : constant := 32;
 
-   Standard_Boolean_Type    : Kit_Type;
-   Standard_Float_Type      : Kit_Type;
-   Standard_Long_Float_Type : Kit_Type;
-   Standard_Integer_Type    : Kit_Type;
-   Standard_Natural_Type    : Kit_Type;
-   Standard_Positive_Type   : Kit_Type;
-   Standard_Rec_Type        : Kit_Type;
+   Standard_Boolean_Type      : Kit_Type;
+   Standard_Float_Type        : Kit_Type;
+   Standard_Long_Float_Type   : Kit_Type;
+   Standard_Integer_Type      : Kit_Type;
+   Standard_Long_Integer_Type : Kit_Type;
+   Standard_Natural_Type      : Kit_Type;
+   Standard_Positive_Type     : Kit_Type;
+   Standard_Rec_Type          : Kit_Type;
 
    package Type_Maps is
      new Ada.Containers.Indefinite_Hashed_Maps
@@ -50,6 +51,30 @@ package body Kit.Schema.Types is
 
    overriding
    function Haskell_Type_Name (Item : Integer_Type) return String;
+
+   type Long_Integer_Type is new Root_Kit_Type with
+      record
+         Low, High : Integer_64;
+      end record;
+
+   overriding function Return_Subtype
+     (Item : Long_Integer_Type)
+      return String
+   is ("Integer_64");
+
+   overriding function Create_Database_Record
+     (For_Type : Long_Integer_Type)
+      return Syn.Statement'Class;
+
+   overriding function Default_Value
+     (Item : Long_Integer_Type)
+      return Syn.Expression'Class
+   is (Syn.Literal (0));
+
+   overriding function Haskell_Type_Name
+     (Item : Long_Integer_Type)
+      return String
+   is ("Integer");
 
    type Float_Type is new Root_Kit_Type with
       record
@@ -294,6 +319,34 @@ package body Kit.Schema.Types is
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Syn.Statement'Class;
 
+   type External_Type is new Root_Kit_Type with
+      record
+         Local_Type       : Kit_Type;
+         External_Package : Ada.Strings.Unbounded.Unbounded_String;
+         External_Name    : Ada.Strings.Unbounded.Unbounded_String;
+         Full_Name        : Ada.Strings.Unbounded.Unbounded_String;
+         To_Database      : Ada.Strings.Unbounded.Unbounded_String;
+         From_Database    : Ada.Strings.Unbounded.Unbounded_String;
+      end record;
+
+   overriding function Return_Subtype
+     (Item : External_Type)
+      return String
+   is (Ada.Strings.Unbounded.To_String (Item.Full_Name));
+
+   overriding
+   function Create_Database_Record
+     (For_Type : External_Type)
+      return Syn.Statement'Class
+   is (For_Type.Local_Type.Create_Database_Record);
+
+   overriding
+   function Default_Value (Item : External_Type)
+                           return Syn.Expression'Class
+   is (Syn.Expressions.New_Function_Call_Expression
+       (Ada.Strings.Unbounded.To_String (Item.To_Database),
+        Item.Local_Type.Default_Value));
+
    ----------------------
    -- Argument_Subtype --
    ----------------------
@@ -438,6 +491,27 @@ package body Kit.Schema.Types is
       Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       Result.Add_Actual_Argument (Literal (For_Type.Low));
       Result.Add_Actual_Argument (Literal (For_Type.High));
+      return Result;
+   end Create_Database_Record;
+
+   ----------------------------
+   -- Create_Database_Record --
+   ----------------------------
+
+   overriding
+   function Create_Database_Record
+     (For_Type : Long_Integer_Type)
+      return Syn.Statement'Class
+   is
+      use Syn;
+      Result : Syn.Statements.Procedure_Call_Statement'Class :=
+                 Syn.Statements.New_Procedure_Call_Statement
+                   ("Kit_Long_Integer.Create");
+   begin
+      Result.Add_Actual_Argument (Literal (For_Type.Size));
+      Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
+      Result.Add_Actual_Argument (Value (Image (For_Type.Low)));
+      Result.Add_Actual_Argument (Value (Image (For_Type.High)));
       return Result;
    end Create_Database_Record;
 
@@ -609,6 +683,17 @@ package body Kit.Schema.Types is
       end;
 
       declare
+         Result : Long_Integer_Type;
+      begin
+         Result.Create ("integer_64");
+         Result.User_Defined := False;
+         Result.Size := Integer_64'Size / 8;
+         Result.Low := Integer_64'First;
+         Result.High := Integer_64'Last;
+         Standard_Long_Integer_Type := new Long_Integer_Type'(Result);
+      end;
+
+      declare
          Result : Float_Type;
       begin
          Result.Create ("long_float");
@@ -651,6 +736,7 @@ package body Kit.Schema.Types is
       end;
 
       New_Type (Standard_Integer);
+      New_Type (Standard_Long_Integer);
       New_Type (Standard_Positive);
       New_Type (Standard_Natural);
       New_Type (Standard_Float);
@@ -737,6 +823,12 @@ package body Kit.Schema.Types is
    begin
       return Syn.Object ("(0, 0, (others => Character'Val (0)))");
    end Default_Value;
+
+   function External_Type_Package_Name
+     (Item : Root_Kit_Type'Class)
+      return String
+   is (Ada.Strings.Unbounded.To_String
+       (External_Type (Item).External_Package));
 
    -----------------
    -- First_Value --
@@ -867,6 +959,15 @@ package body Kit.Schema.Types is
    begin
       return "String";
    end Haskell_Type_Name;
+
+   ----------------------
+   -- Is_External_Type --
+   ----------------------
+
+   function Is_External_Type
+     (Item : Root_Kit_Type'Class)
+      return Boolean
+   is (Item in External_Type);
 
    ---------------------
    -- Is_Reference_To --
@@ -1023,6 +1124,51 @@ package body Kit.Schema.Types is
       return Syn.Object
         (Root_Kit_Type'Class (Item).Ada_Name & "_Reference'Last");
    end Last_Value;
+
+   ----------------
+   -- Local_Type --
+   ----------------
+
+   function Local_Type
+     (From_External_Type : Root_Kit_Type'Class)
+      return Kit_Type
+   is (External_Type (From_External_Type).Local_Type);
+
+   -----------------------
+   -- New_External_Type --
+   -----------------------
+
+   procedure New_External_Type
+     (Base_Type              : Kit_Type;
+      External_Package_Name  : String;
+      External_Type_Name     : String;
+      To_Database_Function   : String;
+      From_Database_Function : String)
+   is
+      use Ada.Strings.Unbounded;
+      Full_Name : constant String :=
+                    External_Package_Name & "." & External_Type_Name;
+      Ext_Type  : constant Kit_Type :=
+                    new External_Type'
+                      (Kit.Names.Root_Named_Object with
+                       Size             => Base_Type.Size,
+                       User_Defined     => True,
+                       Local_Type       => Base_Type,
+                       External_Package =>
+                         To_Unbounded_String (External_Package_Name),
+                       External_Name    =>
+                         To_Unbounded_String (External_Type_Name),
+                       Full_Name        =>
+                         To_Unbounded_String (Full_Name),
+                       To_Database      =>
+                         To_Unbounded_String (To_Database_Function),
+                       From_Database    =>
+                         To_Unbounded_String (From_Database_Function));
+   begin
+      Ext_Type.Create (External_Type_Name);
+      Type_Table.Insert
+        (To_Unbounded_String (External_Type_Name), Ext_Type);
+   end New_External_Type;
 
    --------------
    -- New_Type --
@@ -1320,6 +1466,15 @@ package body Kit.Schema.Types is
    begin
       return Standard_Long_Float_Type;
    end Standard_Long_Float;
+
+   ---------------------------
+   -- Standard_Long_Integer --
+   ---------------------------
+
+   function Standard_Long_Integer   return Kit_Type is
+   begin
+      return Standard_Long_Integer_Type;
+   end Standard_Long_Integer;
 
    ----------------------
    -- Standard_Natural --

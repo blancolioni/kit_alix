@@ -1903,6 +1903,18 @@ package body Kit.Generate.Public_Interface is
                   Withed_Tables.Insert (Table_Name);
                end if;
             end;
+         elsif Field.Get_Field_Type.Is_External_Type then
+            declare
+               Type_Package : constant String :=
+                                Field.Get_Field_Type
+                                  .External_Type_Package_Name;
+            begin
+               if not Withed_Tables.Contains (Type_Package) then
+                  Table_Package.With_Package
+                    (Type_Package);
+                  Withed_Tables.Insert (Type_Package);
+               end if;
+            end;
          end if;
       end Add_Field_Type_With;
 

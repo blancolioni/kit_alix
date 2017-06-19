@@ -83,6 +83,7 @@ package Kit.Schema.Types is
    type Kit_Type is access all Root_Kit_Type'Class;
 
    function Standard_Integer        return Kit_Type;
+   function Standard_Long_Integer   return Kit_Type;
    function Standard_Positive       return Kit_Type;
    function Standard_Natural        return Kit_Type;
    function Standard_Float          return Kit_Type;
@@ -108,6 +109,27 @@ package Kit.Schema.Types is
    with Pre => Item.Is_Table_Reference;
 
    procedure New_Type (New_Type : Kit_Type);
+
+   procedure New_External_Type
+     (Base_Type              : Kit_Type;
+      External_Package_Name  : String;
+      External_Type_Name     : String;
+      To_Database_Function   : String;
+      From_Database_Function : String);
+
+   function Is_External_Type
+     (Item : Root_Kit_Type'Class)
+      return Boolean;
+
+   function External_Type_Package_Name
+     (Item : Root_Kit_Type'Class)
+      return String
+     with Pre => Is_External_Type (Item);
+
+   function Local_Type
+     (From_External_Type : Root_Kit_Type'Class)
+      return Kit_Type
+     with Pre => Is_External_Type (From_External_Type);
 
    function Is_Type_Name (Name : String) return Boolean;
    function Get_Type (Name : String) return Kit_Type;
