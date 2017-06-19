@@ -456,7 +456,9 @@ package body Kit.Generate.Public_Get is
       end if;
 
       if not Inline then
-         Next_Block.Add_Statement ("return Position");
+         Next_Block.Add_Statement
+           (Syn.Statements.New_Return_Statement
+              (Syn.Object ("Position")));
       end if;
 
       declare

@@ -2268,6 +2268,7 @@ package body Kit.Generate.Public_Interface is
 
          end;
 
+         Selection.Set_Tagged;
          Selection.Set_Limited;
          Selection.Add_Variant ("Key_Length",
                                 "System.Storage_Elements.Storage_Count");

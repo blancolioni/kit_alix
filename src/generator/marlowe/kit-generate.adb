@@ -170,20 +170,20 @@ package body Kit.Generate is
            Syn.New_Access_Type
              ("Lock_Context_Record'Class",
               Access_All => True));
-      Lock_Access.Set_Private_Spec;
+      --  Lock_Access.Set_Private_Spec;
       Top.Append (Lock_Access);
 
-      X_Lock.Set_Private_Spec;
+      --  X_Lock.Set_Private_Spec;
       X_Lock.Add_Formal_Argument ("Context", Inout_Argument,
                                   "Lock_Context_Record");
       Top.Append (X_Lock);
 
-      S_Lock.Set_Private_Spec;
+      --  S_Lock.Set_Private_Spec;
       S_Lock.Add_Formal_Argument ("Context", Inout_Argument,
                                   "Lock_Context_Record");
       Top.Append (S_Lock);
 
-      Unlock.Set_Private_Spec;
+      --  Unlock.Set_Private_Spec;
       Unlock.Add_Formal_Argument ("Context", Inout_Argument,
                                   "Lock_Context_Record");
       Top.Append (Unlock);
