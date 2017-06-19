@@ -116,12 +116,12 @@ package body Kit.Parser is
             Scan;
 
             if Tok = Tok_Identifier then
-               Value := To_Unbounded_String (Tok_Text);
+               Value := To_Unbounded_String (Tok_Raw_Text);
                Scan;
                while Tok = Tok_Dot loop
                   Scan;
                   if Tok = Tok_Identifier then
-                     Value := Value & "." & Tok_Text;
+                     Value := Value & "." & Tok_Raw_Text;
                      Scan;
                   else
                      Error ("missing identifier");
@@ -647,7 +647,11 @@ package body Kit.Parser is
                      To_Database_Function   =>
                        Aspects.Aspect_Value ("to_database"),
                      From_Database_Function =>
-                       Aspects.Aspect_Value ("from_database"));
+                       Aspects.Aspect_Value ("from_database"),
+                     To_String_Function     =>
+                       Aspects.Aspect_Value ("to_string"),
+                     From_String_Function   =>
+                       Aspects.Aspect_Value ("from_string"));
                end;
             else
                Error ("missing identifier");

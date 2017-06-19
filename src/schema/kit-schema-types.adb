@@ -76,6 +76,19 @@ package body Kit.Schema.Types is
       return String
    is ("Integer");
 
+   overriding function To_Storage_Array
+     (Item        : Long_Integer_Type;
+      Object_Name : String)
+      return Syn.Expression'Class;
+
+   overriding function Storage_Array_Transfer
+     (Item          : Long_Integer_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Syn.Statement'Class;
+
    type Float_Type is new Root_Kit_Type with
       record
          Long : Boolean;
@@ -324,15 +337,21 @@ package body Kit.Schema.Types is
          Local_Type       : Kit_Type;
          External_Package : Ada.Strings.Unbounded.Unbounded_String;
          External_Name    : Ada.Strings.Unbounded.Unbounded_String;
-         Full_Name        : Ada.Strings.Unbounded.Unbounded_String;
          To_Database      : Ada.Strings.Unbounded.Unbounded_String;
          From_Database    : Ada.Strings.Unbounded.Unbounded_String;
+         To_String        : Ada.Strings.Unbounded.Unbounded_String;
+         From_String      : Ada.Strings.Unbounded.Unbounded_String;
       end record;
+
+   overriding function Key_OK (Item : External_Type) return Boolean
+   is (False);
 
    overriding function Return_Subtype
      (Item : External_Type)
       return String
-   is (Ada.Strings.Unbounded.To_String (Item.Full_Name));
+   is (Ada.Strings.Unbounded.To_String (Item.External_Package)
+       & "."
+       & Ada.Strings.Unbounded.To_String (Item.External_Name));
 
    overriding
    function Create_Database_Record
@@ -343,9 +362,48 @@ package body Kit.Schema.Types is
    overriding
    function Default_Value (Item : External_Type)
                            return Syn.Expression'Class
-   is (Syn.Expressions.New_Function_Call_Expression
-       (Ada.Strings.Unbounded.To_String (Item.To_Database),
-        Item.Local_Type.Default_Value));
+   is (Item.Local_Type.Default_Value);
+
+   overriding function Record_Subtype
+     (Item : External_Type) return String
+   is (Item.Local_Type.Record_Subtype);
+
+   overriding function Return_Value
+     (Value_Type  : External_Type;
+      Target_Name : String)
+      return Syn.Expression'Class;
+
+   overriding procedure Set_Value
+     (Value_Type  : External_Type;
+      Target_Name : String;
+      Value_Name  : String;
+      Sequence    : in out Syn.Statement_Sequencer'Class);
+
+   overriding function To_Storage_Array
+     (Item        : External_Type;
+      Object_Name : String)
+      return Syn.Expression'Class
+   is (Item.Local_Type.To_Storage_Array (Object_Name));
+
+   overriding function Storage_Array_Transfer
+     (Item          : External_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Syn.Statement'Class
+   is (Item.Local_Type.Storage_Array_Transfer
+       (To_Storage, Object_Name, Storage_Name, Start, Finish));
+
+   overriding function Convert_To_String
+     (Item        : External_Type;
+      Object_Name : String)
+      return Syn.Expression'Class;
+
+   overriding function Convert_From_String
+     (Item        : External_Type;
+      Object_Name : String)
+      return Syn.Expression'Class;
 
    ----------------------
    -- Argument_Subtype --
@@ -414,6 +472,25 @@ package body Kit.Schema.Types is
       return Syn.Object (Object_Name);
    end Convert_From_String;
 
+   -------------------------
+   -- Convert_From_String --
+   -------------------------
+
+   overriding function Convert_From_String
+     (Item        : External_Type;
+      Object_Name : String)
+      return Syn.Expression'Class
+   is
+      use Syn.Expressions;
+      use Ada.Strings.Unbounded;
+   begin
+      return New_Function_Call_Expression
+        (To_String (Item.External_Package)
+         & "."
+         & To_String (Item.From_String),
+         Object_Name);
+   end Convert_From_String;
+
    -----------------------
    -- Convert_To_String --
    -----------------------
@@ -433,9 +510,10 @@ package body Kit.Schema.Types is
    -- Convert_To_String --
    -----------------------
 
-   overriding function Convert_To_String (Item   : Table_Reference_Type_Record;
-                               Object_Name : String)
-                               return Syn.Expression'Class
+   overriding function Convert_To_String
+     (Item   : Table_Reference_Type_Record;
+      Object_Name : String)
+      return Syn.Expression'Class
    is
       use Syn.Expressions;
    begin
@@ -471,6 +549,25 @@ package body Kit.Schema.Types is
       pragma Unreferenced (Item);
    begin
       return Syn.Object (Object_Name);
+   end Convert_To_String;
+
+   -----------------------
+   -- Convert_To_String --
+   -----------------------
+
+   overriding function Convert_To_String
+     (Item        : External_Type;
+      Object_Name : String)
+      return Syn.Expression'Class
+   is
+      use Syn.Expressions;
+      use Ada.Strings.Unbounded;
+   begin
+      return New_Function_Call_Expression
+        (To_String (Item.External_Package)
+         & "."
+         & To_String (Item.To_String),
+         Object_Name);
    end Convert_To_String;
 
    ----------------------------
@@ -1143,11 +1240,11 @@ package body Kit.Schema.Types is
       External_Package_Name  : String;
       External_Type_Name     : String;
       To_Database_Function   : String;
-      From_Database_Function : String)
+      From_Database_Function : String;
+      To_String_Function     : String;
+      From_String_Function   : String)
    is
       use Ada.Strings.Unbounded;
-      Full_Name : constant String :=
-                    External_Package_Name & "." & External_Type_Name;
       Ext_Type  : constant Kit_Type :=
                     new External_Type'
                       (Kit.Names.Root_Named_Object with
@@ -1158,12 +1255,14 @@ package body Kit.Schema.Types is
                          To_Unbounded_String (External_Package_Name),
                        External_Name    =>
                          To_Unbounded_String (External_Type_Name),
-                       Full_Name        =>
-                         To_Unbounded_String (Full_Name),
                        To_Database      =>
                          To_Unbounded_String (To_Database_Function),
                        From_Database    =>
-                         To_Unbounded_String (From_Database_Function));
+                         To_Unbounded_String (From_Database_Function),
+                       To_String        =>
+                         To_Unbounded_String (To_String_Function),
+                       From_String      =>
+                         To_Unbounded_String (From_String_Function));
    begin
       Ext_Type.Create (External_Type_Name);
       Type_Table.Insert
@@ -1333,6 +1432,24 @@ package body Kit.Schema.Types is
    -- Return_Value --
    ------------------
 
+   overriding function Return_Value
+     (Value_Type  : External_Type;
+      Target_Name : String)
+      return Syn.Expression'Class
+   is
+      use Ada.Strings.Unbounded;
+   begin
+      return Syn.Expressions.New_Function_Call_Expression
+        (To_String (Value_Type.External_Package)
+         & "."
+         & To_String (Value_Type.From_Database),
+         Target_Name);
+   end Return_Value;
+
+   ------------------
+   -- Return_Value --
+   ------------------
+
    overriding
    function Return_Value
      (Value_Type  : String_Type;
@@ -1382,8 +1499,7 @@ package body Kit.Schema.Types is
    -- Set_Value --
    ---------------
 
-   overriding
-   procedure Set_Value
+   overriding procedure Set_Value
      (Value_Type  : String_Type;
       Target_Name : String;
       Value_Name  : String;
@@ -1420,6 +1536,28 @@ package body Kit.Schema.Types is
             Object ("Marlowe_Keys.Handle"),
             Object (Value_Name),
             Object (Target_Name)));
+   end Set_Value;
+
+   ---------------
+   -- Set_Value --
+   ---------------
+
+   overriding procedure Set_Value
+     (Value_Type  : External_Type;
+      Target_Name : String;
+      Value_Name  : String;
+      Sequence    : in out Syn.Statement_Sequencer'Class)
+   is
+      use Syn;
+      use Ada.Strings.Unbounded;
+   begin
+      Sequence.Append
+        (Syn.Statements.New_Assignment_Statement
+           (Target_Name,
+            Syn.Expressions.New_Function_Call_Expression
+              (To_String (Value_Type.External_Package
+               & "." & To_String (Value_Type.To_Database)),
+               Object (Value_Name))));
    end Set_Value;
 
    ----------
@@ -1621,8 +1759,7 @@ package body Kit.Schema.Types is
    -- Storage_Array_Transfer --
    ----------------------------
 
-   overriding
-   function Storage_Array_Transfer
+   overriding function Storage_Array_Transfer
      (Item          : Table_Reference_Type_Record;
       To_Storage    : Boolean;
       Object_Name   : String;
@@ -1655,6 +1792,40 @@ package body Kit.Schema.Types is
                   Syn.Object (Item.Ada_Name & "_Reference (T)")));
             return Syn.Statements.Declare_Statement (Block);
          end;
+      end if;
+   end Storage_Array_Transfer;
+
+   ----------------------------
+   -- Storage_Array_Transfer --
+   ----------------------------
+
+   overriding function Storage_Array_Transfer
+     (Item          : Long_Integer_Type;
+      To_Storage    : Boolean;
+      Object_Name   : String;
+      Storage_Name  : String;
+      Start, Finish : System.Storage_Elements.Storage_Offset)
+      return Syn.Statement'Class
+   is
+      pragma Unreferenced (Item);
+      use System.Storage_Elements;
+      use Ada.Strings, Ada.Strings.Fixed;
+      use Syn, Syn.Statements;
+      S      : constant String :=
+                 Trim (Storage_Offset'Image (Start), Left);
+      F      : constant String :=
+                 Trim (Storage_Offset'Image (Finish), Left);
+      Store  : constant String :=
+                 Storage_Name & " (" & S & " .. " & F & ")";
+   begin
+      if To_Storage then
+         return New_Procedure_Call_Statement
+           ("Integer_64_Storage.To_Storage",
+            Object (Object_Name), Object (Store));
+      else
+         return New_Procedure_Call_Statement
+           ("Integer_64_Storage.From_Storage",
+            Object (Object_Name), Object (Store));
       end if;
    end Storage_Array_Transfer;
 
@@ -1780,6 +1951,23 @@ package body Kit.Schema.Types is
         ("Marlowe.Key_Storage.To_Storage_Array",
          Object (Object_Name),
          Literal (Item.Size));
+   end To_Storage_Array;
+
+   ----------------------
+   -- To_Storage_Array --
+   ----------------------
+
+   overriding function To_Storage_Array
+     (Item        : Long_Integer_Type;
+      Object_Name : String)
+      return Syn.Expression'Class
+   is
+      pragma Unreferenced (Item);
+      use Syn, Syn.Expressions;
+   begin
+      return New_Function_Call_Expression
+        ("Integer_64_Storage.To_Storage_Array",
+         Object (Object_Name));
    end To_Storage_Array;
 
    ----------------------
