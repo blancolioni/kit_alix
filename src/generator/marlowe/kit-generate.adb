@@ -416,7 +416,9 @@ package body Kit.Generate is
 
       procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type) is
       begin
-         Top.Append (User_Type.To_Declaration);
+         if not User_Type.Is_External_Type then
+            Top.Append (User_Type.To_Declaration);
+         end if;
       end Create_Type;
 
    begin
@@ -539,6 +541,13 @@ package body Kit.Generate is
 
       Top_Package.With_Package ("Marlowe", Private_With => True);
       Top_Package.With_Package ("Kit.Mutex", Private_With => True);
+
+      Top_Package.Append
+        (Syn.Declarations.New_Full_Type_Declaration
+           ("Integer_64",
+            Syn.Types.New_Range_Definition
+              (Low  => "-2 ** 63",
+               High => "2 ** 63 - 1")));
 
       Create_User_Defined_Types (Db, Top_Package);
 

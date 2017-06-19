@@ -1,6 +1,7 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Directories;
+with Ada.Strings.Unbounded;
 
 with GCS.Positions;
 
@@ -10,6 +11,7 @@ with Kit.Parser.Tokens;                use Kit.Parser.Tokens;
 with Kit.Parser.Lexical;               use Kit.Parser.Lexical;
 with Kit.Paths;
 
+with Kit.Schema.Aspects;
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
 with Kit.Schema.Tables;
@@ -58,6 +60,8 @@ package body Kit.Parser is
    procedure Parse_Field_Options
      (Field : Kit.Schema.Fields.Field_Type);
 
+   function Parse_Aspects return Kit.Schema.Aspects.Kit_Aspect;
+
    --------------------
    -- At_Declaration --
    --------------------
@@ -86,6 +90,64 @@ package body Kit.Parser is
    begin
       return Tok = Tok_Identifier or else Tok = Tok_Left_Paren;
    end At_Type;
+
+   -------------------
+   -- Parse_Aspects --
+   -------------------
+
+   function Parse_Aspects return Kit.Schema.Aspects.Kit_Aspect is
+      Result : Kit.Schema.Aspects.Kit_Aspect;
+   begin
+      Result := new Kit.Schema.Aspects.Root_Aspect_Type;
+
+      if Tok /= Tok_With then
+         return Result;
+      end if;
+
+      Scan;
+
+      while Tok = Tok_Identifier and then Next_Tok = Tok_Arrow loop
+         declare
+            use Ada.Strings.Unbounded;
+            Name  : constant String := Tok_Text;
+            Value : Unbounded_String;
+         begin
+            Scan;
+            Scan;
+
+            if Tok = Tok_Identifier then
+               Value := To_Unbounded_String (Tok_Text);
+               Scan;
+               while Tok = Tok_Dot loop
+                  Scan;
+                  if Tok = Tok_Identifier then
+                     Value := Value & "." & Tok_Text;
+                     Scan;
+                  else
+                     Error ("missing identifier");
+                     exit;
+                  end if;
+               end loop;
+            else
+               Error ("missing identifier");
+            end if;
+
+            Result.Add_Aspect (Name, To_String (Value));
+         end;
+
+         if Tok = Tok_Comma then
+            Scan;
+            if Tok /= Tok_Identifier then
+               Error ("missing aspect name");
+               exit;
+            end if;
+         else
+            exit;
+         end if;
+      end loop;
+
+      return Result;
+   end Parse_Aspects;
 
    -----------------
    -- Parse_Bases --
@@ -533,32 +595,94 @@ package body Kit.Parser is
          return;
       end if;
 
-      declare
-         Name : constant String := Tok_Text;
-      begin
-         Scan;
-         if Tok /= Tok_Is then
-            Error ("missing 'is'");
-            Skip_To (Skip_To_And_Parse => (1 => Tok_Semi),
-                     Skip_To_And_Stop  =>  (1 => Tok_End));
-            return;
-         end if;
-
-         Scan;
+      if Next_Tok = Tok_Dot then
+         --  external type
 
          declare
-            New_Type : constant Kit.Schema.Types.Kit_Type :=
-                         Parse_Type (Db, Name);
+            use Ada.Strings.Unbounded;
+            Package_Name : Unbounded_String :=
+                             To_Unbounded_String (Tok_Raw_Text);
          begin
-            Kit.Schema.Types.New_Type (New_Type);
+            Scan;
+            while Tok = Tok_Dot loop
+               Scan;
+               if Tok /= Tok_Identifier then
+                  Error ("missing identifier");
+                  exit;
+               end if;
+
+               if Next_Tok = Tok_Dot then
+                  Package_Name := Package_Name & "." & Tok_Raw_Text;
+                  Scan;
+                  Scan;
+               else
+                  exit;
+               end if;
+            end loop;
+
+            if Tok = Tok_Identifier then
+               declare
+                  External_Name : constant String := Tok_Text;
+                  Base_Type     : Kit.Schema.Types.Kit_Type;
+                  Aspects       : Kit.Schema.Aspects.Kit_Aspect;
+               begin
+                  Scan;
+                  if Tok = Tok_Is then
+                     Scan;
+                  else
+                     Error ("missing 'is'");
+                  end if;
+                  if Tok = Tok_New then
+                     Scan;
+                  end if;
+
+                  Base_Type :=
+                    Parse_Type (Db, External_Name);
+
+                  Aspects := Parse_Aspects;
+                  Kit.Schema.Types.New_External_Type
+                    (Base_Type              => Base_Type,
+                     External_Package_Name  => To_String (Package_Name),
+                     External_Type_Name     => External_Name,
+                     To_Database_Function   =>
+                       Aspects.Aspect_Value ("to_database"),
+                     From_Database_Function =>
+                       Aspects.Aspect_Value ("from_database"));
+               end;
+            else
+               Error ("missing identifier");
+            end if;
          end;
 
-         if Tok = Tok_Semi then
+      else
+         declare
+            Name : constant String := Tok_Text;
+         begin
             Scan;
-         else
-            Error ("missing ';'");
-         end if;
-      end;
+            if Tok /= Tok_Is then
+               Error ("missing 'is'");
+               Skip_To (Skip_To_And_Parse => (1 => Tok_Semi),
+                        Skip_To_And_Stop  =>  (1 => Tok_End));
+               return;
+            end if;
+
+            Scan;
+
+            declare
+               New_Type : constant Kit.Schema.Types.Kit_Type :=
+                            Parse_Type (Db, Name);
+            begin
+               Kit.Schema.Types.New_Type (New_Type);
+            end;
+         end;
+
+      end if;
+
+      if Tok = Tok_Semi then
+         Scan;
+      else
+         Error ("missing ';'");
+      end if;
 
    end Parse_Type_Declaration;
 

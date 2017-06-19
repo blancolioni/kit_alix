@@ -16,7 +16,7 @@ private package Kit.Parser.Lexical is
                  Tok_Integer        => Tok_Integer_Constant,
                  Tok_Float          => Tok_None,
                  First_Keyword      => Tok_End,
-                 Keywords           => "end is key package "
+                 Keywords           => "end is key new package "
                                         & "record type unique with",
                  First_Symbol       => Tok_Colon,
                  Symbols            => ": ; ( ) , . .. => :=",
