@@ -9,10 +9,10 @@ package body Kit.Generate.Marlowe_Keys_Package is
 
    function Generate_Package
      (Db : Kit.Schema.Databases.Database_Type)
-      return Aquarius.Drys.Declarations.Package_Type
+      return Syn.Declarations.Package_Type
    is
-      Result : Aquarius.Drys.Declarations.Package_Type :=
-                 Aquarius.Drys.Declarations. New_Package_Type
+      Result : Syn.Declarations.Package_Type :=
+                 Syn.Declarations. New_Package_Type
                    (Db.Ada_Name & ".Marlowe_Keys");
 
       procedure Generate_Table_Keys
@@ -39,10 +39,10 @@ package body Kit.Generate.Marlowe_Keys_Package is
          is
             pragma Unreferenced (Base);
             use Kit.Schema.Tables;
-            Dec : constant Aquarius.Drys.Declaration'Class :=
-                    Aquarius.Drys.Declarations.New_Object_Declaration
+            Dec : constant Syn.Declaration'Class :=
+                    Syn.Declarations.New_Object_Declaration
                       (Table.Key_Reference_Name (Key),
-                       Aquarius.Drys.Named_Subtype
+                       Syn.Named_Subtype
                          ("Marlowe.Data_Stores.Key_Reference"));
          begin
             Result.Append (Dec);
@@ -56,9 +56,9 @@ package body Kit.Generate.Marlowe_Keys_Package is
       Result.With_Package ("Marlowe.Data_Stores");
 
       Result.Append
-        (Aquarius.Drys.Declarations.New_Object_Declaration
+        (Syn.Declarations.New_Object_Declaration
            ("Handle",
-            Aquarius.Drys.Named_Subtype
+            Syn.Named_Subtype
               ("Marlowe.Data_Stores.Data_Store")));
 
       Db.Iterate (Generate_Table_Keys'Access);

@@ -1,7 +1,7 @@
 with Kit.Schema.Tables;
 
-with Aquarius.Drys.Blocks;
-with Aquarius.Drys.Statements;
+with Syn.Blocks;
+with Syn.Statements;
 
 package body Kit.Generate.Table_Name_Map is
 
@@ -11,10 +11,10 @@ package body Kit.Generate.Table_Name_Map is
 
    function Generate_Package
      (Db : Kit.Schema.Databases.Database_Type)
-      return Aquarius.Drys.Declarations.Package_Type
+      return Syn.Declarations.Package_Type
    is
-      Result : Aquarius.Drys.Declarations.Package_Type :=
-                 Aquarius.Drys.Declarations. New_Package_Type
+      Result : Syn.Declarations.Package_Type :=
+                 Syn.Declarations. New_Package_Type
                    (Db.Ada_Name & ".Table_Names");
 
       procedure Generate_Table_Name
@@ -24,7 +24,7 @@ package body Kit.Generate.Table_Name_Map is
 
       function Table_Function
         (Function_Type : Table_Function_Type)
-         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class;
+         return Syn.Declarations.Subprogram_Declaration'Class;
 
       -------------------------
       -- Generate_Table_Keys --
@@ -33,7 +33,7 @@ package body Kit.Generate.Table_Name_Map is
       procedure Generate_Table_Name
         (Table : Kit.Schema.Tables.Table_Type)
       is
-         use Aquarius.Drys, Aquarius.Drys.Declarations;
+         use Syn, Syn.Declarations;
       begin
          Result.Append
            (New_Deferred_Constant_Declaration
@@ -48,11 +48,11 @@ package body Kit.Generate.Table_Name_Map is
 
       function Table_Function
         (Function_Type : Table_Function_Type)
-         return Aquarius.Drys.Declarations.Subprogram_Declaration'Class
+         return Syn.Declarations.Subprogram_Declaration'Class
       is
-         use Aquarius.Drys, Aquarius.Drys.Declarations;
-         use Aquarius.Drys.Statements;
-         Block : Aquarius.Drys.Blocks.Block_Type;
+         use Syn, Syn.Declarations;
+         use Syn.Statements;
+         Block : Syn.Blocks.Block_Type;
 
          Name  : constant String :=
                    (case Function_Type is
@@ -83,7 +83,7 @@ package body Kit.Generate.Table_Name_Map is
                               Table.Standard_Name & ".adb");
          begin
             Seq.Append
-              (Aquarius.Drys.Statements.New_Return_Statement
+              (Syn.Statements.New_Return_Statement
                  (Literal (Result)));
             Table_Case.Add_Case_Option
               (Value => Table.Index_Image,
@@ -96,7 +96,7 @@ package body Kit.Generate.Table_Name_Map is
 
          Block.Append (Table_Case);
 
-         return Aquarius.Drys.Declarations.New_Function
+         return Syn.Declarations.New_Function
            (Name        => Name,
             Argument    =>
               New_Formal_Argument
@@ -107,9 +107,9 @@ package body Kit.Generate.Table_Name_Map is
 
    begin
       Result.Append
-        (Aquarius.Drys.Declarations.New_Private_Type_Declaration
+        (Syn.Declarations.New_Private_Type_Declaration
            ("Table_Reference",
-            Aquarius.Drys.New_Derived_Type
+            Syn.New_Derived_Type
               ("Positive range 1 .."
                & Integer'Image (Db.Table_Count))));
 

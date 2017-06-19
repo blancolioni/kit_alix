@@ -1,9 +1,9 @@
 with Ada.Strings.Fixed;
 
-with Aquarius.Drys.Blocks;
-with Aquarius.Drys.Expressions;
-with Aquarius.Drys.Statements;
-with Aquarius.Drys.Types;
+with Syn.Blocks;
+with Syn.Expressions;
+with Syn.Statements;
+with Syn.Types;
 
 with Kit.Generate.Fetch;
 with Kit.Names;
@@ -15,19 +15,19 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Iterator_Start_Function
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       Container     : in     Boolean;
       First         : in     Boolean);
 
    procedure Create_Iterator_Next_Function
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       With_Iterator : in     Boolean;
       Inline        : in     Boolean;
       Next          : in     Boolean);
 
    procedure Check_Deferred_Keys
-     (Seq       : in out Aquarius.Drys.Statement_Sequencer'Class;
+     (Seq       : in out Syn.Statement_Sequencer'Class;
       Key_Table : Kit.Schema.Tables.Table_Type);
 
    --  Create a call to Kit_Deferred_Keys.Check_Keys for
@@ -39,7 +39,7 @@ package body Kit.Generate.Public_Get is
    -------------------------
 
    procedure Check_Deferred_Keys
-     (Seq       : in out Aquarius.Drys.Statement_Sequencer'Class;
+     (Seq       : in out Syn.Statement_Sequencer'Class;
       Key_Table : Kit.Schema.Tables.Table_Type)
    is
       procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type);
@@ -51,9 +51,9 @@ package body Kit.Generate.Public_Get is
       procedure Check_Keys (Base : Kit.Schema.Tables.Table_Type) is
       begin
          Seq.Append
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Kit_Deferred_Keys.Check_Keys",
-                  Aquarius.Drys.Literal
+                  Syn.Literal
                  (Natural (Base.Reference_Index))));
       end Check_Keys;
 
@@ -67,14 +67,14 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Default_Key_Functions
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       Key           : in     Kit.Schema.Keys.Key_Type)
    is
-      use Aquarius.Drys.Declarations;
-      Ask   : Aquarius.Drys.Expressions.Function_Call_Expression :=
-                Aquarius.Drys.Expressions.New_Function_Call_Expression
+      use Syn.Declarations;
+      Ask   : Syn.Expressions.Function_Call_Expression :=
+                Syn.Expressions.New_Function_Call_Expression
                   ("Get_By_" & Key.Ada_Name);
-      Block : Aquarius.Drys.Blocks.Block_Type;
+      Block : Syn.Blocks.Block_Type;
    begin
 
       for I in 1 .. Key.Field_Count loop
@@ -83,7 +83,7 @@ package body Kit.Generate.Public_Get is
                       Key.Field (I);
          begin
             Ask.Add_Actual_Argument
-              (Aquarius.Drys.Object (Field.Ada_Name));
+              (Syn.Object (Field.Ada_Name));
          end;
       end loop;
 
@@ -91,8 +91,8 @@ package body Kit.Generate.Public_Get is
         (New_Constant_Declaration
            ("Item", Table.Type_Name, Ask));
       Block.Add_Statement
-        (Aquarius.Drys.Statements.New_Return_Statement
-           (Aquarius.Drys.Object ("Item.Has_Element")));
+        (Syn.Statements.New_Return_Statement
+           (Syn.Object ("Item.Has_Element")));
 
       declare
          Fn : Subprogram_Declaration'Class :=
@@ -109,7 +109,7 @@ package body Kit.Generate.Public_Get is
                Fn.Add_Formal_Argument
                  (New_Formal_Argument
                     (Field.Ada_Name,
-                     Aquarius.Drys.Named_Subtype
+                     Syn.Named_Subtype
                        (Field.Get_Field_Type.Argument_Subtype)));
             end;
          end loop;
@@ -117,7 +117,7 @@ package body Kit.Generate.Public_Get is
          Table_Package.Append (Fn);
       end;
 
-      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+      Table_Package.Append (Syn.Declarations.New_Separator);
 
    end Create_Default_Key_Functions;
 
@@ -128,16 +128,16 @@ package body Kit.Generate.Public_Get is
    procedure Create_Generic_Get_Function
      (Db            : in     Kit.Schema.Databases.Database_Type;
       Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       Key_Value     : in     Boolean)
    is
       pragma Unreferenced (Db);
 
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      Key_Case  : Aquarius.Drys.Statements.Case_Statement_Record'Class :=
-                    Aquarius.Drys.Statements.Case_Statement ("Key");
-      Block                  : Aquarius.Drys.Blocks.Block_Type;
+      use Syn;
+      use Syn.Declarations;
+      Key_Case  : Syn.Statements.Case_Statement_Record'Class :=
+                    Syn.Statements.Case_Statement ("Key");
+      Block                  : Syn.Blocks.Block_Type;
 
       Function_Name          : constant String := "Select_By";
 
@@ -152,7 +152,7 @@ package body Kit.Generate.Public_Get is
                              Key   : Kit.Schema.Keys.Key_Type)
       is
          pragma Unreferenced (Base);
-         use Aquarius.Drys.Expressions;
+         use Syn.Expressions;
          Function_Name : constant String :=
                            (if Key_Value
                             then "Select_By_" & Key.Ada_Name
@@ -160,7 +160,7 @@ package body Kit.Generate.Public_Get is
          Call : Function_Call_Expression :=
                            New_Function_Call_Expression
                              (Function_Name);
-         Seq  : Aquarius.Drys.Statements.Sequence_Of_Statements;
+         Seq  : Syn.Statements.Sequence_Of_Statements;
       begin
 
          if Key_Value and then Key.Field_Count = 1 then
@@ -169,7 +169,7 @@ package body Kit.Generate.Public_Get is
          end if;
 
          Seq.Append
-           (Aquarius.Drys.Statements.New_Return_Statement
+           (Syn.Statements.New_Return_Statement
               (Call));
          Key_Case.Add_Case_Option ("K_" & Table.Ada_Name & "_"
                                    & Key.Ada_Name,
@@ -198,7 +198,7 @@ package body Kit.Generate.Public_Get is
          Table_Package.Append (Fn);
       end;
 
-      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+      Table_Package.Append (Syn.Declarations.New_Separator);
    end Create_Generic_Get_Function;
 
    ---------------------------
@@ -207,15 +207,15 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Get_From_Index
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Table_Package : in out Syn.Declarations.Package_Type'Class)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Expressions, Syn.Statements;
 
-      Block : Aquarius.Drys.Blocks.Block_Type;
+      Block : Syn.Blocks.Block_Type;
 
       procedure Set_Field
-        (Seq        : in out Aquarius.Drys.Blocks.Block_Type;
+        (Seq        : in out Syn.Blocks.Block_Type;
          Field_Name : String;
          Value      : Boolean);
 
@@ -224,7 +224,7 @@ package body Kit.Generate.Public_Get is
       ---------------
 
       procedure Set_Field
-        (Seq        : in out Aquarius.Drys.Blocks.Block_Type;
+        (Seq        : in out Syn.Blocks.Block_Type;
          Field_Name : String;
          Value      : Boolean)
       is
@@ -272,7 +272,7 @@ package body Kit.Generate.Public_Get is
            (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
 
       declare
-         use Aquarius.Drys.Declarations;
+         use Syn.Declarations;
          Proc : Subprogram_Declaration'Class :=
                   New_Procedure
                     ("Get", Block);
@@ -289,7 +289,7 @@ package body Kit.Generate.Public_Get is
          Table_Package.Append_To_Body (Proc);
       end;
 
-      Table_Package.Append_To_Body (Aquarius.Drys.Declarations.New_Separator);
+      Table_Package.Append_To_Body (Syn.Declarations.New_Separator);
    end Create_Get_From_Index;
 
    ---------------------
@@ -298,17 +298,17 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Iterator
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Table_Package : in out Syn.Declarations.Package_Type'Class)
    is
 
-      use Aquarius.Drys.Declarations, Aquarius.Drys.Types;
+      use Syn.Declarations, Syn.Types;
       Iterator_Definition : Record_Type_Definition;
    begin
 
       Table_Package.Append_To_Body
         (New_Full_Type_Declaration
            ("Selection_Access",
-            Aquarius.Drys.New_Access_Type
+            Syn.New_Access_Type
               ("Selection",
                Access_All => False)));
 
@@ -353,16 +353,16 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Iterator_Next_Function
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       With_Iterator : in     Boolean;
       Inline        : in     Boolean;
       Next          : in     Boolean)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
-      use Aquarius.Drys.Statements;
-      Next_Block        : Aquarius.Drys.Blocks.Block_Type;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
+      use Syn.Statements;
+      Next_Block        : Syn.Blocks.Block_Type;
    begin
       Next_Block.Add_Declaration
         (New_Object_Declaration
@@ -496,16 +496,16 @@ package body Kit.Generate.Public_Get is
 
    procedure Create_Iterator_Start_Function
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       Container     : in     Boolean;
       First         : in     Boolean)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions, Syn.Statements;
 
       Return_Sequence  : Sequence_Of_Statements;
-      Valid_Block      : Aquarius.Drys.Blocks.Block_Type;
+      Valid_Block      : Syn.Blocks.Block_Type;
       Invalid_Sequence : Sequence_Of_Statements;
 
       function Function_Name return String;
@@ -638,7 +638,7 @@ package body Kit.Generate.Public_Get is
             Object ("List_Of_Marks.No_Element")));
 
       declare
-         Mark_Block : Aquarius.Drys.Blocks.Block_Type;
+         Mark_Block : Syn.Blocks.Block_Type;
          Initialiser      : Function_Call_Expression :=
                               New_Function_Call_Expression
                                 ("Marlowe_Keys.Handle.Search");
@@ -707,10 +707,10 @@ package body Kit.Generate.Public_Get is
            (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
 
       declare
-         Block                  : Aquarius.Drys.Blocks.Block_Type;
+         Block                  : Syn.Blocks.Block_Type;
       begin
          Block.Append
-           (Aquarius.Drys.Statements.New_Return_Statement
+           (Syn.Statements.New_Return_Statement
               ("Result", "Cursor", Return_Sequence));
 
          declare
@@ -736,7 +736,7 @@ package body Kit.Generate.Public_Get is
             else
                Table_Package.Append_To_Body (Fn);
                Table_Package.Append_To_Body
-                 (Aquarius.Drys.Declarations.New_Separator);
+                 (Syn.Declarations.New_Separator);
             end if;
          end;
 
@@ -751,11 +751,11 @@ package body Kit.Generate.Public_Get is
    procedure Create_Reference_Get_Function
      (Db            : in     Kit.Schema.Databases.Database_Type;
       Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Table_Package : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Expressions, Syn.Statements;
 
       Return_Sequence  : Sequence_Of_Statements;
 
@@ -831,11 +831,11 @@ package body Kit.Generate.Public_Get is
            (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
 
       declare
-         use Aquarius.Drys.Declarations;
-         Block                  : Aquarius.Drys.Blocks.Block_Type;
+         use Syn.Declarations;
+         Block                  : Syn.Blocks.Block_Type;
       begin
          Block.Append
-           (Aquarius.Drys.Statements.New_Return_Statement
+           (Syn.Statements.New_Return_Statement
               ("Result", Table.Implementation_Name, Return_Sequence));
 
          declare
@@ -854,7 +854,7 @@ package body Kit.Generate.Public_Get is
 
       end;
 
-      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+      Table_Package.Append (Syn.Declarations.New_Separator);
    end Create_Reference_Get_Function;
 
    -------------------------------
@@ -865,15 +865,15 @@ package body Kit.Generate.Public_Get is
      (Db            : in     Kit.Schema.Databases.Database_Type;
       Table         : in     Kit.Schema.Tables.Table_Type;
       Key_Table     : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       Key_Name      : in     String;
       Key_Value     : in     Boolean;
       Bounds        : in     Boolean)
    is
 
       pragma Unreferenced (Db);
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Expressions, Syn.Statements;
 
       Return_Sequence  : Sequence_Of_Statements;
       Key              : constant Kit.Schema.Keys.Key_Type :=
@@ -976,8 +976,8 @@ package body Kit.Generate.Public_Get is
               (Allocated_Type => "Selection_State")));
 
       declare
-         use Aquarius.Drys.Declarations;
-         Block        : Aquarius.Drys.Blocks.Block_Type;
+         use Syn.Declarations;
+         Block        : Syn.Blocks.Block_Type;
          Return_Type  : constant String :=
                           "Selection ("
                           & Ada.Strings.Fixed.Trim (Natural'Image (Key.Size),
@@ -991,7 +991,7 @@ package body Kit.Generate.Public_Get is
          Check_Deferred_Keys (Block, Key_Table);
 
          Block.Append
-           (Aquarius.Drys.Statements.New_Return_Statement
+           (Syn.Statements.New_Return_Statement
               ("Result", Return_Type, Return_Sequence));
 
          declare
@@ -1060,7 +1060,7 @@ package body Kit.Generate.Public_Get is
 
       end;
 
-      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+      Table_Package.Append (Syn.Declarations.New_Separator);
    end Create_Selection_Function;
 
    --------------------------------
@@ -1070,12 +1070,12 @@ package body Kit.Generate.Public_Get is
    procedure Create_Unique_Get_Function
      (Table         : in     Kit.Schema.Tables.Table_Type;
       Key_Table     : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Aquarius.Drys.Declarations.Package_Type'Class;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
       Key_Name      : in     String)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions, Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions, Syn.Statements;
 
       Key              : constant Kit.Schema.Keys.Key_Type :=
                            Table.Key (Key_Name);
@@ -1091,7 +1091,7 @@ package body Kit.Generate.Public_Get is
          First     : Boolean)
       is
 
-         Block            : Aquarius.Drys.Blocks.Block_Type;
+         Block            : Syn.Blocks.Block_Type;
 
          function Function_Name return String;
 
@@ -1150,7 +1150,7 @@ package body Kit.Generate.Public_Get is
          Block.Add_Declaration
            (Use_Type ("Marlowe.Database_Index"));
          Block.Add_Declaration
-           (Aquarius.Drys.Declarations.New_Object_Declaration
+           (Syn.Declarations.New_Object_Declaration
               ("Db_Index", "Marlowe.Database_Index", Literal (0)));
 
          Check_Deferred_Keys (Block, Key_Table);
@@ -1160,7 +1160,7 @@ package body Kit.Generate.Public_Get is
               (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
 
          declare
-            Mark_Block       : Aquarius.Drys.Blocks.Block_Type;
+            Mark_Block       : Syn.Blocks.Block_Type;
             Initialiser      : Function_Call_Expression :=
                                  New_Function_Call_Expression
                                    ("Marlowe_Keys.Handle.Search");
@@ -1311,7 +1311,7 @@ package body Kit.Generate.Public_Get is
             Create_Function (Reference, Unique => False, First => False);
          end if;
       end loop;
-      Table_Package.Append (Aquarius.Drys.Declarations.New_Separator);
+      Table_Package.Append (Syn.Declarations.New_Separator);
    end Create_Unique_Get_Function;
 
 end Kit.Generate.Public_Get;

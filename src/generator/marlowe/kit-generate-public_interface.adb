@@ -1,7 +1,7 @@
-with Aquarius.Drys.Blocks;
-with Aquarius.Drys.Expressions;
-with Aquarius.Drys.Statements;
-with Aquarius.Drys.Types;
+with Syn.Blocks;
+with Syn.Expressions;
+with Syn.Statements;
+with Syn.Types;
 
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
@@ -18,48 +18,48 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Control_Procedures
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Field_Constants
      (Table : in Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Locking_Procedures
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Overrides
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Search_Procedures
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Field_Store_Procedure
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
       Base  : in     Kit.Schema.Tables.Table_Type;
       Field : in     Kit.Schema.Fields.Field_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Identity_Function
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Generic_Get
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Generic_Set
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class);
+      Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Perform_X_Lock
-     (Sequence          : in out Aquarius.Drys.Statement_Sequencer'Class;
+     (Sequence          : in out Syn.Statement_Sequencer'Class;
       Table_Name        : String;
       Object_Name       : String;
       Request_Object    : String;
@@ -72,17 +72,17 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Control_Procedures
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
 
       Argument     : constant Formal_Argument'Class :=
                        New_Inout_Argument
                          ("Item",
-                          Aquarius.Drys.Named_Subtype
+                          Syn.Named_Subtype
                             (Table.Ada_Name & "_Implementation"));
 
       procedure Create_Delete;
@@ -94,8 +94,8 @@ package body Kit.Generate.Public_Interface is
       -------------------
 
       procedure Create_Delete is
-         use Aquarius.Drys.Statements;
-         Delete_Block : Aquarius.Drys.Blocks.Block_Type;
+         use Syn.Statements;
+         Delete_Block : Syn.Blocks.Block_Type;
       begin
          Delete_Block.Add_Statement
            (New_Procedure_Call_Statement
@@ -118,7 +118,7 @@ package body Kit.Generate.Public_Interface is
                        New_Procedure
                         ("Delete",
                          New_Inout_Argument ("Item",
-                           Aquarius.Drys.Named_Subtype
+                           Syn.Named_Subtype
                              (Table.Ada_Name & "_Implementation")),
                          Delete_Block);
          begin
@@ -132,7 +132,7 @@ package body Kit.Generate.Public_Interface is
                      Argument =>
                        New_Inout_Argument
                          ("Item",
-                          Aquarius.Drys.Named_Subtype
+                          Syn.Named_Subtype
                             (Table.Ada_Name & "_Interface"))));
             end if;
          end;
@@ -144,9 +144,9 @@ package body Kit.Generate.Public_Interface is
       ---------------------
 
       procedure Create_Finalize is
-         use Aquarius.Drys.Statements;
+         use Syn.Statements;
          Insert_Keys : Sequence_Of_Statements;
-         Finalize_Block : Aquarius.Drys.Blocks.Block_Type;
+         Finalize_Block : Syn.Blocks.Block_Type;
          Delete_Key_Statements : Sequence_Of_Statements;
 
          procedure Key_Operation
@@ -232,10 +232,10 @@ package body Kit.Generate.Public_Interface is
       begin
 
          Finalize_Block.Add_Declaration
-           (Aquarius.Drys.Declarations.Use_Type
+           (Syn.Declarations.Use_Type
               ("System.Storage_Elements.Storage_Array"));
          Finalize_Block.Add_Declaration
-           (Aquarius.Drys.Declarations.Use_Type
+           (Syn.Declarations.Use_Type
               ("Marlowe.Database_Index"));
 
          Finalize_Block.Add_Statement
@@ -354,7 +354,7 @@ package body Kit.Generate.Public_Interface is
       -----------------------
 
       procedure Create_Initialize is
-         Initialize_Block : Aquarius.Drys.Blocks.Block_Type;
+         Initialize_Block : Syn.Blocks.Block_Type;
 
          procedure Set_Field (Field_Name : String;
                               Value      : String);
@@ -368,28 +368,28 @@ package body Kit.Generate.Public_Interface is
          is
          begin
             Initialize_Block.Add_Statement
-              (Aquarius.Drys.Statements.New_Assignment_Statement
+              (Syn.Statements.New_Assignment_Statement
                  ("Item." & Field_Name,
-                  Aquarius.Drys.Object (Value)));
+                  Syn.Object (Value)));
          end Set_Field;
 
       begin
          Initialize_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Memory_Mutex.Lock"));
          Initialize_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Assignment_Statement
+           (Syn.Statements.New_Assignment_Statement
               ("Item.Local",
-               Aquarius.Drys.Expressions.New_Allocation_Expression
+               Syn.Expressions.New_Allocation_Expression
                  ("Local_Lock_Context_Record")));
          Initialize_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Memory_Mutex.Unlock"));
 
          Initialize_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Assignment_Statement
+           (Syn.Statements.New_Assignment_Statement
               ("Item.Link",
-               Aquarius.Drys.Object
+               Syn.Object
                  ("Lock_Context (Item.Local)")));
 
          Set_Field ("Finished", "True");
@@ -427,7 +427,7 @@ package body Kit.Generate.Public_Interface is
 
    procedure Create_Field_Constants
      (Table : in Kit.Schema.Tables.Table_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top : in out Syn.Declarations.Package_Type'Class)
    is
       procedure Add_Field_Constant
         (Base : Kit.Schema.Tables.Table_Type;
@@ -444,18 +444,18 @@ package body Kit.Generate.Public_Interface is
          pragma Unreferenced (Base);
          Name : constant String := Item.Ada_Name;
          Value : constant String := Item.Standard_Name;
-         Defn : constant Aquarius.Drys.Declaration'Class :=
-                  Aquarius.Drys.Declarations.New_Constant_Declaration
+         Defn : constant Syn.Declaration'Class :=
+                  Syn.Declarations.New_Constant_Declaration
                     (Name        => "F_" & Name,
                      Object_Type => "String",
-                     Value       => Aquarius.Drys.Literal (Value));
+                     Value       => Syn.Literal (Value));
       begin
          Top.Append (Defn);
       end Add_Field_Constant;
 
    begin
       Table.Iterate_All (Add_Field_Constant'Access);
-      Top.Append (Aquarius.Drys.Declarations.New_Separator);
+      Top.Append (Syn.Declarations.New_Separator);
    end Create_Field_Constants;
 
    ----------------------------------
@@ -467,10 +467,10 @@ package body Kit.Generate.Public_Interface is
       Table : in     Kit.Schema.Tables.Table_Type;
       Base  : in     Kit.Schema.Tables.Table_Type;
       Field : in     Kit.Schema.Fields.Field_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
 
-      Store_Block : Aquarius.Drys.Blocks.Block_Type;
+      Store_Block : Syn.Blocks.Block_Type;
 
       procedure Create_Abstract_Store;
 
@@ -528,17 +528,17 @@ package body Kit.Generate.Public_Interface is
       ---------------------------
 
       procedure Create_Abstract_Store is
-         use Aquarius.Drys.Declarations;
+         use Syn.Declarations;
          Store : Subprogram_Declaration'Class :=
                    New_Abstract_Procedure
                      ("Set_" & Field.Ada_Name,
                       New_In_Argument ("Item",
-                        Aquarius.Drys.Named_Subtype
+                        Syn.Named_Subtype
                           (Table.Interface_Name)));
       begin
          Store.Add_Formal_Argument
            (New_Formal_Argument ("Value",
-            Aquarius.Drys.Named_Subtype
+            Syn.Named_Subtype
               (Field.Get_Field_Type.Argument_Subtype)));
 
          Top.Append (Store);
@@ -551,12 +551,12 @@ package body Kit.Generate.Public_Interface is
                          New_Abstract_Procedure
                            ("Set_" & Field.Ada_Name,
                             New_In_Argument ("Item",
-                              Aquarius.Drys.Named_Subtype
+                              Syn.Named_Subtype
                                 (Table.Interface_Name)));
             begin
                Store.Add_Formal_Argument
                  (New_Formal_Argument ("Value",
-                  Aquarius.Drys.Named_Subtype
+                  Syn.Named_Subtype
                     (Db.Ada_Name & "." & Type_Name & "."
                      & Type_Name & "_Type")));
 
@@ -603,10 +603,10 @@ package body Kit.Generate.Public_Interface is
          Key        : Kit.Schema.Keys.Key_Type;
          Operation : String)
       is
-         S : Aquarius.Drys.Statements.Procedure_Call_Statement :=
-               Aquarius.Drys.Statements.New_Procedure_Call_Statement
+         S : Syn.Statements.Procedure_Call_Statement :=
+               Syn.Statements.New_Procedure_Call_Statement
                  ("Marlowe_Keys.Handle." & Operation);
-         Key_Storage : constant Aquarius.Drys.Expression'Class :=
+         Key_Storage : constant Syn.Expression'Class :=
                          Table.To_Storage
                            (Base_Table  => Table_Base,
                             Key_Table   => Key_Base,
@@ -619,19 +619,19 @@ package body Kit.Generate.Public_Interface is
            ("Marlowe_Keys."
             & Table_Base.Key_Reference_Name (Key));
          S.Add_Actual_Argument
-           (Aquarius.Drys.Expressions.Operator
+           (Syn.Expressions.Operator
               ("&",
                Key_Storage,
-               Aquarius.Drys.Expressions.New_Function_Call_Expression
+               Syn.Expressions.New_Function_Call_Expression
                  ("Marlowe.Key_Storage.To_Storage_Array",
-                  Aquarius.Drys.Expressions.New_Function_Call_Expression
+                  Syn.Expressions.New_Function_Call_Expression
                     ("Marlowe.Database_Index",
                      Table.Database_Index_Component ("Item", Table_Base)))));
 
          Store_Block.Add_Statement
-           (Aquarius.Drys.Statements.If_Statement
-              (Aquarius.Drys.Expressions.Operator
-                 ("not", Aquarius.Drys.Object ("Item.Created")),
+           (Syn.Statements.If_Statement
+              (Syn.Expressions.Operator
+                 ("not", Syn.Object ("Item.Created")),
                S));
       end Key_Operation;
 
@@ -661,16 +661,16 @@ package body Kit.Generate.Public_Interface is
          pragma Unreferenced (Key_Base);
          Lock_Name : constant String :=
                        (if Lock then "Lock" else "Unlock");
-         S : constant Aquarius.Drys.Statement'Class :=
-               Aquarius.Drys.Statements.New_Procedure_Call_Statement
+         S : constant Syn.Statement'Class :=
+               Syn.Statements.New_Procedure_Call_Statement
                  (Table_Base.Ada_Name
                   & "_Impl." & Key.Ada_Name
                   & "_Key_Mutex." & Lock_Name);
       begin
          Store_Block.Add_Statement
-           (Aquarius.Drys.Statements.If_Statement
-              (Aquarius.Drys.Expressions.Operator
-                 ("not", Aquarius.Drys.Object ("Item.Created")),
+           (Syn.Statements.If_Statement
+              (Syn.Expressions.Operator
+                 ("not", Syn.Object ("Item.Created")),
                S));
       end Perform_Lock;
 
@@ -714,17 +714,17 @@ package body Kit.Generate.Public_Interface is
          Key_Base   : Kit.Schema.Tables.Table_Type;
          Key        : Kit.Schema.Keys.Key_Type)
       is
-         S : Aquarius.Drys.Statements.Procedure_Call_Statement :=
-               Aquarius.Drys.Statements.New_Procedure_Call_Statement
+         S : Syn.Statements.Procedure_Call_Statement :=
+               Syn.Statements.New_Procedure_Call_Statement
                  ("Kit_Deferred_Keys.Key_Changed");
-         Old_Key_Storage : constant Aquarius.Drys.Expression'Class :=
+         Old_Key_Storage : constant Syn.Expression'Class :=
                              Table.To_Storage
                                (Base_Table  => Table_Base,
                                 Key_Table   => Key_Base,
                                 Object_Name => "Item",
                                 Key         => Key,
                                 With_Index  => False);
-         New_Key_Storage : constant Aquarius.Drys.Expression'Class :=
+         New_Key_Storage : constant Syn.Expression'Class :=
                              Table.To_Storage
                                (Base_Table  => Table_Base,
                                 Key_Table   => Key_Base,
@@ -740,16 +740,16 @@ package body Kit.Generate.Public_Interface is
            ("Marlowe_Keys."
             & Table_Base.Key_Reference_Name (Key));
          S.Add_Actual_Argument
-           (Aquarius.Drys.Expressions.New_Function_Call_Expression
+           (Syn.Expressions.New_Function_Call_Expression
               ("Marlowe.Database_Index",
                Table.Database_Index_Component ("Item", Table_Base)));
          S.Add_Actual_Argument (Old_Key_Storage);
          S.Add_Actual_Argument (New_Key_Storage);
 
          Store_Block.Add_Statement
-           (Aquarius.Drys.Statements.If_Statement
-              (Aquarius.Drys.Expressions.Operator
-                 ("not", Aquarius.Drys.Object ("Item.Created")),
+           (Syn.Statements.If_Statement
+              (Syn.Expressions.Operator
+                 ("not", Syn.Object ("Item.Created")),
                S));
       end Record_Key_Change;
 
@@ -763,12 +763,12 @@ package body Kit.Generate.Public_Interface is
          Key        : Kit.Schema.Keys.Key_Type)
       is
          pragma Unreferenced (Key_Base);
-         use Aquarius.Drys;
-         use Aquarius.Drys.Expressions;
-         use Aquarius.Drys.Statements;
+         use Syn;
+         use Syn.Expressions;
+         use Syn.Statements;
          Not_Created    : constant Expression'Class :=
                             Operator
-                              ("not", Aquarius.Drys.Object ("Item.Created"));
+                              ("not", Syn.Object ("Item.Created"));
          Using_Key      : constant Expression'Class :=
                             Object ("Item.Scanning");
          Key_Ref        : constant String :=
@@ -813,23 +813,23 @@ package body Kit.Generate.Public_Interface is
       end if;
 
       Store_Block.Add_Declaration
-        (Aquarius.Drys.Declarations.Use_Type
+        (Syn.Declarations.Use_Type
            ("System.Storage_Elements.Storage_Array"));
       if Table.Has_Key_Field then
          Store_Block.Add_Declaration
-           (Aquarius.Drys.Declarations.Use_Type
+           (Syn.Declarations.Use_Type
               ("Marlowe.Data_Stores.Key_Reference"));
       end if;
 
       Store_Block.Add_Declaration
-        (Aquarius.Drys.Declarations.Renaming_Declaration
+        (Syn.Declarations.Renaming_Declaration
            ("Target",
             Field.Get_Field_Type.Unconstrained_Record_Subtype,
-            Aquarius.Drys.Object
+            Syn.Object
               (Table.Base_Field_Name ("Item", Base, Field))));
 
       declare
-         use Aquarius.Drys.Statements;
+         use Syn.Statements;
       begin
          Store_Block.Add_Statement
            (New_Procedure_Call_Statement
@@ -862,7 +862,7 @@ package body Kit.Generate.Public_Interface is
       end if;
 
       declare
-         use Aquarius.Drys.Statements;
+         use Syn.Statements;
       begin
          Store_Block.Add_Statement
            (New_Procedure_Call_Statement
@@ -874,18 +874,18 @@ package body Kit.Generate.Public_Interface is
       end if;
 
       declare
-         use Aquarius.Drys.Declarations;
+         use Syn.Declarations;
          Store : Subprogram_Declaration'Class :=
                    New_Procedure
                      ("Set_" & Field.Ada_Name,
                       New_In_Argument ("Item",
-                        Aquarius.Drys.Named_Subtype
+                        Syn.Named_Subtype
                           (Table.Ada_Name & "_Implementation")),
                       Store_Block);
       begin
          Store.Add_Formal_Argument
            (New_Formal_Argument ("Value",
-            Aquarius.Drys.Named_Subtype
+            Syn.Named_Subtype
               (Field.Get_Field_Type.Argument_Subtype)));
          Store.Set_Overriding;
 
@@ -894,25 +894,25 @@ package body Kit.Generate.Public_Interface is
 
       if Field.Get_Field_Type.Is_Table_Reference then
          declare
-            use Aquarius.Drys;
-            use Aquarius.Drys.Declarations;
-            use Aquarius.Drys.Statements;
+            use Syn;
+            use Syn.Declarations;
+            use Syn.Statements;
             Type_Name : constant String :=
                           Field.Get_Field_Type.Referenced_Table_Name;
             Store     : Subprogram_Declaration'Class :=
                           New_Procedure
                             ("Set_" & Field.Ada_Name,
                              New_In_Argument ("Item",
-                               Aquarius.Drys.Named_Subtype
+                               Syn.Named_Subtype
                                  (Table.Ada_Name & "_Implementation")),
-                             Aquarius.Drys.Blocks.Create_Block
+                             Syn.Blocks.Create_Block
                                (New_Procedure_Call_Statement
                                   ("Item.Set_" & Field.Ada_Name,
                                    Object ("Value.Reference"))));
          begin
             Store.Add_Formal_Argument
               (New_Formal_Argument ("Value",
-               Aquarius.Drys.Named_Subtype
+               Syn.Named_Subtype
                  (Db.Ada_Name & "." & Type_Name & "."
                   & Type_Name & "_Type")));
             Store.Set_Overriding;
@@ -928,16 +928,16 @@ package body Kit.Generate.Public_Interface is
 
    procedure Create_Generic_Get
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
-      use Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
+      use Syn.Statements;
 
       Got_Field : Boolean := False;
 
-      Block  : Aquarius.Drys.Blocks.Block_Type;
+      Block  : Syn.Blocks.Block_Type;
       Choose : If_Statement_Record'Class :=
                  If_Statement
                    (Operator ("=", Object ("Field"), Literal ("")),
@@ -1022,16 +1022,16 @@ package body Kit.Generate.Public_Interface is
 
    procedure Create_Generic_Set
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
-      use Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
+      use Syn.Statements;
 
       Got_Field : Boolean := False;
 
-      Block  : Aquarius.Drys.Blocks.Block_Type;
+      Block  : Syn.Blocks.Block_Type;
       Choose : If_Statement_Record'Class :=
                  If_Statement
                    (Operator ("=", Object ("Field"), Literal ("")),
@@ -1119,14 +1119,14 @@ package body Kit.Generate.Public_Interface is
 
    procedure Create_Identity_Function
      (Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
-      use Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
+      use Syn.Statements;
 
-      Block  : Aquarius.Drys.Blocks.Block_Type;
+      Block  : Syn.Blocks.Block_Type;
 
    begin
 
@@ -1165,22 +1165,22 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Locking_Procedures
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
-      use Aquarius.Drys.Declarations;
+      use Syn.Declarations;
       Argument     : constant Formal_Argument'Class :=
                        New_Inout_Argument
                          ("Item",
-                          Aquarius.Drys.Named_Subtype
+                          Syn.Named_Subtype
                             ("Local_Lock_Context_Record"));
 
-      Unlock_Block : Aquarius.Drys.Blocks.Block_Type;
-      S_Lock_Block : Aquarius.Drys.Blocks.Block_Type;
-      X_Lock_Block : Aquarius.Drys.Blocks.Block_Type;
+      Unlock_Block : Syn.Blocks.Block_Type;
+      S_Lock_Block : Syn.Blocks.Block_Type;
+      X_Lock_Block : Syn.Blocks.Block_Type;
 
       procedure Add_Locker (Name     : String;
-                            Block    : Aquarius.Drys.Blocks.Block_Type);
+                            Block    : Syn.Blocks.Block_Type);
 
       procedure Unlock (T : Kit.Schema.Tables.Table_Type);
       procedure S_Lock (T : Kit.Schema.Tables.Table_Type);
@@ -1191,7 +1191,7 @@ package body Kit.Generate.Public_Interface is
       ----------------
 
       procedure Add_Locker (Name     : String;
-                            Block    : Aquarius.Drys.Blocks.Block_Type)
+                            Block    : Syn.Blocks.Block_Type)
       is
          P : Subprogram_Declaration'Class :=
                New_Procedure (Name, Argument, Block);
@@ -1207,7 +1207,7 @@ package body Kit.Generate.Public_Interface is
       procedure S_Lock (T : Kit.Schema.Tables.Table_Type) is
       begin
          S_Lock_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Item.T" & T.Index_Image
                & "_Data.S_Lock"));
       end S_Lock;
@@ -1222,18 +1222,18 @@ package body Kit.Generate.Public_Interface is
 
       begin
          Unlock_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
               ("Item.T" & T.Index_Image
                & "_Data.Unlock"));
          if Kit.Options.Generate_Deadlock_Detection then
             Unlock_Block.Add_Statement
-              (Aquarius.Drys.Statements.If_Statement
-                 (Aquarius.Drys.Expressions.Operator
-                      ("/=", Aquarius.Drys.Object (Request_Object),
-                       Aquarius.Drys.Object ("Kit_Locking.No_Request")),
-                  Aquarius.Drys.Statements.New_Procedure_Call_Statement
+              (Syn.Statements.If_Statement
+                 (Syn.Expressions.Operator
+                      ("/=", Syn.Object (Request_Object),
+                       Syn.Object ("Kit_Locking.No_Request")),
+                  Syn.Statements.New_Procedure_Call_Statement
                     ("Kit_Locking.Release_Lock",
-                     Aquarius.Drys.Object (Request_Object))));
+                     Syn.Object (Request_Object))));
          end if;
       end Unlock;
 
@@ -1255,7 +1255,7 @@ package body Kit.Generate.Public_Interface is
 
       if Kit.Options.Generate_Deadlock_Detection then
          Unlock_Block.Add_Declaration
-           (Aquarius.Drys.Declarations.Use_Type
+           (Syn.Declarations.Use_Type
               ("Kit_Locking.Request_Id"));
       end if;
 
@@ -1296,14 +1296,14 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Overrides
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions;
-      use Aquarius.Drys.Statements;
+      use Syn;
+      use Syn.Expressions;
+      use Syn.Statements;
       Locking_Sequence : Sequence_Of_Statements;
-      X_Lock_Block : Aquarius.Drys.Blocks.Block_Type;
+      X_Lock_Block : Syn.Blocks.Block_Type;
    begin
       Locking_Sequence.Append
         (New_Procedure_Call_Statement ("Item.Link.Unlock"));
@@ -1318,7 +1318,7 @@ package body Kit.Generate.Public_Interface is
             Locking_Sequence));
 
       declare
-         use Aquarius.Drys.Declarations;
+         use Syn.Declarations;
          X_Lock : Subprogram_Declaration'Class :=
                          New_Procedure
                            ("X_Lock",
@@ -1340,12 +1340,12 @@ package body Kit.Generate.Public_Interface is
    procedure Create_Search_Procedures
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Aquarius.Drys.Declarations.Package_Type'Class)
+      Top   : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
-      use Aquarius.Drys;
-      use Aquarius.Drys.Declarations;
-      use Aquarius.Drys.Expressions;
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions;
 
       procedure Create_Has_Element;
       procedure Create_Next;
@@ -1357,13 +1357,13 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Has_Element is
 
-         Has_Element_Block : Aquarius.Drys.Blocks.Block_Type;
-         --  Next_Block        : Aquarius.Drys.Blocks.Block_Type;
+         Has_Element_Block : Syn.Blocks.Block_Type;
+         --  Next_Block        : Syn.Blocks.Block_Type;
       begin
          Has_Element_Block.Add_Declaration
            (Use_Type ("Marlowe.Database_Index"));
          Has_Element_Block.Add_Statement
-           (Aquarius.Drys.Statements.New_Return_Statement
+           (Syn.Statements.New_Return_Statement
               (Operator ("/=", Object ("Item.Local.M_Index"),
                Object ("0"))));
 
@@ -1387,8 +1387,8 @@ package body Kit.Generate.Public_Interface is
       -----------------
 
       procedure Create_Next is
-         use Aquarius.Drys.Statements;
-         Next_Block        : Aquarius.Drys.Blocks.Block_Type;
+         use Syn.Statements;
+         Next_Block        : Syn.Blocks.Block_Type;
       begin
          Next_Block.Add_Declaration
            (Use_Type ("Marlowe.Database_Index"));
@@ -1468,10 +1468,10 @@ package body Kit.Generate.Public_Interface is
    function Generate_Public_Interface
      (Db    : Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in     Aquarius.Drys.Declarations.Package_Type'Class)
-      return Aquarius.Drys.Declarations.Package_Type'Class
+      Top   : in     Syn.Declarations.Package_Type'Class)
+      return Syn.Declarations.Package_Type'Class
    is
-      use Aquarius.Drys, Aquarius.Drys.Declarations;
+      use Syn, Syn.Declarations;
       Database_Package       : constant String :=
                                  Table.Ada_Name & "_Impl";
 --        Database_Type          : constant String :=
@@ -1484,9 +1484,9 @@ package body Kit.Generate.Public_Interface is
 
       Withed_Tables : Kit.String_Maps.String_Map;
 
-      Table_Package : Aquarius.Drys.Declarations.Package_Type'Class :=
+      Table_Package : Syn.Declarations.Package_Type'Class :=
         Top.New_Child_Package (Table.Ada_Name);
-      Table_Interface : Aquarius.Drys.Interface_Type_Definition;
+      Table_Interface : Syn.Interface_Type_Definition;
 
       procedure Add_Field_Type_With
         (Base  : Kit.Schema.Tables.Table_Type;
@@ -1546,7 +1546,7 @@ package body Kit.Generate.Public_Interface is
 
       procedure Add_Create_Function is
 
-         use Aquarius.Drys.Statements;
+         use Syn.Statements;
 
          Sequence : Sequence_Of_Statements;
 
@@ -1562,7 +1562,7 @@ package body Kit.Generate.Public_Interface is
          procedure Set_Field (Field_Name : String;
                               Value      : String);
 
-         Create_Ref_Block : Aquarius.Drys.Blocks.Block_Type;
+         Create_Ref_Block : Syn.Blocks.Block_Type;
          Got_Field        : Boolean := False;
 
          procedure Initialise_Field
@@ -1608,7 +1608,7 @@ package body Kit.Generate.Public_Interface is
          procedure Allocate_Context
            (Base : Kit.Schema.Tables.Table_Type)
          is
-            use Aquarius.Drys.Expressions;
+            use Syn.Expressions;
          begin
             Sequence.Append
               (New_Assignment_Statement
@@ -1631,7 +1631,7 @@ package body Kit.Generate.Public_Interface is
          procedure Database_Insert
            (Base : Kit.Schema.Tables.Table_Type)
          is
-            use Aquarius.Drys.Expressions;
+            use Syn.Expressions;
 
             Index_Field : constant String :=
                             Table.Database_Index_Component
@@ -1735,9 +1735,9 @@ package body Kit.Generate.Public_Interface is
          is
          begin
             Sequence.Append
-              (Aquarius.Drys.Statements.New_Assignment_Statement
+              (Syn.Statements.New_Assignment_Statement
                  ("Result." & Field_Name,
-                  Aquarius.Drys.Object (Value)));
+                  Syn.Object (Value)));
          end Set_Field;
 
       begin
@@ -1769,7 +1769,7 @@ package body Kit.Generate.Public_Interface is
          Sequence.Append ("Result.Local.X_Locked := True");
 
          declare
-            Block : Aquarius.Drys.Blocks.Block_Type;
+            Block : Syn.Blocks.Block_Type;
          begin
             Block.Append
               (New_Return_Statement
@@ -1847,12 +1847,12 @@ package body Kit.Generate.Public_Interface is
          end if;
 
          declare
-            use Aquarius.Drys.Statements;
-            Block  : Aquarius.Drys.Blocks.Block_Type;
+            use Syn.Statements;
+            Block  : Syn.Blocks.Block_Type;
          begin
 
             Block.Add_Declaration
-              (Aquarius.Drys.Declarations.Renaming_Declaration
+              (Syn.Declarations.Renaming_Declaration
                  ("Result",
                   Field.Get_Field_Type.Unconstrained_Record_Subtype,
                   Object
@@ -1930,8 +1930,8 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Implementation_Type is
 
-         Record_Defn : Aquarius.Drys.Types.Record_Type_Definition;
-         Context_Defn : Aquarius.Drys.Types.Record_Type_Definition;
+         Record_Defn : Syn.Types.Record_Type_Definition;
+         Context_Defn : Syn.Types.Record_Type_Definition;
 
          procedure Add_Base_Component
            (It : Kit.Schema.Tables.Table_Type);
@@ -2086,7 +2086,7 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Reference_Get
         (Base : Kit.Schema.Tables.Table_Type)
       is
-         use Aquarius.Drys.Expressions;
+         use Syn.Expressions;
       begin
 
          if Base.Ada_Name = Table.Ada_Name then
@@ -2132,12 +2132,12 @@ package body Kit.Generate.Public_Interface is
 
       procedure Create_Selection_Type is
 
-         Selection          : Aquarius.Drys.Types.Record_Type_Definition;
-         Cursor             : Aquarius.Drys.Types.Record_Type_Definition;
-         Constant_Reference : Aquarius.Drys.Types.Record_Type_Definition;
-         Variable_Reference : Aquarius.Drys.Types.Record_Type_Definition;
-         Iterator_Package   : Aquarius.Drys.Declarations.Package_Type :=
-                                Aquarius.Drys.Declarations.New_Package_Type
+         Selection          : Syn.Types.Record_Type_Definition;
+         Cursor             : Syn.Types.Record_Type_Definition;
+         Constant_Reference : Syn.Types.Record_Type_Definition;
+         Variable_Reference : Syn.Types.Record_Type_Definition;
+         Iterator_Package   : Syn.Declarations.Package_Type :=
+                                Syn.Declarations.New_Package_Type
                                   ("Selection_Iterator_Interfaces");
       begin
 
@@ -2149,8 +2149,8 @@ package body Kit.Generate.Public_Interface is
                              (if Mark_Package
                               then Data_Store_Cursor_Name
                               else Table.Type_Name);
-               List_Package   : Aquarius.Drys.Declarations.Package_Type :=
-                                  Aquarius.Drys.Declarations.New_Package_Type
+               List_Package   : Syn.Declarations.Package_Type :=
+                                  Syn.Declarations.New_Package_Type
                                     ("List_Of_" & Name & "s");
                Access_Type    : Declaration'Class :=
                                   New_Full_Type_Declaration
@@ -2180,9 +2180,9 @@ package body Kit.Generate.Public_Interface is
               ("Cursor", Cursor));
 
          declare
-            use Aquarius.Drys.Expressions;
-            use Aquarius.Drys.Statements;
-            Has_Element_Block : Aquarius.Drys.Blocks.Block_Type;
+            use Syn.Expressions;
+            use Syn.Statements;
+            Has_Element_Block : Syn.Blocks.Block_Type;
          begin
 --        return List_Of_Marks.Has_Element (Item.Current_Mark)
 --          and then Marlowe.Btree_Handles.Valid
@@ -2217,7 +2217,7 @@ package body Kit.Generate.Public_Interface is
             "not null access constant " & Table.Type_Name);
 
          declare
-            Ref_Type : Aquarius.Drys.Declaration'Class :=
+            Ref_Type : Syn.Declaration'Class :=
                          New_Private_Type_Declaration
                            ("Constant_Reference_Type", Constant_Reference);
          begin
@@ -2230,7 +2230,7 @@ package body Kit.Generate.Public_Interface is
            ("Element",
             "not null access " & Table.Type_Name);
          declare
-            Ref_Type : Aquarius.Drys.Declaration'Class :=
+            Ref_Type : Syn.Declaration'Class :=
                          New_Private_Type_Declaration
                            ("Reference_Type", Variable_Reference);
          begin
@@ -2240,8 +2240,8 @@ package body Kit.Generate.Public_Interface is
          end;
 
          declare
-            Selection_State : Aquarius.Drys.Types.Record_Type_Definition;
-            State_Type      : Aquarius.Drys.Declarations.Type_Declaration;
+            Selection_State : Syn.Types.Record_Type_Definition;
+            State_Type      : Syn.Declarations.Type_Declaration;
          begin
             Selection_State.Add_Component
               ("Elements",
@@ -2309,8 +2309,8 @@ package body Kit.Generate.Public_Interface is
          end;
 
          declare
-            use Aquarius.Drys.Statements;
-            Iterate_Block : Aquarius.Drys.Blocks.Block_Type;
+            use Syn.Statements;
+            Iterate_Block : Syn.Blocks.Block_Type;
             Return_Sequence : Sequence_Of_Statements;
          begin
             Return_Sequence.Append
@@ -2336,13 +2336,13 @@ package body Kit.Generate.Public_Interface is
 
          for Is_Variable in Boolean loop
             declare
-               Ref_Block : Aquarius.Drys.Blocks.Block_Type;
+               Ref_Block : Syn.Blocks.Block_Type;
             begin
                Ref_Block.Add_Declaration
-                 (Aquarius.Drys.Declarations.New_Pragma
+                 (Syn.Declarations.New_Pragma
                     ("Unreferenced", "Container"));
                Ref_Block.Add_Statement
-                 (Aquarius.Drys.Statements.New_Return_Statement
+                 (Syn.Statements.New_Return_Statement
                     (Result =>
                        Object
                          ("(Element => "
@@ -2390,10 +2390,10 @@ package body Kit.Generate.Public_Interface is
          end loop;
 
          declare
-            use Aquarius.Drys.Statements;
+            use Syn.Statements;
             Free_Element_Sequence  : Sequence_Of_Statements;
             Free_Mark_Sequence     : Sequence_Of_Statements;
-            Finalize_Block         : Aquarius.Drys.Blocks.Block_Type;
+            Finalize_Block         : Syn.Blocks.Block_Type;
             Free_Element           : Subprogram_Declaration'Class :=
                                        Instantiate_Generic_Procedure
                                          (Instantiated_Name => "Free",
@@ -2425,18 +2425,18 @@ package body Kit.Generate.Public_Interface is
                  ("Free", Object ("X")));
             Finalize_Block.Add_Statement
               (Item =>
-                 Aquarius.Drys.Statements.Iterate
+                 Syn.Statements.Iterate
                    (Loop_Variable  => "X",
                     Container_Name => "Object.State.Elements",
                     Iterate_Body   => Free_Element_Sequence));
             Finalize_Block.Add_Statement
               (Item =>
-                 Aquarius.Drys.Statements.Iterate
+                 Syn.Statements.Iterate
                    (Loop_Variable  => "X",
                     Container_Name => "Object.State.Marks",
                     Iterate_Body   => Free_Mark_Sequence));
             Finalize_Block.Add_Statement
-              (Aquarius.Drys.Statements.New_Procedure_Call_Statement
+              (Syn.Statements.New_Procedure_Call_Statement
                  ("Free", Object ("Object.State")));
 
             declare
@@ -2457,8 +2457,8 @@ package body Kit.Generate.Public_Interface is
          end;
 
          declare
-            use Aquarius.Drys.Expressions;
-            use Aquarius.Drys.Statements;
+            use Syn.Expressions;
+            use Syn.Statements;
             Is_Empty : constant Subprogram_Declaration'Class :=
                          New_Function
                            (Name        => "Is_Empty",
@@ -2469,7 +2469,7 @@ package body Kit.Generate.Public_Interface is
                                    Named_Subtype ("Selection")),
                             Result_Type => "Boolean",
                             Block       =>
-                              Aquarius.Drys.Blocks.Create_Block
+                              Syn.Blocks.Create_Block
                                 (New_Return_Statement
                                      (New_Function_Call_Expression
                                           ("Has_Element",
@@ -2482,8 +2482,8 @@ package body Kit.Generate.Public_Interface is
          end;
 
          declare
-            use Aquarius.Drys.Expressions;
-            use Aquarius.Drys.Statements;
+            use Syn.Expressions;
+            use Syn.Statements;
             Element : constant Subprogram_Declaration'Class :=
                          New_Function
                            (Name        => "Element",
@@ -2494,7 +2494,7 @@ package body Kit.Generate.Public_Interface is
                                    Named_Subtype ("Cursor")),
                             Result_Type => Table.Ada_Name & "_Type",
                             Block       =>
-                              Aquarius.Drys.Blocks.Create_Block
+                              Syn.Blocks.Create_Block
                                 (New_Return_Statement
                                      (Object
                                           ("List_Of_Elements.Element "
@@ -2507,9 +2507,9 @@ package body Kit.Generate.Public_Interface is
          end;
 
          declare
-            use Aquarius.Drys.Expressions;
-            use Aquarius.Drys.Statements;
-            Block : Aquarius.Drys.Blocks.Block_Type;
+            use Syn.Expressions;
+            use Syn.Statements;
+            Block : Syn.Blocks.Block_Type;
          begin
             Block.Add_Declaration
               (New_Object_Declaration
@@ -2529,7 +2529,7 @@ package body Kit.Generate.Public_Interface is
                  (New_Procedure_Call_Statement
                     ("Next", Object ("It")));
                Block.Add_Statement
-                 (Aquarius.Drys.Statements.While_Statement
+                 (Syn.Statements.While_Statement
                     (Condition  =>
                        New_Function_Call_Expression
                          ("Has_Element", "It"),
@@ -2638,7 +2638,7 @@ package body Kit.Generate.Public_Interface is
       Table_Package.Append
         (New_Subtype_Declaration
            (Table.Type_Name,
-            Aquarius.Drys.Class_Wide_Subtype
+            Syn.Class_Wide_Subtype
               (Table.Interface_Name)));
 
       --  Create_Key_Marks (Db, Table, Table_Package);
@@ -2714,15 +2714,15 @@ package body Kit.Generate.Public_Interface is
    --------------------
 
    procedure Perform_X_Lock
-     (Sequence          : in out Aquarius.Drys.Statement_Sequencer'Class;
+     (Sequence          : in out Syn.Statement_Sequencer'Class;
       Table_Name        : String;
       Object_Name       : String;
       Request_Object    : String;
       Index_Object      : String)
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Statements;
-      use Aquarius.Drys.Expressions;
+      use Syn;
+      use Syn.Statements;
+      use Syn.Expressions;
    begin
       if Kit.Options.Generate_Deadlock_Detection then
          Sequence.Append

@@ -1,6 +1,5 @@
 project_name = Kit
 source_dir = src
-source_dir = src/aquarius
 source_dir = src/generator
 source_dir = src/generator/marlowe
 source_dir = src/parser
@@ -11,6 +10,7 @@ depend = { project = GCS version = any }
 depend = { project = WLib version = any }
 depend = { project = Leander version = any }
 depend = { project = Lith version = any }
+depend = { project = Syn version = any }
 main_unit = kit-driver
 exec_name = kit
 config_dir = config

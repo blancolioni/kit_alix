@@ -30,17 +30,17 @@ private
    overriding
    function To_Declaration
      (Item : Enumerated_Type)
-      return Aquarius.Drys.Declaration'Class;
+      return Syn.Declaration'Class;
 
    overriding
    function To_Storage_Array
      (Item        : Enumerated_Type;
       Object_Name : String)
-      return Aquarius.Drys.Expression'Class;
+      return Syn.Expression'Class;
 
    overriding
    function Default_Value (Item : Enumerated_Type)
-                           return Aquarius.Drys.Expression'Class;
+                           return Syn.Expression'Class;
 
    overriding function Haskell_Type_Name
      (Item : Enumerated_Type)
@@ -48,7 +48,7 @@ private
 
    overriding function Create_Database_Record
      (For_Type : Enumerated_Type)
-      return Aquarius.Drys.Statement'Class;
+      return Syn.Statement'Class;
 
    overriding
    function Storage_Array_Transfer
@@ -57,7 +57,7 @@ private
       Object_Name   : String;
       Storage_Name  : String;
       Start, Finish : System.Storage_Elements.Storage_Offset)
-      return Aquarius.Drys.Statement'Class;
+      return Syn.Statement'Class;
 
    type Record_Type_Enumeration is
      new Enumerated_Type with null record;

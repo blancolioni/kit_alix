@@ -1,6 +1,6 @@
 with Ada.Strings.Fixed;
 
-with Aquarius.Drys.Expressions;
+with Syn.Expressions;
 
 with Kit.String_Maps;
 
@@ -893,7 +893,7 @@ package body Kit.Schema.Tables is
      (Table       : Root_Table_Type'Class;
       Key         : Kit.Schema.Keys.Key_Type;
       Object_Name : String)
-      return Aquarius.Drys.Expression'Class
+      return Syn.Expression'Class
    is
       pragma Unreferenced (Table);
       Prefix : constant String :=
@@ -901,8 +901,8 @@ package body Kit.Schema.Tables is
    begin
       if Key.Field_Count > 1 then
          declare
-            use Aquarius.Drys;
-            use Aquarius.Drys.Expressions;
+            use Syn;
+            use Syn.Expressions;
             Result : Function_Call_Expression :=
                        New_Function_Call_Expression
                          (Key.Ada_Name & "_To_Storage");
@@ -1153,10 +1153,10 @@ package body Kit.Schema.Tables is
                         New_Field   : Kit.Schema.Fields.Field_Type;
                         Field_Value : String;
                         With_Index  : Boolean)
-                        return Aquarius.Drys.Expression'Class
+                        return Syn.Expression'Class
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions;
+      use Syn;
+      use Syn.Expressions;
       Key_Index : constant String :=
                     Table.Database_Index_Component
                       (Object_Name, Base_Table);
@@ -1223,10 +1223,10 @@ package body Kit.Schema.Tables is
                         Object_Name : String;
                         Key         : Kit.Schema.Keys.Key_Type;
                         With_Index  : Boolean)
-                        return Aquarius.Drys.Expression'Class
+                        return Syn.Expression'Class
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions;
+      use Syn;
+      use Syn.Expressions;
       Key_Index : constant String :=
                     Table.Database_Index_Component
                       (Object_Name, Base_Table);
@@ -1294,10 +1294,10 @@ package body Kit.Schema.Tables is
    function To_Storage (Key_Value_Name   : String;
                         Index_Value_Name : String;
                         Key              : Kit.Schema.Keys.Key_Type)
-                        return Aquarius.Drys.Expression'Class
+                        return Syn.Expression'Class
    is
-      use Aquarius.Drys;
-      use Aquarius.Drys.Expressions;
+      use Syn;
+      use Syn.Expressions;
    begin
       if Key.Field_Count > 1 then
          declare
@@ -1306,7 +1306,7 @@ package body Kit.Schema.Tables is
                          (Key.Ada_Name & "_To_Storage");
          begin
             Result.Add_Actual_Argument
-              (Aquarius.Drys.Object (Key_Value_Name));
+              (Syn.Object (Key_Value_Name));
             return Result;
          end;
       else

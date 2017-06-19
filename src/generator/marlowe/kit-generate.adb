@@ -1,6 +1,6 @@
-with Aquarius.Drys.Declarations;
-with Aquarius.Drys.Expressions;
-with Aquarius.Drys.Types;
+with Syn.Declarations;
+with Syn.Expressions;
+with Syn.Types;
 
 with Kit.Schema.Keys;
 with Kit.Schema.Tables;
@@ -17,38 +17,38 @@ package body Kit.Generate is
 
    procedure Create_Handle_Function
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
 
    pragma Unreferenced (Create_Handle_Function);
 
    procedure Create_Table_Type
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
 
    procedure Create_Key_Type
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
    pragma Unreferenced (Create_Key_Type);
 
    procedure Create_Reference_Types
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
 
    procedure Create_User_Defined_Types
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
 
    procedure Create_Record_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
 
    procedure Create_Search_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
 
    procedure Create_Locking_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type);
+      Top : in out Syn.Declarations.Package_Type);
 
    ----------------------------
    -- Create_Handle_Function --
@@ -56,15 +56,15 @@ package body Kit.Generate is
 
    procedure Create_Handle_Function
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
       pragma Unreferenced (Db);
-      use Aquarius.Drys.Declarations;
+      use Syn.Declarations;
 
       Handle : constant Subprogram_Declaration'Class :=
                  New_Function ("Handle",
                                "Kit.Access_Control.Access_Handle",
-                               Aquarius.Drys.Object ("Local_Handle"));
+                               Syn.Object ("Local_Handle"));
       Local_Handle : constant Object_Declaration'Class :=
                        New_Object_Declaration
                          ("Local_Handle",
@@ -82,7 +82,7 @@ package body Kit.Generate is
 
    procedure Create_Key_Type
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
       procedure Add_Table_Keys
         (Table : Kit.Schema.Tables.Table_Type);
@@ -95,7 +95,7 @@ package body Kit.Generate is
         (Table : Kit.Schema.Tables.Table_Type)
       is
 
-         Key_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
+         Key_Type_Definition : Syn.Enumeration_Type_Definition;
 
          procedure Add_Key_Type_Literal
            (Base : Kit.Schema.Tables.Table_Type;
@@ -118,9 +118,9 @@ package body Kit.Generate is
       begin
          Table.Scan_Keys (Add_Key_Type_Literal'Access);
          Top.Append
-           (Aquarius.Drys.Declarations.New_Full_Type_Declaration
+           (Syn.Declarations.New_Full_Type_Declaration
               (Table.Ada_Name & "_Key", Key_Type_Definition));
-         Top.Append (Aquarius.Drys.Declarations.New_Separator);
+         Top.Append (Syn.Declarations.New_Separator);
       end Add_Table_Keys;
 
    begin
@@ -133,12 +133,12 @@ package body Kit.Generate is
 
    procedure Create_Locking_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
       pragma Unreferenced (Db);
-      use Aquarius.Drys.Declarations;
+      use Syn.Declarations;
 
-      Lock_Context : Aquarius.Drys.Types.Record_Type_Definition;
+      Lock_Context : Syn.Types.Record_Type_Definition;
       Lock_Record  : Type_Declaration;
       Lock_Access  : Type_Declaration;
       X_Lock       : Subprogram_Declaration'Class :=
@@ -160,14 +160,14 @@ package body Kit.Generate is
       Lock_Context.Add_Component ("S_Locked", "Boolean", "False");
       Lock_Context.Add_Component ("X_Locked", "Boolean", "False");
       Lock_Record :=
-        Aquarius.Drys.Declarations.New_Full_Type_Declaration
+        Syn.Declarations.New_Full_Type_Declaration
           ("Lock_Context_Record", Definition => Lock_Context);
       Lock_Record.Set_Private_Spec;
       Top.Append (Lock_Record);
       Lock_Access :=
-        Aquarius.Drys.Declarations.New_Full_Type_Declaration
+        Syn.Declarations.New_Full_Type_Declaration
           ("Lock_Context",
-           Aquarius.Drys.New_Access_Type
+           Syn.New_Access_Type
              ("Lock_Context_Record'Class",
               Access_All => True));
       Lock_Access.Set_Private_Spec;
@@ -201,11 +201,11 @@ package body Kit.Generate is
 
    procedure Create_Record_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
-      use Aquarius.Drys, Aquarius.Drys.Declarations;
+      use Syn, Syn.Declarations;
       pragma Unreferenced (Db);
-      Record_Interface : Aquarius.Drys.Interface_Type_Definition;
+      Record_Interface : Syn.Interface_Type_Definition;
    begin
       Record_Interface.Set_Limited;
       Top.Append (New_Full_Type_Declaration
@@ -267,7 +267,7 @@ package body Kit.Generate is
 
    procedure Create_Reference_Types
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
 
       procedure Add_Reference_Type
@@ -280,8 +280,8 @@ package body Kit.Generate is
       procedure Add_Reference_Type
         (Item : Kit.Schema.Tables.Table_Type)
       is
-         use Aquarius.Drys, Aquarius.Drys.Declarations;
-         use Aquarius.Drys.Expressions;
+         use Syn, Syn.Declarations;
+         use Syn.Expressions;
          Reference_Name : constant String :=
                             Item.Ada_Name & "_Reference";
          To_String      : Subprogram_Declaration'Class :=
@@ -314,7 +314,7 @@ package body Kit.Generate is
             Table_Index : Declaration'Class :=
                             New_Constant_Declaration
                               (Item.Ada_Name & "_Table_Index",
-                               Aquarius.Drys.Literal
+                               Syn.Literal
                                  (Integer (Item.Reference_Index)));
          begin
             Table_Index.Set_Private_Spec;
@@ -334,11 +334,11 @@ package body Kit.Generate is
 
    procedure Create_Search_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
-      use Aquarius.Drys, Aquarius.Drys.Declarations;
+      use Syn, Syn.Declarations;
       pragma Unreferenced (Db);
-      Search_Interface : Aquarius.Drys.Interface_Type_Definition;
+      Search_Interface : Syn.Interface_Type_Definition;
    begin
       Search_Interface.Set_Limited;
       Top.Append (New_Full_Type_Declaration
@@ -369,9 +369,9 @@ package body Kit.Generate is
 
    procedure Create_Table_Type
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
-      Table_Type_Definition : Aquarius.Drys.Enumeration_Type_Definition;
+      Table_Type_Definition : Syn.Enumeration_Type_Definition;
 
       procedure Add_Table_Type_Literal
         (Item : Kit.Schema.Tables.Table_Type);
@@ -391,9 +391,9 @@ package body Kit.Generate is
       Table_Type_Definition.New_Literal ("R_None");
       Db.Iterate (Add_Table_Type_Literal'Access);
       Top.Append
-        (Aquarius.Drys.Declarations.New_Full_Type_Declaration
+        (Syn.Declarations.New_Full_Type_Declaration
            ("Record_Type", Table_Type_Definition));
-      Top.Append (Aquarius.Drys.Declarations.New_Separator);
+      Top.Append (Syn.Declarations.New_Separator);
 
    end Create_Table_Type;
 
@@ -403,7 +403,7 @@ package body Kit.Generate is
 
    procedure Create_User_Defined_Types
      (Db  : Kit.Schema.Databases.Database_Type;
-      Top : in out Aquarius.Drys.Declarations.Package_Type)
+      Top : in out Syn.Declarations.Package_Type)
    is
 
       pragma Unreferenced (Db);
@@ -466,12 +466,12 @@ package body Kit.Generate is
 
    function Generate_Database
      (Db : Kit.Schema.Databases.Database_Type)
-      return Aquarius.Drys.Projects.Project
+      return Syn.Projects.Project
    is
-      Top_Package : Aquarius.Drys.Declarations.Package_Type :=
-        Aquarius.Drys.Declarations.New_Package_Type (Db.Name);
+      Top_Package : Syn.Declarations.Package_Type :=
+        Syn.Declarations.New_Package_Type (Db.Name);
 
-      Project : Aquarius.Drys.Projects.Project;
+      Project : Syn.Projects.Project;
 
       function Get_Record_Literal_Name (Index : Positive) return String;
 
@@ -551,9 +551,9 @@ package body Kit.Generate is
       Create_Search_Interface (Db, Top_Package);
       Create_Locking_Interface (Db, Top_Package);
       Top_Package.Append
-        (Aquarius.Drys.Declarations.New_Constant_Declaration
+        (Syn.Declarations.New_Constant_Declaration
            ("Database_Magic_Number",
-            Aquarius.Drys.Literal (1)));
+            Syn.Literal (1)));
       Project.Add_Package (Top_Package);
       Project.Add_Package
         (Database_Package.Generate_Database_Package (Db));

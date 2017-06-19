@@ -1,4 +1,4 @@
-with Aquarius.Drys.Projects;
+with Syn.Projects;
 with Kit.Schema.Databases;
 
 package Kit.Generate is
@@ -15,6 +15,6 @@ package Kit.Generate is
 
    function Generate_Database
      (Db : Kit.Schema.Databases.Database_Type)
-      return Aquarius.Drys.Projects.Project;
+      return Syn.Projects.Project;
 
 end Kit.Generate;

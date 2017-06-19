@@ -3,9 +3,9 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Text_IO;
 
-with Aquarius.Drys;
-with Aquarius.Drys.File_Writer;
-with Aquarius.Drys.Projects;
+with Syn;
+with Syn.File_Writer;
+with Syn.Projects;
 
 with Kit.Schema.Databases;
 with Kit.Parser;
@@ -67,12 +67,12 @@ begin
 
    Ada.Text_IO.Put_Line ("Creating database");
    declare
-      Project : constant Aquarius.Drys.Projects.Project :=
+      Project : constant Syn.Projects.Project :=
                   Kit.Generate.Generate_Database (Db);
-      File    : Aquarius.Drys.File_Writer.File_Writer;
+      File    : Syn.File_Writer.File_Writer;
    begin
       Ada.Text_IO.Put_Line ("Writing source files");
-      Aquarius.Drys.Projects.Write_Project (Project, File);
+      Syn.Projects.Write_Project (Project, File);
       Kit.Generate.Templates.Copy_Template_Packages
         (Db, Target_Directory);
       Kit.Generate.Leander_Module.Generate_Leander_Module
