@@ -40,7 +40,7 @@ package body Kit.UI.Gtk_UI.Table_Lists is
         (Store,
          (1 => Glib.GType_String));
 
-      for Table of Kit.Db.Kit_Record.Select_By_Name loop
+      for Table of Kit.Db.Kit_Record.Scan_By_Name loop
          Store.Append (Iter);
          Store.Set (Iter, 0, Table.Name);
       end loop;
