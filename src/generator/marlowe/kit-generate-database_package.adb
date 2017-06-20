@@ -562,7 +562,9 @@ package body Kit.Generate.Database_Package is
 
       procedure Create_Type (T  : Kit.Schema.Types.Kit_Type) is
       begin
-         if not T.Is_Table_Reference then
+         if not T.Is_Table_Reference
+           and then not T.Is_External_Type
+         then
             Seq.Append (T.Create_Database_Record);
          end if;
       end Create_Type;
