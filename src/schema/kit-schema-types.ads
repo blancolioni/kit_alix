@@ -26,6 +26,8 @@ package Kit.Schema.Types is
                            is abstract;
 
    function Haskell_Type_Name (Item : Root_Kit_Type) return String;
+   function Internal_Database_Name (Item : Root_Kit_Type) return String
+   is (Item.Standard_Name);
 
    function Is_Text (Item : Root_Kit_Type) return Boolean is (False);
 

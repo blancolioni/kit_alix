@@ -405,6 +405,10 @@ package body Kit.Schema.Types is
       Object_Name : String)
       return Syn.Expression'Class;
 
+   overriding function Internal_Database_Name
+     (Item : External_Type) return String
+   is (Item.Local_Type.Internal_Database_Name);
+
    ----------------------
    -- Argument_Subtype --
    ----------------------
@@ -1323,7 +1327,8 @@ package body Kit.Schema.Types is
    is
    begin
       return Syn.Object
-        ("Kit_Type.Get_By_Name (""" & Of_Kit_Type.Standard_Name
+        ("Kit_Type.Get_By_Name ("""
+         & Root_Kit_Type'Class (Of_Kit_Type).Internal_Database_Name
          & """).Reference");
    end Reference_Database_Type;
 
