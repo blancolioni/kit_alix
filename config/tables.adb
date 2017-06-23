@@ -1069,6 +1069,13 @@ package body {database}.Tables is
                Marlowe.Key_Storage.From_Storage (X, Value);
                return Integer'Image (X);
             end;
+         when R_Kit_Long_Integer =>
+            declare
+               X : Integer_64;
+            begin
+               Integer_64_Storage.From_Storage (X, Value);
+               return Integer_64'Image (X);
+            end;
          when R_Kit_Float =>
             declare
                X      : Float;
