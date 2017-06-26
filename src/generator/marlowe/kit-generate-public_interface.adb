@@ -58,6 +58,11 @@ package body Kit.Generate.Public_Interface is
      (Table : in     Kit.Schema.Tables.Table_Type;
       Top   : in out Syn.Declarations.Package_Type'Class);
 
+   procedure Create_Notification_Handles
+     (Db    : in     Kit.Schema.Databases.Database_Type;
+      Table : in     Kit.Schema.Tables.Table_Type;
+      Top   : in out Syn.Declarations.Package_Type'Class);
+
    procedure Perform_X_Lock
      (Sequence          : in out Syn.Statement_Sequencer'Class;
       Table_Name        : String;
@@ -1288,6 +1293,81 @@ package body Kit.Generate.Public_Interface is
       Add_Locker ("X_Lock", X_Lock_Block);
 
    end Create_Locking_Procedures;
+
+   ---------------------------------
+   -- Create_Notification_Handles --
+   ---------------------------------
+
+   procedure Create_Notification_Handles
+     (Db    : in     Kit.Schema.Databases.Database_Type;
+      Table : in     Kit.Schema.Tables.Table_Type;
+      Top   : in out Syn.Declarations.Package_Type'Class)
+   is
+      pragma Unreferenced (Db);
+      Signature : constant Syn.Declarations.Subprogram_Declaration'Class :=
+                    Syn.Declarations.New_Abstract_Procedure
+                      ("",
+                       Syn.Declarations.New_Formal_Argument
+                         ("Reference",
+                          Syn.Named_Subtype (Table.Reference_Type_Name)));
+      Table_Changed : Syn.Blocks.Block_Type;
+      Record_Changed : Syn.Blocks.Block_Type;
+      Subprogram_Type_Name : constant String :=
+                               Table.Ada_Name & "_Notify_Handler";
+      Package_Name : constant String := Table.Ada_Name & "_Notifiers";
+      Notifier_Package     : Syn.Declarations.Package_Type'Class :=
+                               Syn.Declarations.New_Package_Type
+                                 (Package_Name);
+   begin
+      Top.With_Package
+        ("Kit.Notifier", Body_With => True);
+      Notifier_Package.Set_Generic_Instantiation
+        ("Kit.Notifier");
+      Notifier_Package.Add_Generic_Actual_Argument
+        (Table.Reference_Type_Name);
+      Top.Append_To_Body (Notifier_Package);
+
+      Top.Append (Syn.Declarations.New_Separator);
+      Top.Append
+        (Syn.Declarations.New_Full_Type_Declaration
+           (Subprogram_Type_Name,
+            Syn.Types.New_Subprogram_Type_Definition
+              (Signature)));
+
+      Top.Append (Syn.Declarations.New_Separator);
+
+      Table_Changed.Append
+        (Syn.Statements.New_Procedure_Call_Statement
+           (Package_Name & ".Add_Table_Change_Handler",
+            Syn.Expressions.New_Function_Call_Expression
+              (Package_Name & ".Notification_Handler",
+               Syn.Object ("Handler"))));
+
+      Top.Append
+        (Syn.Declarations.New_Procedure
+           ("On_" & Table.Ada_Name & "_Changed",
+            Syn.Declarations.New_Formal_Argument
+              ("Handler", Syn.Named_Subtype (Subprogram_Type_Name)),
+            Table_Changed));
+
+      Record_Changed.Append
+        (Syn.Statements.New_Procedure_Call_Statement
+           (Package_Name & ".Add_Record_Change_Handler",
+            Syn.Object ("Reference"),
+            Syn.Expressions.New_Function_Call_Expression
+              (Package_Name & ".Notification_Handler",
+               Syn.Object ("Handler"))));
+
+      Top.Append
+        (Syn.Declarations.New_Procedure
+           ("On_" & Table.Ada_Name & "_Changed",
+            Syn.Declarations.New_Formal_Argument
+              ("Reference", Syn.Named_Subtype (Table.Reference_Type_Name)),
+            Syn.Declarations.New_Formal_Argument
+              ("Handler", Syn.Named_Subtype (Subprogram_Type_Name)),
+            Record_Changed));
+
+   end Create_Notification_Handles;
 
    ----------------------
    -- Create_Overrides --
@@ -2718,6 +2798,8 @@ package body Kit.Generate.Public_Interface is
         (Db, Table, Table_Package);
 
       Public_Get.Create_Iterator (Table, Table_Package);
+
+      Create_Notification_Handles (Db, Table, Table_Package);
 
       return Table_Package;
    end Generate_Public_Interface;
