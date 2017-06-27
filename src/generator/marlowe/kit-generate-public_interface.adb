@@ -154,6 +154,8 @@ package body Kit.Generate.Public_Interface is
          Finalize_Block : Syn.Blocks.Block_Type;
          Delete_Key_Statements : Sequence_Of_Statements;
 
+         Notify_Changed : Sequence_Of_Statements;
+
          procedure Key_Operation
            (Operation_Name : String;
             Target         : in out Sequence_Of_Statements);
@@ -280,11 +282,36 @@ package body Kit.Generate.Public_Interface is
             Finalize_Block.Add_Statement (If_Deleted);
          end;
 
-         Key_Operation ("Insert", Insert_Keys);
-
          Insert_Keys.Append
            (New_Procedure_Call_Statement
               ("Database_Mutex.Shared_Unlock"));
+
+         Notify_Changed.Append
+           (New_Procedure_Call_Statement
+              ("Kit.Notifier.Record_Changed",
+               Value (Table.Index_Image),
+               New_Function_Call_Expression
+                 ("Marlowe.Database_Index",
+                  Object ("Item.Local.M_Index"))));
+
+         declare
+            X_Locked       : constant Expression'Class :=
+                               Object ("Item.Link.X_Locked");
+            Created        : constant Expression'Class :=
+                               Object ("Item.Created");
+            X_And_Not_C    : constant Expression'Class :=
+                               Operator ("and then not", X_Locked, Created);
+            X_And_Not_C_D  : constant Expression'Class :=
+                               Operator ("and then not", X_And_Not_C,
+                                         Object ("Item.Deleted"));
+            If_X_And_Not_C_D : constant Statement'Class :=
+                                 If_Statement (X_And_Not_C_D,
+                                               Notify_Changed);
+         begin
+            Finalize_Block.Add_Statement (If_X_And_Not_C_D);
+         end;
+
+         Key_Operation ("Insert", Insert_Keys);
 
          declare
             X_Locked : constant Expression'Class :=
@@ -1304,69 +1331,175 @@ package body Kit.Generate.Public_Interface is
       Top   : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
-      Signature : constant Syn.Declarations.Subprogram_Declaration'Class :=
-                    Syn.Declarations.New_Abstract_Procedure
-                      ("",
-                       Syn.Declarations.New_Formal_Argument
-                         ("Reference",
-                          Syn.Named_Subtype (Table.Reference_Type_Name)));
-      Table_Changed : Syn.Blocks.Block_Type;
-      Record_Changed : Syn.Blocks.Block_Type;
-      Subprogram_Type_Name : constant String :=
+      use Syn, Syn.Declarations;
+
+      Table_Change_Type : Syn.Types.Record_Type_Definition;
+      Record_Change_Type : Syn.Types.Record_Type_Definition;
+      Table_Change_Type_Name : constant String :=
+                          Table.Ada_Name & "_Table_Notify_Record";
+      Record_Change_Type_Name : constant String :=
+                                  Table.Ada_Name & "_Notify_Record";
+      Table_Signature : constant Subprogram_Declaration'Class :=
+                          New_Abstract_Procedure ("");
+      Record_Signature : constant Subprogram_Declaration'Class :=
+                    New_Abstract_Procedure
+                             ("",
+                              New_Formal_Argument
+                                ("Reference",
+                                 Syn.Named_Subtype
+                                   (Table.Reference_Type_Name)));
+
+      Record_Notifier_Name : constant String :=
                                Table.Ada_Name & "_Notify_Handler";
-      Package_Name : constant String := Table.Ada_Name & "_Notifiers";
-      Notifier_Package     : Syn.Declarations.Package_Type'Class :=
-                               Syn.Declarations.New_Package_Type
-                                 (Package_Name);
+      Table_Notifier_Name : constant String :=
+                              Table.Ada_Name & "_Table_Notify_Handler";
+
    begin
-      Top.With_Package
-        ("Kit.Notifier", Body_With => True);
-      Notifier_Package.Set_Generic_Instantiation
-        ("Kit.Notifier");
-      Notifier_Package.Add_Generic_Actual_Argument
-        (Table.Reference_Type_Name);
-      Top.Append_To_Body (Notifier_Package);
+
+      Table_Change_Type.Set_Tagged;
+      Table_Change_Type.Add_Parent
+        ("Kit.Notifier.Table_Notify_Interface");
+      Table_Change_Type.Add_Component
+        ("Handler", Table_Notifier_Name);
+
+      Top.Append_To_Body
+        (New_Full_Type_Declaration
+           (Table_Change_Type_Name,
+            Table_Change_Type));
+
+      declare
+         Block : Syn.Blocks.Block_Type;
+      begin
+
+         Block.Append
+           (Syn.Statements.New_Procedure_Call_Statement
+              ("Handle.Handler.all"));
+
+         declare
+            Notify : Subprogram_Declaration'Class :=
+                       New_Procedure
+                         ("Notify_Table_Change",
+                          New_Formal_Argument
+                            ("Handle",
+                             Named_Subtype (Table_Change_Type_Name)),
+                          Block);
+         begin
+            Notify.Set_Overriding;
+            Top.Append_To_Body (Notify);
+         end;
+      end;
+
+      Record_Change_Type.Set_Tagged;
+      Record_Change_Type.Add_Parent
+        ("Kit.Notifier.Record_Notify_Interface");
+      Record_Change_Type.Add_Component
+        ("Handler", Record_Notifier_Name);
+
+      Top.Append_To_Body
+        (New_Full_Type_Declaration
+           (Record_Change_Type_Name,
+            Record_Change_Type));
+
+      declare
+         Block : Syn.Blocks.Block_Type;
+      begin
+
+         Block.Append
+           (Syn.Statements.New_Procedure_Call_Statement
+              ("Handle.Handler",
+               Syn.Expressions.New_Function_Call_Expression
+                 (Table.Reference_Type_Name,
+                  Object ("Changed_Record"))));
+
+         declare
+            Notify : Subprogram_Declaration'Class :=
+                       New_Procedure
+                         ("Notify_Record_Change",
+                          New_Formal_Argument
+                            ("Handle",
+                             Named_Subtype (Record_Change_Type_Name)),
+                          New_Formal_Argument
+                            ("Changed_Record",
+                             Named_Subtype ("Marlowe.Database_Index")),
+                          Block);
+         begin
+            Notify.Set_Overriding;
+            Top.Append_To_Body (Notify);
+         end;
+      end;
 
       Top.Append (Syn.Declarations.New_Separator);
+
       Top.Append
         (Syn.Declarations.New_Full_Type_Declaration
-           (Subprogram_Type_Name,
+           (Record_Notifier_Name,
             Syn.Types.New_Subprogram_Type_Definition
-              (Signature)));
+              (Record_Signature)));
+
+      Top.Append
+        (Syn.Declarations.New_Full_Type_Declaration
+           (Table_Notifier_Name,
+            Syn.Types.New_Subprogram_Type_Definition
+              (Table_Signature)));
 
       Top.Append (Syn.Declarations.New_Separator);
 
-      Table_Changed.Append
-        (Syn.Statements.New_Procedure_Call_Statement
-           (Package_Name & ".Add_Table_Change_Handler",
-            Syn.Expressions.New_Function_Call_Expression
-              (Package_Name & ".Notification_Handler",
-               Syn.Object ("Handler"))));
+      for Changed_Record in Boolean loop
+         declare
+            Block : Syn.Blocks.Block_Type;
+         begin
+            Block.Add_Declaration
+              (New_Object_Declaration
+                 ("Rec",
+                  Named_Subtype
+                    (if Changed_Record
+                     then Record_Change_Type_Name
+                     else Table_Change_Type_Name)));
+            Block.Append
+              (Syn.Statements.New_Assignment_Statement
+                 ("Rec.Handler", Object ("Handler")));
+            if Changed_Record then
+               Block.Append
+                 (Syn.Statements.New_Procedure_Call_Statement
+                    ("Kit.Notifier.Add_Record_Change_Handler",
+                     Value (Table.Index_Image),
+                     Syn.Expressions.New_Function_Call_Expression
+                       ("Marlowe.Database_Index",
+                        Object ("Reference")),
+                     Object ("Rec")));
+            else
+               Block.Append
+                 (Syn.Statements.New_Procedure_Call_Statement
+                    ("Kit.Notifier.Add_Table_Change_Handler",
+                     Value (Table.Index_Image),
+                     Object ("Rec")));
+            end if;
 
-      Top.Append
-        (Syn.Declarations.New_Procedure
-           ("On_" & Table.Ada_Name & "_Changed",
-            Syn.Declarations.New_Formal_Argument
-              ("Handler", Syn.Named_Subtype (Subprogram_Type_Name)),
-            Table_Changed));
-
-      Record_Changed.Append
-        (Syn.Statements.New_Procedure_Call_Statement
-           (Package_Name & ".Add_Record_Change_Handler",
-            Syn.Object ("Reference"),
-            Syn.Expressions.New_Function_Call_Expression
-              (Package_Name & ".Notification_Handler",
-               Syn.Object ("Handler"))));
-
-      Top.Append
-        (Syn.Declarations.New_Procedure
-           ("On_" & Table.Ada_Name & "_Changed",
-            Syn.Declarations.New_Formal_Argument
-              ("Reference", Syn.Named_Subtype (Table.Reference_Type_Name)),
-            Syn.Declarations.New_Formal_Argument
-              ("Handler", Syn.Named_Subtype (Subprogram_Type_Name)),
-            Record_Changed));
-
+            declare
+               Name : constant String :=
+                        "On_" & Table.Ada_Name
+                        & (if Changed_Record then "" else "_Table")
+                        & "_Changed";
+               Proc : Subprogram_Declaration'Class :=
+                        New_Procedure (Name, Block);
+            begin
+               if Changed_Record then
+                  Proc.Add_Formal_Argument
+                    (New_Formal_Argument
+                       ("Reference",
+                        Named_Subtype (Table.Reference_Type_Name)));
+               end if;
+               Proc.Add_Formal_Argument
+                 (New_Formal_Argument
+                    ("Handler",
+                     Named_Subtype
+                       (if Changed_Record
+                        then Record_Notifier_Name
+                        else Table_Notifier_Name)));
+               Top.Append (Proc);
+            end;
+         end;
+      end loop;
    end Create_Notification_Handles;
 
    ----------------------
@@ -2670,6 +2803,9 @@ package body Kit.Generate.Public_Interface is
 
       Table_Package.With_Package ("Kit.Cache",
                                   Body_With => True);
+
+      Table_Package.With_Package
+        ("Kit.Notifier", Body_With => True);
 
       if Table.Has_String_Type then
          Table_Package.With_Package ("Kit.Strings",

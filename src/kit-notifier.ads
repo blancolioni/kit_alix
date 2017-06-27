@@ -1,31 +1,40 @@
-generic
-   type Reference_Type is private;
-   with function "<" (Left, Right : Reference_Type) return Boolean is <>;
 package Kit.Notifier is
 
-   type Notification_Handler is access
-     procedure (Reference : Reference_Type);
+   type Table_Notify_Interface is interface;
 
-   procedure Add_Table_Change_Handler (Handler : Notification_Handler);
-   procedure Add_New_Record_Handler (Handler : Notification_Handler);
+   procedure Notify_Table_Change
+     (Handle : Table_Notify_Interface)
+   is null;
+
+   type Record_Notify_Interface is interface;
+
+   procedure Notify_Record_Change
+     (Handle         : Record_Notify_Interface;
+      Changed_Record : Marlowe.Database_Index)
+   is null;
+
+   procedure Add_Table_Change_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Table_Notify_Interface'Class);
+
+   procedure Add_Delete_Record_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Record_Notify_Interface'Class);
+
+   procedure Add_New_Record_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Record_Notify_Interface'Class);
 
    procedure Add_Record_Change_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler);
-   procedure Add_Record_Delete_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler);
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index;
+      Handler : Record_Notify_Interface'Class);
 
-   procedure Remove_Table_Change_Handler (Handler : Notification_Handler);
-   procedure Remove_New_Record_Handler (Handler : Notification_Handler);
-   procedure Remove_Record_Change_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler);
-   procedure Remove_Record_Delete_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler);
+   procedure Table_Changed
+     (Table   : Marlowe.Table_Index);
 
-   procedure On_Changed
-     (Reference : Reference_Type);
+   procedure Record_Changed
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index);
 
 end Kit.Notifier;
