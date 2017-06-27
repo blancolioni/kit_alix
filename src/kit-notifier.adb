@@ -1,31 +1,187 @@
-private with Ada.Containers.Doubly_Linked_Lists;
+private with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 private with Ada.Containers.Ordered_Maps;
+private with Ada.Containers.Vectors;
 
 package body Kit.Notifier is
 
-   package Handler_Lists is
-     new Ada.Containers.Doubly_Linked_Lists (Notification_Handler);
+   package Table_Notify_Lists is
+     new Ada.Containers.Indefinite_Doubly_Linked_Lists
+       (Table_Notify_Interface'Class);
 
-   Table_Change_Handlers : Handler_Lists.List;
-   New_Record_Handlers   : Handler_Lists.List;
+   package Record_Notify_Lists is
+     new Ada.Containers.Indefinite_Doubly_Linked_Lists
+       (Record_Notify_Interface'Class);
 
-   package Reference_Maps is
+   type Record_Notify_Entry is
+      record
+         On_Record_Changed : Record_Notify_Lists.List;
+      end record;
+
+   package Record_Notify_Maps is
      new Ada.Containers.Ordered_Maps
-       (Key_Type     => Reference_Type,
-        Element_Type => Handler_Lists.List,
-        "<"          => "<",
-        "="          => Handler_Lists."=");
+       (Key_Type     => Marlowe.Database_Index,
+        Element_Type => Record_Notify_Entry,
+        "<"          => Marlowe."<");
 
-   Record_Change_Handlers : Reference_Maps.Map;
-   Record_Delete_Handlers : Reference_Maps.Map;
+   type Table_Notifier_Entry is
+      record
+         On_Table_Change  : Table_Notify_Lists.List;
+         On_New_Record    : Record_Notify_Lists.List;
+         On_Delete_Record : Record_Notify_Lists.List;
+         Record_Notifiers : Record_Notify_Maps.Map;
+      end record;
+
+   type Table_Notifier_Index is range 1 .. Marlowe.Table_Index'Last;
+
+   package Table_Notifier_Vectors is
+     new Ada.Containers.Vectors (Table_Notifier_Index, Table_Notifier_Entry);
+
+   type Table_Notification is (Table_Changed);
+   type Record_Notification is (Record_Added, Record_Deleted,
+                                Record_Changed);
+
+   procedure Add
+     (Vector       : in out Table_Notifier_Vectors.Vector;
+      Notification : Table_Notification;
+      Table        : Marlowe.Table_Index;
+      Handler      : Table_Notify_Interface'Class);
+
+   procedure Add
+     (Vector       : in out Table_Notifier_Vectors.Vector;
+      Notification : Record_Notification;
+      Table        : Marlowe.Table_Index;
+      Index        : Marlowe.Database_Index;
+      Handler      : Record_Notify_Interface'Class);
+
+   procedure Handle
+     (Vector       : Table_Notifier_Vectors.Vector;
+      Notification : Table_Notification;
+      Table        : Marlowe.Table_Index);
+
+   procedure Handle
+     (Vector       : Table_Notifier_Vectors.Vector;
+      Notification : Record_Notification;
+      Table        : Marlowe.Table_Index;
+      Index        : Marlowe.Database_Index);
+
+   task Notifier_Task is
+      entry Add_Table_Notification
+        (Notification : Table_Notification;
+         Table        : Marlowe.Table_Index;
+         Handler      : Table_Notify_Interface'Class);
+      entry Add_Record_Notification
+        (Notification : Record_Notification;
+         Table        : Marlowe.Table_Index;
+         Index        : Marlowe.Database_Index;
+         Handler      : Record_Notify_Interface'Class);
+
+      entry Handle_Table_Notification
+        (Notification : Table_Notification;
+         Table        : Marlowe.Table_Index);
+
+      entry Handle_Record_Notification
+        (Notification : Record_Notification;
+         Table        : Marlowe.Table_Index;
+         Index        : Marlowe.Database_Index);
+   end Notifier_Task;
+
+   ---------
+   -- Add --
+   ---------
+
+   procedure Add
+     (Vector       : in out Table_Notifier_Vectors.Vector;
+      Notification : Table_Notification;
+      Table        : Marlowe.Table_Index;
+      Handler      : Table_Notify_Interface'Class)
+   is
+      Notifier_Index : constant Table_Notifier_Index :=
+                         Table_Notifier_Index (Table);
+   begin
+      while Vector.Last_Index < Notifier_Index loop
+         Vector.Append ((others => <>));
+      end loop;
+
+      case Notification is
+         when Table_Changed =>
+            Vector (Notifier_Index).On_Table_Change.Append (Handler);
+      end case;
+   end Add;
+
+   ---------
+   -- Add --
+   ---------
+
+   procedure Add
+     (Vector       : in out Table_Notifier_Vectors.Vector;
+      Notification : Record_Notification;
+      Table        : Marlowe.Table_Index;
+      Index        : Marlowe.Database_Index;
+      Handler      : Record_Notify_Interface'Class)
+   is
+      Notifier_Index : constant Table_Notifier_Index :=
+                         Table_Notifier_Index (Table);
+   begin
+      while Vector.Last_Index < Notifier_Index loop
+         Vector.Append ((others => <>));
+      end loop;
+
+      case Notification is
+         when Record_Added =>
+            Vector (Notifier_Index).On_New_Record.Append (Handler);
+         when Record_Deleted =>
+            Vector (Notifier_Index).On_Delete_Record.Append (Handler);
+         when Record_Changed =>
+            declare
+               Map : Record_Notify_Maps.Map renames
+                       Vector (Notifier_Index).Record_Notifiers;
+               Position : constant Record_Notify_Maps.Cursor :=
+                            Map.Find (Index);
+            begin
+               if not Record_Notify_Maps.Has_Element (Position) then
+                  declare
+                     List : Record_Notify_Lists.List;
+                  begin
+                     List.Append (Handler);
+                     Map.Insert (Index, (On_Record_Changed => List));
+                  end;
+               else
+                  Map (Position).On_Record_Changed.Append (Handler);
+               end if;
+            end;
+      end case;
+   end Add;
+
+   -------------------------------
+   -- Add_Delete_Record_Handler --
+   -------------------------------
+
+   procedure Add_Delete_Record_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Record_Notify_Interface'Class)
+   is
+   begin
+      Notifier_Task.Add_Record_Notification
+        (Notification => Record_Deleted,
+         Table        => Table,
+         Index        => 0,
+         Handler      => Handler);
+   end Add_Delete_Record_Handler;
 
    ----------------------------
    -- Add_New_Record_Handler --
    ----------------------------
 
-   procedure Add_New_Record_Handler (Handler : Notification_Handler) is
+   procedure Add_New_Record_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Record_Notify_Interface'Class)
+   is
    begin
-      New_Record_Handlers.Append (Handler);
+      Notifier_Task.Add_Record_Notification
+        (Notification => Record_Added,
+         Table        => Table,
+         Index        => 0,
+         Handler      => Handler);
    end Add_New_Record_Handler;
 
    -------------------------------
@@ -33,105 +189,182 @@ package body Kit.Notifier is
    -------------------------------
 
    procedure Add_Record_Change_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler)
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index;
+      Handler : Record_Notify_Interface'Class)
    is
    begin
-      Record_Change_Handlers (Reference).Append (Handler);
+      Notifier_Task.Add_Record_Notification
+        (Notification => Record_Changed,
+         Table        => Table,
+         Index        => Index,
+         Handler      => Handler);
    end Add_Record_Change_Handler;
-
-   -------------------------------
-   -- Add_Record_Delete_Handler --
-   -------------------------------
-
-   procedure Add_Record_Delete_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler)
-   is
-   begin
-      Record_Delete_Handlers (Reference).Append (Handler);
-   end Add_Record_Delete_Handler;
 
    ------------------------------
    -- Add_Table_Change_Handler --
    ------------------------------
 
-   procedure Add_Table_Change_Handler (Handler : Notification_Handler) is
+   procedure Add_Table_Change_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Table_Notify_Interface'Class)
+   is
    begin
-      Table_Change_Handlers.Append (Handler);
+      Notifier_Task.Add_Table_Notification
+        (Notification => Table_Changed,
+         Table        => Table,
+         Handler      => Handler);
    end Add_Table_Change_Handler;
 
-   ----------------
-   -- On_Changed --
-   ----------------
+   ------------
+   -- Handle --
+   ------------
 
-   procedure On_Changed
-     (Reference : Reference_Type)
+   procedure Handle
+     (Vector       : Table_Notifier_Vectors.Vector;
+      Notification : Table_Notification;
+      Table        : Marlowe.Table_Index)
    is
-      Position : constant Reference_Maps.Cursor :=
-                   Record_Change_Handlers.Find (Reference);
+      Notifier_Index : constant Table_Notifier_Index :=
+                         Table_Notifier_Index (Table);
    begin
-      for Handler of Table_Change_Handlers loop
-         Handler (Reference);
-      end loop;
-      if Reference_Maps.Has_Element (Position) then
-         for Handler of Record_Change_Handlers (Position) loop
-            Handler (Reference);
-         end loop;
+      if Vector.Last_Index >= Notifier_Index then
+         case Notification is
+            when Table_Changed =>
+               for Handler of
+                 Vector (Notifier_Index).On_Table_Change
+               loop
+                  Handler.Notify_Table_Change;
+               end loop;
+         end case;
       end if;
+   end Handle;
 
-   end On_Changed;
+   ------------
+   -- Handle --
+   ------------
 
-   -------------------------------
-   -- Remove_New_Record_Handler --
-   -------------------------------
-
-   procedure Remove_New_Record_Handler (Handler : Notification_Handler) is
-      Position : Handler_Lists.Cursor := New_Record_Handlers.Find (Handler);
-   begin
-      New_Record_Handlers.Delete (Position);
-   end Remove_New_Record_Handler;
-
-   ----------------------------------
-   -- Remove_Record_Change_Handler --
-   ----------------------------------
-
-   procedure Remove_Record_Change_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler)
+   procedure Handle
+     (Vector       : Table_Notifier_Vectors.Vector;
+      Notification : Record_Notification;
+      Table        : Marlowe.Table_Index;
+      Index        : Marlowe.Database_Index)
    is
-      List : Handler_Lists.List renames
-               Record_Change_Handlers
-                 (Record_Change_Handlers.Find (Reference));
-      Position : Handler_Lists.Cursor := List.Find (Handler);
+      Notifier_Index : constant Table_Notifier_Index :=
+                         Table_Notifier_Index (Table);
    begin
-      List.Delete (Position);
-   end Remove_Record_Change_Handler;
+      if Vector.Last_Index >= Notifier_Index then
+         case Notification is
+            when Record_Added =>
+               for Handler of
+                 Vector (Notifier_Index).On_New_Record
+               loop
+                  Handler.Notify_Record_Change (Index);
+               end loop;
+            when Record_Deleted =>
+               for Handler of
+                 Vector (Notifier_Index).On_Delete_Record
+               loop
+                  Handler.Notify_Record_Change (Index);
+               end loop;
+            when Record_Changed =>
+               declare
+                  Map      : Record_Notify_Maps.Map renames
+                               Vector (Notifier_Index).Record_Notifiers;
+                  Position : constant Record_Notify_Maps.Cursor :=
+                               Map.Find (Index);
+               begin
+                  if Record_Notify_Maps.Has_Element (Position) then
+                     for Handler of
+                       Map (Position).On_Record_Changed
+                     loop
+                        Handler.Notify_Record_Change (Index);
+                     end loop;
+                  end if;
+               end;
+         end case;
+      end if;
+   end Handle;
 
-   ----------------------------------
-   -- Remove_Record_Delete_Handler --
-   ----------------------------------
+   -------------------
+   -- Notifier_Task --
+   -------------------
 
-   procedure Remove_Record_Delete_Handler
-     (Reference : Reference_Type;
-      Handler   : Notification_Handler)
+   task body Notifier_Task is
+      Vector : Table_Notifier_Vectors.Vector;
+      Local_Table_Notification  : Table_Notification;
+      Local_Record_Notification : Record_Notification;
+      Local_Table               : Marlowe.Table_Index;
+      Local_Record_Index        : Marlowe.Database_Index;
+   begin
+      loop
+         select
+            accept Add_Table_Notification
+              (Notification : in Table_Notification;
+               Table : in Marlowe.Table_Index;
+               Handler : in Table_Notify_Interface'Class)
+            do
+               Add (Vector, Notification, Table, Handler);
+            end Add_Table_Notification;
+         or
+            accept Add_Record_Notification
+              (Notification : in Record_Notification;
+               Table : in Marlowe.Table_Index;
+               Index  : Marlowe.Database_Index;
+               Handler : in Record_Notify_Interface'Class)
+            do
+               Add (Vector, Notification, Table, Index, Handler);
+            end Add_Record_Notification;
+         or
+            accept Handle_Table_Notification
+              (Notification : in Table_Notification;
+               Table        : in Marlowe.Table_Index)
+            do
+               Local_Table_Notification := Notification;
+               Local_Table := Table;
+            end Handle_Table_Notification;
+            Handle (Vector, Local_Table_Notification, Local_Table);
+         or
+            accept Handle_Record_Notification
+              (Notification : in Record_Notification;
+               Table        : in Marlowe.Table_Index;
+               Index        : in Marlowe.Database_Index)
+            do
+               Local_Record_Notification := Notification;
+               Local_Table := Table;
+               Local_Record_Index := Index;
+            end Handle_Record_Notification;
+            Handle (Vector, Local_Record_Notification,
+                    Local_Table, Local_Record_Index);
+         or
+            terminate;
+         end select;
+      end loop;
+   end Notifier_Task;
+
+   --------------------
+   -- Record_Changed --
+   --------------------
+
+   procedure Record_Changed
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index)
    is
-      List     : Handler_Lists.List renames
-                   Record_Change_Handlers
-                     (Record_Delete_Handlers.Find (Reference));
-      Position : Handler_Lists.Cursor := List.Find (Handler);
    begin
-      List.Delete (Position);
-   end Remove_Record_Delete_Handler;
+      Notifier_Task.Handle_Record_Notification
+        (Record_Changed, Table, Index);
+   end Record_Changed;
 
-   ---------------------------------
-   -- Remove_Table_Change_Handler --
-   ---------------------------------
+   -------------------
+   -- Table_Changed --
+   -------------------
 
-   procedure Remove_Table_Change_Handler (Handler : Notification_Handler) is
-      Position : Handler_Lists.Cursor := Table_Change_Handlers.Find (Handler);
+   procedure Table_Changed
+     (Table   : Marlowe.Table_Index)
+   is
    begin
-      Table_Change_Handlers.Delete (Position);
-   end Remove_Table_Change_Handler;
+      Notifier_Task.Handle_Table_Notification
+        (Table_Changed, Table);
+   end Table_Changed;
 
 end Kit.Notifier;
