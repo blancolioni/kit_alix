@@ -355,6 +355,32 @@ package body Kit.Notifier is
         (Record_Changed, Table, Index);
    end Record_Changed;
 
+   --------------------
+   -- Record_Created --
+   --------------------
+
+   procedure Record_Created
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index)
+   is
+   begin
+      Notifier_Task.Handle_Record_Notification
+        (Record_Added, Table, Index);
+   end Record_Created;
+
+   --------------------
+   -- Record_Deleted --
+   --------------------
+
+   procedure Record_Deleted
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index)
+   is
+   begin
+      Notifier_Task.Handle_Record_Notification
+        (Record_Deleted, Table, Index);
+   end Record_Deleted;
+
    -------------------
    -- Table_Changed --
    -------------------

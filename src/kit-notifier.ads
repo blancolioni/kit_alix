@@ -37,4 +37,12 @@ package Kit.Notifier is
      (Table   : Marlowe.Table_Index;
       Index   : Marlowe.Database_Index);
 
+   procedure Record_Deleted
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index);
+
+   procedure Record_Created
+     (Table   : Marlowe.Table_Index;
+      Index   : Marlowe.Database_Index);
+
 end Kit.Notifier;

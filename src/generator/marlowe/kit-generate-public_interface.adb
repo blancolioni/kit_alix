@@ -154,13 +154,22 @@ package body Kit.Generate.Public_Interface is
          Finalize_Block : Syn.Blocks.Block_Type;
          Delete_Key_Statements : Sequence_Of_Statements;
 
-         Notify_Changed : Sequence_Of_Statements;
+         Notify_Change_Statements : Sequence_Of_Statements;
 
          procedure Key_Operation
            (Operation_Name : String;
             Target         : in out Sequence_Of_Statements);
 
          procedure Set_Db_Deleted
+           (Base : Kit.Schema.Tables.Table_Type);
+
+         procedure Notify_Change
+           (Base : Kit.Schema.Tables.Table_Type);
+
+         procedure Notify_Create
+           (Base : Kit.Schema.Tables.Table_Type);
+
+         procedure Notify_Delete
            (Base : Kit.Schema.Tables.Table_Type);
 
          -------------------
@@ -221,6 +230,60 @@ package body Kit.Generate.Public_Interface is
                            Table_First => False);
          end Key_Operation;
 
+         -------------------
+         -- Notify_Change --
+         -------------------
+
+         procedure Notify_Change
+           (Base : Kit.Schema.Tables.Table_Type)
+         is
+         begin
+            Notify_Change_Statements.Append
+              (New_Procedure_Call_Statement
+                 ("Kit.Notifier.Record_Changed",
+                  Value (Base.Index_Image),
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Table.Database_Index_Component
+                       ("Item", Base))));
+         end Notify_Change;
+
+         -------------------
+         -- Notify_Create --
+         -------------------
+
+         procedure Notify_Create
+           (Base : Kit.Schema.Tables.Table_Type)
+         is
+         begin
+            Insert_Keys.Append
+              (New_Procedure_Call_Statement
+                 ("Kit.Notifier.Record_Created",
+                  Value (Base.Index_Image),
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Table.Database_Index_Component
+                       ("Item", Base))));
+         end Notify_Create;
+
+         -------------------
+         -- Notify_Delete --
+         -------------------
+
+         procedure Notify_Delete
+           (Base : Kit.Schema.Tables.Table_Type)
+         is
+         begin
+            Delete_Key_Statements.Append
+              (New_Procedure_Call_Statement
+                 ("Kit.Notifier.Record_Deleted",
+                  Value (Base.Index_Image),
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Table.Database_Index_Component
+                       ("Item", Base))));
+         end Notify_Delete;
+
          --------------------
          -- Set_Db_Deleted --
          --------------------
@@ -273,6 +336,10 @@ package body Kit.Generate.Public_Interface is
            (Process => Set_Db_Deleted'Access,
             Inclusive => True);
 
+         Table.Iterate
+           (Process => Notify_Delete'Access,
+            Inclusive => True);
+
          declare
             Deleted  : constant Expression'Class :=
                          Object ("Item.Deleted");
@@ -282,17 +349,9 @@ package body Kit.Generate.Public_Interface is
             Finalize_Block.Add_Statement (If_Deleted);
          end;
 
-         Insert_Keys.Append
-           (New_Procedure_Call_Statement
-              ("Database_Mutex.Shared_Unlock"));
-
-         Notify_Changed.Append
-           (New_Procedure_Call_Statement
-              ("Kit.Notifier.Record_Changed",
-               Value (Table.Index_Image),
-               New_Function_Call_Expression
-                 ("Marlowe.Database_Index",
-                  Object ("Item.Local.M_Index"))));
+         Table.Iterate
+           (Process => Notify_Change'Access,
+            Inclusive => True);
 
          declare
             X_Locked       : constant Expression'Class :=
@@ -306,12 +365,19 @@ package body Kit.Generate.Public_Interface is
                                          Object ("Item.Deleted"));
             If_X_And_Not_C_D : constant Statement'Class :=
                                  If_Statement (X_And_Not_C_D,
-                                               Notify_Changed);
+                                               Notify_Change_Statements);
          begin
             Finalize_Block.Add_Statement (If_X_And_Not_C_D);
          end;
 
          Key_Operation ("Insert", Insert_Keys);
+
+         Insert_Keys.Append
+           (New_Procedure_Call_Statement
+              ("Database_Mutex.Shared_Unlock"));
+
+         Table.Iterate
+           (Notify_Create'Access, Inclusive => True);
 
          declare
             X_Locked : constant Expression'Class :=
