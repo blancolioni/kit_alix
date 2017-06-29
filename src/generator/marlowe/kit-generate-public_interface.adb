@@ -1510,62 +1510,88 @@ package body Kit.Generate.Public_Interface is
 
       Top.Append (Syn.Declarations.New_Separator);
 
-      for Changed_Record in Boolean loop
-         declare
-            Block : Syn.Blocks.Block_Type;
-         begin
-            Block.Add_Declaration
-              (New_Object_Declaration
-                 ("Rec",
-                  Named_Subtype
-                    (if Changed_Record
-                     then Record_Change_Type_Name
-                     else Table_Change_Type_Name)));
-            Block.Append
-              (Syn.Statements.New_Assignment_Statement
-                 ("Rec.Handler", Object ("Handler")));
-            if Changed_Record then
-               Block.Append
-                 (Syn.Statements.New_Procedure_Call_Statement
-                    ("Kit.Notifier.Add_Record_Change_Handler",
-                     Value (Table.Index_Image),
-                     Syn.Expressions.New_Function_Call_Expression
-                       ("Marlowe.Database_Index",
-                        Object ("Reference")),
-                     Object ("Rec")));
-            else
-               Block.Append
-                 (Syn.Statements.New_Procedure_Call_Statement
-                    ("Kit.Notifier.Add_Table_Change_Handler",
-                     Value (Table.Index_Image),
-                     Object ("Rec")));
-            end if;
-
+      declare
+         type On_Change_Type is (Table_Change, Record_Change,
+                                 Record_Created, Record_Deleted);
+      begin
+         for Change in On_Change_Type loop
             declare
-               Name : constant String :=
-                        "On_" & Table.Ada_Name
-                        & (if Changed_Record then "" else "_Table")
-                        & "_Changed";
-               Proc : Subprogram_Declaration'Class :=
-                        New_Procedure (Name, Block);
+               Block : Syn.Blocks.Block_Type;
+               Add_Handler_Name : constant String :=
+                                    (case Change is
+                                        when Table_Change =>
+                                           "Add_Table_Change_Handler",
+                                        when Record_Change =>
+                                           "Add_Record_Change_Handler",
+                                        when Record_Created =>
+                                           "Add_Record_Create_Handler",
+                                        when Record_Deleted =>
+                                           "Add_Record_Delete_Handler");
             begin
-               if Changed_Record then
+               Block.Add_Declaration
+                 (New_Object_Declaration
+                    ("Rec",
+                     Named_Subtype
+                       (if Change = Table_Change
+                        then Table_Change_Type_Name
+                        else Record_Change_Type_Name)));
+               Block.Append
+                 (Syn.Statements.New_Assignment_Statement
+                    ("Rec.Handler", Object ("Handler")));
+               if Change /= Record_Change then
+                  Block.Append
+                    (Syn.Statements.New_Procedure_Call_Statement
+                       ("Kit.Notifier." & Add_Handler_Name,
+                        Value (Table.Index_Image),
+                        Object ("Rec")));
+               else
+                  Block.Append
+                    (Syn.Statements.New_Procedure_Call_Statement
+                       ("Kit.Notifier." & Add_Handler_Name,
+                        Value (Table.Index_Image),
+                        Syn.Expressions.New_Function_Call_Expression
+                          ("Marlowe.Database_Index",
+                           Object ("Reference")),
+                        Object ("Rec")));
+               end if;
+
+               declare
+                  Operation_Name : constant String :=
+                                     (case Change is
+                                         when Table_Change   =>
+                                            "Table_Change",
+                                         when Record_Change  =>
+                                            "Change",
+                                         when Record_Created =>
+                                            "Created",
+                                         when Record_Deleted =>
+                                            "Deleted");
+
+                  Name : constant String :=
+                           "On_" & Table.Ada_Name
+                           & "_"
+                           & Operation_Name;
+                  Proc : Subprogram_Declaration'Class :=
+                           New_Procedure (Name, Block);
+               begin
+                  if Change = Record_Change then
+                     Proc.Add_Formal_Argument
+                       (New_Formal_Argument
+                          ("Reference",
+                           Named_Subtype (Table.Reference_Type_Name)));
+                  end if;
                   Proc.Add_Formal_Argument
                     (New_Formal_Argument
-                       ("Reference",
-                        Named_Subtype (Table.Reference_Type_Name)));
-               end if;
-               Proc.Add_Formal_Argument
-                 (New_Formal_Argument
-                    ("Handler",
-                     Named_Subtype
-                       (if Changed_Record
-                        then Record_Notifier_Name
-                        else Table_Notifier_Name)));
-               Top.Append (Proc);
+                       ("Handler",
+                        Named_Subtype
+                          (if Change = Table_Change
+                           then Table_Notifier_Name
+                           else Record_Notifier_Name)));
+                  Top.Append (Proc);
+               end;
             end;
-         end;
-      end loop;
+         end loop;
+      end;
    end Create_Notification_Handles;
 
    ----------------------

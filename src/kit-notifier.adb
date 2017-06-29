@@ -153,38 +153,6 @@ package body Kit.Notifier is
    end Add;
 
    -------------------------------
-   -- Add_Delete_Record_Handler --
-   -------------------------------
-
-   procedure Add_Delete_Record_Handler
-     (Table   : Marlowe.Table_Index;
-      Handler : Record_Notify_Interface'Class)
-   is
-   begin
-      Notifier_Task.Add_Record_Notification
-        (Notification => Record_Deleted,
-         Table        => Table,
-         Index        => 0,
-         Handler      => Handler);
-   end Add_Delete_Record_Handler;
-
-   ----------------------------
-   -- Add_New_Record_Handler --
-   ----------------------------
-
-   procedure Add_New_Record_Handler
-     (Table   : Marlowe.Table_Index;
-      Handler : Record_Notify_Interface'Class)
-   is
-   begin
-      Notifier_Task.Add_Record_Notification
-        (Notification => Record_Added,
-         Table        => Table,
-         Index        => 0,
-         Handler      => Handler);
-   end Add_New_Record_Handler;
-
-   -------------------------------
    -- Add_Record_Change_Handler --
    -------------------------------
 
@@ -200,6 +168,38 @@ package body Kit.Notifier is
          Index        => Index,
          Handler      => Handler);
    end Add_Record_Change_Handler;
+
+   -------------------------------
+   -- Add_Record_Create_Handler --
+   -------------------------------
+
+   procedure Add_Record_Create_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Record_Notify_Interface'Class)
+   is
+   begin
+      Notifier_Task.Add_Record_Notification
+        (Notification => Record_Added,
+         Table        => Table,
+         Index        => 0,
+         Handler      => Handler);
+   end Add_Record_Create_Handler;
+
+   -------------------------------
+   -- Add_Delete_Record_Handler --
+   -------------------------------
+
+   procedure Add_Record_Delete_Handler
+     (Table   : Marlowe.Table_Index;
+      Handler : Record_Notify_Interface'Class)
+   is
+   begin
+      Notifier_Task.Add_Record_Notification
+        (Notification => Record_Deleted,
+         Table        => Table,
+         Index        => 0,
+         Handler      => Handler);
+   end Add_Record_Delete_Handler;
 
    ------------------------------
    -- Add_Table_Change_Handler --

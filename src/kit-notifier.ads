@@ -17,11 +17,11 @@ package Kit.Notifier is
      (Table   : Marlowe.Table_Index;
       Handler : Table_Notify_Interface'Class);
 
-   procedure Add_Delete_Record_Handler
+   procedure Add_Record_Delete_Handler
      (Table   : Marlowe.Table_Index;
       Handler : Record_Notify_Interface'Class);
 
-   procedure Add_New_Record_Handler
+   procedure Add_Record_Create_Handler
      (Table   : Marlowe.Table_Index;
       Handler : Record_Notify_Interface'Class);
 
