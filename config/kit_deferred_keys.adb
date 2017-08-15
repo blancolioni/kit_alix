@@ -1,5 +1,4 @@
 with Ada.Containers.Indefinite_Doubly_Linked_Lists;
-with Ada.Text_IO;
 
 with Marlowe.Key_Storage;
 
@@ -42,16 +41,6 @@ package body {database}.Kit_Deferred_Keys is
                       Deferred_Key_Table (Table);
    begin
       Table_Entry.Mutex.Lock;
-
-      if not Table_Entry.Changes.Is_Empty then
-         Ada.Text_IO.Put_Line
-           ("Table"
-            & Marlowe.Table_Index'Image (Table)
-            & ": updating"
-            & Ada.Containers.Count_Type'Image
-                (Table_Entry.Changes.Length)
-            & " deferred keys");
-      end if;
 
       for Change of Table_Entry.Changes loop
          Marlowe_Keys.Handle.Delete
