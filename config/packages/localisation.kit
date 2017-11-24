@@ -1,7 +1,7 @@
 package Localisation is
 
 record Localised is
-   key Tag : String (32) is display;
+   unique key Tag : String (32) is display;
 end Localised;
 
 record Language : Localised;

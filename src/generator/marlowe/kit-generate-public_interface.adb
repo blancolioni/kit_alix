@@ -2355,7 +2355,7 @@ package body Kit.Generate.Public_Interface is
                Key_Name      => Key.Standard_Name);
          else
             for Use_Key_Value in Boolean loop
-               if Use_Key_Value then
+               if Key.Unique and then Use_Key_Value then
                   Public_Get.Create_Unique_Get_Function
                     (Table         => Table,
                      Key_Table     => Base,
