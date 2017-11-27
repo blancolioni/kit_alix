@@ -312,6 +312,8 @@ package body Kit.Generate.Database_Package is
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Bounded_String",
                            Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Fixed_String",
+                           Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Reference",
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Key",
