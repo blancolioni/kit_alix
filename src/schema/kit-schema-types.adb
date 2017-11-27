@@ -1890,31 +1890,42 @@ package body Kit.Schema.Types is
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Syn.Statement'Class
    is
+      use Syn, Syn.Statements;
+      use System.Storage_Elements;
+      use Ada.Strings, Ada.Strings.Fixed;
+      S         : constant String :=
+                    Trim (Storage_Offset'Image (Start), Left);
+      F         : constant String :=
+                    Trim (Storage_Offset'Image (Finish), Left);
+      Store     : constant String :=
+                    Storage_Name & " (" & S & " .. " & F & ")";
    begin
-      if To_Storage then
-         return Item.Storage_Array_Transfer
-           (Object_Name & ".Text (1 .. " & Object_Name & ".Length)",
-            Storage_Name,
-            Start, Finish,
-            "To_Storage");
-      else
-         declare
-            use System.Storage_Elements;
-            use Ada.Strings, Ada.Strings.Fixed;
-            use Syn, Syn.Statements;
-            S         : constant String :=
-                          Trim (Storage_Offset'Image (Start), Left);
-            F         : constant String :=
-                          Trim (Storage_Offset'Image (Finish), Left);
-            Store     : constant String :=
-                          Storage_Name & " (" & S & " .. " & F & ")";
-         begin
+      if Item.Fixed then
+         if To_Storage then
             return New_Procedure_Call_Statement
-              ("Marlowe.Key_Storage.From_Storage",
+              ("Marlowe.Key_Storage.Fixed_String_To_Storage",
+               Object (Object_Name),
+               Object (Store));
+         else
+            return New_Procedure_Call_Statement
+              ("Marlowe.Key_Storage.Fixed_String_From_Storage",
+               Object (Object_Name),
+               Object (Store));
+         end if;
+      else
+         if To_Storage then
+            return Item.Storage_Array_Transfer
+              (Object_Name & ".Text (1 .. " & Object_Name & ".Length)",
+               Storage_Name,
+               Start, Finish,
+               "Bounded_String_To_Storage");
+         else
+            return New_Procedure_Call_Statement
+              ("Marlowe.Key_Storage.Bounded_String_From_Storage",
                Object (Object_Name & ".Text"),
                Object (Object_Name & ".Length"),
                Object (Store));
-         end;
+         end if;
       end if;
 
    end Storage_Array_Transfer;
@@ -2098,9 +2109,12 @@ package body Kit.Schema.Types is
      (Item : String_Type)
       return String
    is
-      pragma Unreferenced (Item);
    begin
-      return "Kit.Strings.String_Type";
+      if Item.Fixed then
+         return "String";
+      else
+         return "Kit.Strings.String_Type";
+      end if;
    end Unconstrained_Record_Subtype;
 
    ------------------------
