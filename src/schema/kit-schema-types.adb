@@ -23,6 +23,11 @@ package body Kit.Schema.Types is
    Standard_Positive_Type     : Kit_Type;
    Standard_Rec_Type          : Kit_Type;
 
+   function Standard_String
+     (Fixed  : Boolean;
+      Length : Positive)
+      return Kit_Type;
+
    package Type_Maps is
      new Ada.Containers.Indefinite_Hashed_Maps
        (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
@@ -190,14 +195,9 @@ package body Kit.Schema.Types is
 
    type String_Type is new Root_Kit_Type with
       record
+         Fixed  : Boolean;
          Length : Positive;
       end record;
-
---     overriding
---     function To_Storage_Array
---       (Item        : String_Type;
---        Object_Name : String)
---        return Syn.Expression'Class;
 
    overriding
    function Convert_To_String (Item   : String_Type;
@@ -233,8 +233,8 @@ package body Kit.Schema.Types is
      (Item : String_Type)
       return String;
 
-   overriding
-   function Is_String (Item : String_Type) return Boolean;
+   overriding function Is_Bounded_String (Item : String_Type) return Boolean;
+   overriding function Is_Fixed_String (Item : String_Type) return Boolean;
 
    overriding
    function Is_Table_Reference
@@ -262,7 +262,10 @@ package body Kit.Schema.Types is
    function Default_Value (Item : String_Type)
                            return Syn.Expression'Class;
 
-   function Standard_String_Name (Length : Natural) return String;
+   function Standard_String_Name
+     (Fixed  : Boolean;
+      Length : Natural)
+      return String;
    --  String types of the given length have this name in the
    --  internal database representation
 
@@ -453,9 +456,10 @@ package body Kit.Schema.Types is
    -- Convert_From_String --
    -------------------------
 
-   overriding function Convert_From_String (Item   : String_Type;
-                                 Object_Name : String)
-                                 return Syn.Expression'Class
+   overriding function Convert_From_String
+     (Item   : String_Type;
+      Object_Name : String)
+      return Syn.Expression'Class
    is
       pragma Unreferenced (Item);
    begin
@@ -718,11 +722,13 @@ package body Kit.Schema.Types is
       use Syn;
       Result : Syn.Statements.Procedure_Call_Statement'Class :=
                  Syn.Statements.New_Procedure_Call_Statement
-                   ("Kit_String.Create");
+                   (if For_Type.Fixed
+                    then "Kit_Fixed_String.Create"
+                    else "Kit_Bounded_String.Create");
    begin
       Result.Add_Actual_Argument (Literal (For_Type.Size));
-      Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       Result.Add_Actual_Argument (Literal (For_Type.Length));
+      Result.Add_Actual_Argument (Literal (For_Type.Standard_Name));
       return Result;
    end Create_Database_Record;
 
@@ -907,9 +913,12 @@ package body Kit.Schema.Types is
      (Item : String_Type)
       return Syn.Expression'Class
    is
-      pragma Unreferenced (Item);
    begin
-      return Syn.Object ("((others => Character'Val (0)), 0)");
+      if Item.Fixed then
+         return Syn.Object ("(others => Character'val (0))");
+      else
+         return Syn.Object ("((others => Character'Val (0)), 0)");
+      end if;
    end Default_Value;
 
    -------------------
@@ -1061,6 +1070,18 @@ package body Kit.Schema.Types is
       return "String";
    end Haskell_Type_Name;
 
+   -----------------------
+   -- Is_Bounded_String --
+   -----------------------
+
+   overriding function Is_Bounded_String
+     (Item : String_Type)
+      return Boolean
+   is
+   begin
+      return not Item.Fixed;
+   end Is_Bounded_String;
+
    ----------------------
    -- Is_External_Type --
    ----------------------
@@ -1069,6 +1090,18 @@ package body Kit.Schema.Types is
      (Item : Root_Kit_Type'Class)
       return Boolean
    is (Item in External_Type);
+
+   ---------------------
+   -- Is_Fixed_String --
+   ---------------------
+
+   overriding function Is_Fixed_String
+     (Item : String_Type)
+      return Boolean
+   is
+   begin
+      return Item.Fixed;
+   end Is_Fixed_String;
 
    ---------------------
    -- Is_Reference_To --
@@ -1097,27 +1130,6 @@ package body Kit.Schema.Types is
    begin
       return Item.Ada_Name = Kit.Names.Ada_Name (Table_Name);
    end Is_Reference_To;
-
-   ---------------
-   -- Is_String --
-   ---------------
-
-   function Is_String (Item : Root_Kit_Type) return Boolean is
-      pragma Unreferenced (Item);
-   begin
-      return False;
-   end Is_String;
-
-   ---------------
-   -- Is_String --
-   ---------------
-
-   overriding
-   function Is_String (Item : String_Type) return Boolean is
-      pragma Unreferenced (Item);
-   begin
-      return True;
-   end Is_String;
 
    ------------------------
    -- Is_Table_Reference --
@@ -1303,7 +1315,11 @@ package body Kit.Schema.Types is
             Ada.Strings.Fixed.Trim (Natural'Image (Item.Length),
                                     Ada.Strings.Left);
    begin
-      return "Kit.Strings.String_Type (" & L & ")";
+      if Item.Fixed then
+         return "String (1 .. " & L & ")";
+      else
+         return "Kit.Strings.String_Type (" & L & ")";
+      end if;
    end Record_Subtype;
 
    --------------------
@@ -1461,10 +1477,13 @@ package body Kit.Schema.Types is
       Target_Name : String)
       return Syn.Expression'Class
    is
-      pragma Unreferenced (Value_Type);
    begin
-      return Syn.Object
-        (Target_Name & ".Text (1 .. " & Target_Name & ".Length)");
+      if Value_Type.Fixed then
+         return Syn.Object (Target_Name);
+      else
+         return Syn.Object
+           (Target_Name & ".Text (1 .. " & Target_Name & ".Length)");
+      end if;
    end Return_Value;
 
    ------------------
@@ -1510,16 +1529,21 @@ package body Kit.Schema.Types is
       Value_Name  : String;
       Sequence    : in out Syn.Statement_Sequencer'Class)
    is
-      pragma Unreferenced (Value_Type);
    begin
-      Sequence.Append
-        (Syn.Statements.New_Assignment_Statement
-           (Target_Name & ".Length",
-            Syn.Object (Value_Name & "'Length")));
-      Sequence.Append
-        (Syn.Statements.New_Assignment_Statement
-           (Target_Name & ".Text (1 .. " & Value_Name & "'Length)",
-            Syn.Object (Value_Name)));
+      if Value_Type.Fixed then
+         Sequence.Append
+           (Syn.Statements.New_Assignment_Statement
+              (Target_Name, Syn.Object (Value_Name)));
+      else
+         Sequence.Append
+           (Syn.Statements.New_Assignment_Statement
+              (Target_Name & ".Length",
+               Syn.Object (Value_Name & "'Length")));
+         Sequence.Append
+           (Syn.Statements.New_Assignment_Statement
+              (Target_Name & ".Text (1 .. " & Value_Name & "'Length)",
+               Syn.Object (Value_Name)));
+      end if;
    end Set_Value;
 
    ---------------
@@ -1650,10 +1674,13 @@ package body Kit.Schema.Types is
    -- Standard_String --
    ---------------------
 
-   function Standard_String (Length : Positive) return Kit_Type is
+   function Standard_String
+     (Fixed  : Boolean;
+      Length : Positive)
+      return Kit_Type
+   is
       use Ada.Strings.Unbounded;
-      Name : constant String :=
-               Standard_String_Name (Length);
+      Name   : constant String := Standard_String_Name (Fixed, Length);
       U_Name : constant Unbounded_String := To_Unbounded_String (Name);
    begin
       if Type_Table.Contains (U_Name) then
@@ -1661,11 +1688,12 @@ package body Kit.Schema.Types is
       else
          declare
             String_Record : String_Type;
-            Result : Kit_Type;
+            Result        : Kit_Type;
          begin
             String_Record.Create (Name);
             String_Record.User_Defined := False;
             String_Record.Size := Length;
+            String_Record.Fixed := Fixed;
             String_Record.Length := Length;
             Result := new String_Type'(String_Record);
             Type_Table.Insert (U_Name, Result);
@@ -1674,15 +1702,31 @@ package body Kit.Schema.Types is
       end if;
    end Standard_String;
 
+   ---------------------
+   -- Standard_String --
+   ---------------------
+
+   function Standard_String (Length : Positive) return Kit_Type
+   is (Standard_String (False, Length));
+
+   function Standard_Fixed_String (Length : Positive) return Kit_Type
+   is (Standard_String (True, Length));
+
    --------------------------
    -- Standard_String_Name --
    --------------------------
 
-   function Standard_String_Name (Length : Natural) return String is
+   function Standard_String_Name
+     (Fixed  : Boolean;
+      Length : Natural)
+      return String
+   is
       Length_Image : String := Natural'Image (Length);
+      Fixed_Bounded : constant String :=
+                        (if Fixed then "Fixed_" else "Bounded_");
    begin
       Length_Image (1) := '_';
-      return "String" & Length_Image;
+      return Fixed_Bounded & "String" & Length_Image;
    end Standard_String_Name;
 
    -------------------

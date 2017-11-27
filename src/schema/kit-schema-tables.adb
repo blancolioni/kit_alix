@@ -187,7 +187,7 @@ package body Kit.Schema.Tables is
       Field.Length :=
         System.Storage_Elements.Storage_Count (Item.Get_Field_Type.Size);
       Table.Fields_Length := Table.Fields_Length + Field.Length;
-      if Item.Get_Field_Type.Is_String then
+      if Item.Get_Field_Type.Is_Bounded_String then
          Table.Has_String_Type := True;
       end if;
       if Item.Get_Field_Type.Is_Text then

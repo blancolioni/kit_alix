@@ -31,7 +31,8 @@ package Kit.Schema.Types is
 
    function Is_Text (Item : Root_Kit_Type) return Boolean is (False);
 
-   function Is_String (Item : Root_Kit_Type) return Boolean;
+   function Is_Bounded_String (Item : Root_Kit_Type) return Boolean;
+   function Is_Fixed_String (Item : Root_Kit_Type) return Boolean;
    function Is_Table_Reference (Item : Root_Kit_Type) return Boolean;
 
    function Key_OK (Item : Root_Kit_Type) return Boolean
@@ -94,6 +95,7 @@ package Kit.Schema.Types is
    function Standard_Record_Type    return Kit_Type;
 
    function Standard_String (Length : Positive) return Kit_Type;
+   function Standard_Fixed_String (Length : Positive) return Kit_Type;
    function Standard_Text return Kit_Type;
 
    function Table_Reference_Type
@@ -167,5 +169,11 @@ private
       Start, Finish : System.Storage_Elements.Storage_Offset;
       Proc_Name     : String)
       return Syn.Statement'Class;
+
+   function Is_Bounded_String (Item : Root_Kit_Type) return Boolean
+   is (False);
+
+   function Is_Fixed_String (Item : Root_Kit_Type) return Boolean
+   is (False);
 
 end Kit.Schema.Types;
