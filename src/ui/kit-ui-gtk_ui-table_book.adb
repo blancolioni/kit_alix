@@ -134,7 +134,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
          Kit_Record : constant Kit.Db.Kit_Record.Kit_Record_Type :=
                         Kit.Db.Kit_Record.Get_By_Name (Table_Name);
          Kit_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
-                        Kit.Db.Kit_Key.Get_By_Kit_Record
+                        Kit.Db.Kit_Key.First_By_Kit_Record
                           (Kit_Record.Reference);
          Found      : Boolean := False;
       begin
@@ -150,7 +150,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
                if not Found then
                   declare
                      Base_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
-                                     Kit.Db.Kit_Key.Get_By_Kit_Record
+                                     Kit.Db.Kit_Key.First_By_Kit_Record
                                        (Base.Base);
                   begin
                      if Base_Key.Has_Element then

@@ -13,6 +13,15 @@ with Kit.Schema.Types;
 
 package body Kit.Generate.Public_Get is
 
+   type Non_Iterator_Fetch_Type is (Unique_Get, First, Last);
+
+   procedure Create_Non_Iterator_Fetch
+     (Table         : in     Kit.Schema.Tables.Table_Type;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
+      Key_Name      : in     String;
+      Fetch_Type    : Non_Iterator_Fetch_Type);
+
    procedure Create_Iterator_Start_Function
      (Table         : in     Kit.Schema.Tables.Table_Type;
       Table_Package : in out Syn.Declarations.Package_Type'Class;
@@ -120,6 +129,25 @@ package body Kit.Generate.Public_Get is
       Table_Package.Append (Syn.Declarations.New_Separator);
 
    end Create_Default_Key_Functions;
+
+   ---------------------------------
+   -- Create_First_Last_Functions --
+   ---------------------------------
+
+   procedure Create_First_Last_Functions
+     (Table         : in     Kit.Schema.Tables.Table_Type;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
+      Key_Name      : in     String)
+   is
+   begin
+      Create_Non_Iterator_Fetch
+        (Table, Key_Table, Table_Package, Key_Name,
+         Fetch_Type => First);
+      Create_Non_Iterator_Fetch
+        (Table, Key_Table, Table_Package, Key_Name,
+         Fetch_Type => Last);
+   end Create_First_Last_Functions;
 
    ---------------------------------
    -- Create_Generic_Get_Function --
@@ -746,6 +774,247 @@ package body Kit.Generate.Public_Get is
 
    end Create_Iterator_Start_Function;
 
+   -------------------------------
+   -- Create_Non_Iterator_Fetch --
+   -------------------------------
+
+   procedure Create_Non_Iterator_Fetch
+     (Table         : in     Kit.Schema.Tables.Table_Type;
+      Key_Table     : in     Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class;
+      Key_Name      : in     String;
+      Fetch_Type    : Non_Iterator_Fetch_Type)
+   is
+      use Syn;
+      use Syn.Declarations;
+      use Syn.Expressions, Syn.Statements;
+
+      Key              : constant Kit.Schema.Keys.Key_Type :=
+                           Table.Key (Key_Name);
+
+      procedure Create_Function
+        (Reference : Boolean);
+
+      procedure Create_Function
+        (Reference : Boolean)
+      is
+
+         Block            : Syn.Blocks.Block_Type;
+
+         function Function_Name return String;
+
+         procedure Set_Field
+           (Seq        : in out Sequence_Of_Statements;
+            Field_Name : String;
+            Value      : Boolean);
+
+         -------------------
+         -- Function_Name --
+         -------------------
+
+         function Function_Name return String is
+            Reference_Part : constant String :=
+                               (if Reference
+                                then "Reference_"
+                                else "");
+            Fetch_Part     : constant String :=
+                               (case Fetch_Type is
+                                   when Unique_Get => "Get_",
+                                   when First      => "First_",
+                                   when Last       => "Last_");
+         begin
+            if Key.Base_Reference then
+               return Fetch_Part & Table.Ada_Name;
+            else
+               return Fetch_Part
+                 & Reference_Part
+                 & "By_"
+                 & Key.Ada_Name;
+            end if;
+         end Function_Name;
+
+         ---------------
+         -- Set_Field --
+         ---------------
+
+         procedure Set_Field
+           (Seq        : in out Sequence_Of_Statements;
+            Field_Name : String;
+            Value      : Boolean)
+         is
+         begin
+            Seq.Append
+              (New_Assignment_Statement
+                 ("Result." & Field_Name,
+                  (if Value then Object ("True") else Object ("False"))));
+         end Set_Field;
+
+      begin
+
+         Block.Add_Declaration
+           (Use_Type ("System.Storage_Elements.Storage_Array"));
+         Block.Add_Declaration
+           (Use_Type ("Marlowe.Database_Index"));
+         Block.Add_Declaration
+           (Syn.Declarations.New_Object_Declaration
+              ("Db_Index", "Marlowe.Database_Index", Literal (0)));
+
+         Check_Deferred_Keys (Block, Key_Table);
+
+         Block.Add_Statement
+           (New_Procedure_Call_Statement
+              (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
+
+         declare
+            Mark_Block       : Syn.Blocks.Block_Type;
+            Initialiser      : Function_Call_Expression :=
+                                 New_Function_Call_Expression
+                                   ("Marlowe_Keys.Handle.Search");
+         begin
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe_Keys." & Table.Key_Reference_Name (Key)));
+            declare
+               Key_To_Storage   : constant Expression'Class :=
+                                    Table.To_Storage
+                                      (Table, Key_Table, "", Key,
+                                       With_Index => False);
+               Start_Storage    : constant Expression'Class :=
+                                    New_Function_Call_Expression
+                                      ("Marlowe.Key_Storage.To_Storage_Array",
+                                       "Marlowe.Database_Index'First");
+               Last_Storage     : constant Expression'Class :=
+                                    New_Function_Call_Expression
+                                      ("Marlowe.Key_Storage.To_Storage_Array",
+                                       "Marlowe.Database_Index'Last");
+            begin
+               Initialiser.Add_Actual_Argument
+                 (Operator
+                    (Name  => "&",
+                     Left  => Key_To_Storage,
+                     Right => Start_Storage));
+               Initialiser.Add_Actual_Argument
+                 (Operator
+                    (Name  => "&",
+                     Left  => Key_To_Storage,
+                     Right => Last_Storage));
+            end;
+
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe.Closed"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe.Closed"));
+            case Fetch_Type is
+               when Unique_Get | First =>
+                  Initialiser.Add_Actual_Argument
+                    (Object ("Marlowe.Forward"));
+               when Last =>
+                  Initialiser.Add_Actual_Argument
+                    (Object ("Marlowe.Backward"));
+            end case;
+
+            Mark_Block.Add_Declaration
+              (New_Constant_Declaration
+                 ("M", Data_Store_Cursor_Name,
+                  Initialiser));
+            Mark_Block.Add_Statement
+              (If_Statement
+                 (Object ("M.Valid"),
+                  New_Assignment_Statement
+                    ("Db_Index",
+                     New_Function_Call_Expression
+                       ("Marlowe.Key_Storage.To_Database_Index",
+                        Object ("M.Get_Key")))));
+            Block.Add_Statement
+              (Declare_Statement (Mark_Block));
+         end;
+
+         if Reference then
+            Block.Add_Statement
+              (New_Procedure_Call_Statement
+                 (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+            Block.Add_Statement
+              (New_Return_Statement
+                 (New_Function_Call_Expression
+                      (Table.Ada_Name & "_Reference",
+                       Object ("Db_Index"))));
+         else
+
+            declare
+               Return_Sequence  : Sequence_Of_Statements;
+               Valid_Sequence   : Sequence_Of_Statements;
+               Invalid_Sequence : Sequence_Of_Statements;
+            begin
+
+               Return_Sequence.Append
+                 (New_Assignment_Statement
+                    (Target => "Result.Local.M_Index",
+                     Value  =>
+                       New_Function_Call_Expression
+                         (Table.Reference_Type_Name, "Db_Index")));
+
+               Fetch.Fetch_From_Index (Table       => Table,
+                                       Object_Name => "Result",
+                                       Target      => Valid_Sequence);
+
+               Set_Field (Valid_Sequence, "Finished", False);
+               Set_Field (Valid_Sequence, "Using_Key_Value", False);
+               Set_Field (Valid_Sequence, "Scanning", False);
+               Set_Field (Valid_Sequence, "Link.S_Locked", True);
+
+               Set_Field (Invalid_Sequence, "Finished", True);
+               Set_Field (Invalid_Sequence, "Using_Key_Value", False);
+               Set_Field (Invalid_Sequence, "Scanning", False);
+               Set_Field (Invalid_Sequence, "Link.S_Locked", False);
+
+               Return_Sequence.Append
+                 (If_Statement
+                    (Operator ("/=", Object ("Db_Index"), Literal (0)),
+                     Valid_Sequence,
+                     Invalid_Sequence));
+               Return_Sequence.Append
+                 (New_Procedure_Call_Statement
+                    (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+
+               Block.Add_Statement
+                 (New_Return_Statement
+                    ("Result", Table.Implementation_Name,
+                     Return_Sequence));
+            end;
+         end if;
+
+         declare
+            Result_Type : constant String :=
+                            (if Reference
+                             then Table.Ada_Name & "_Reference"
+                             else Table.Type_Name);
+            Fn          : Subprogram_Declaration'Class :=
+                            New_Function
+                              (Function_Name, Result_Type,
+                               Block);
+         begin
+            for I in 1 .. Key.Field_Count loop
+               declare
+                  Field : Kit.Schema.Fields.Field_Type
+                  renames Key.Field (I);
+               begin
+                  Fn.Add_Formal_Argument
+                    (New_Formal_Argument
+                       (Field.Ada_Name,
+                        Named_Subtype
+                          (Field.Get_Field_Type.Argument_Subtype)));
+               end;
+            end loop;
+            Table_Package.Append (Fn);
+         end;
+      end Create_Function;
+
+   begin
+      for Reference in Boolean loop
+         Create_Function (Reference);
+      end loop;
+      Table_Package.Append (Syn.Declarations.New_Separator);
+   end Create_Non_Iterator_Fetch;
+
    -----------------------------------
    -- Create_Reference_Get_Function --
    -----------------------------------
@@ -1075,245 +1344,10 @@ package body Kit.Generate.Public_Get is
       Table_Package : in out Syn.Declarations.Package_Type'Class;
       Key_Name      : in     String)
    is
-      use Syn;
-      use Syn.Declarations;
-      use Syn.Expressions, Syn.Statements;
-
-      Key              : constant Kit.Schema.Keys.Key_Type :=
-                           Table.Key (Key_Name);
-
-      procedure Create_Function
-        (Reference : Boolean;
-         Unique    : Boolean;
-         First     : Boolean);
-
-      procedure Create_Function
-        (Reference : Boolean;
-         Unique    : Boolean;
-         First     : Boolean)
-      is
-
-         Block            : Syn.Blocks.Block_Type;
-
-         function Function_Name return String;
-
-         procedure Set_Field
-           (Seq        : in out Sequence_Of_Statements;
-            Field_Name : String;
-            Value      : Boolean);
-
-         -------------------
-         -- Function_Name --
-         -------------------
-
-         function Function_Name return String is
-            Reference_Part : constant String :=
-                               (if Reference
-                                then "Reference_"
-                                else "");
-            Order_Part     : constant String :=
-                               (if Unique
-                                then ""
-                                elsif First
-                                then "First_"
-                                else "Last_");
-         begin
-            if Key.Base_Reference then
-               return "Get_" & Table.Ada_Name;
-            else
-               return "Get_"
-                 & Order_Part
-                 & Reference_Part
-                 & "By_"
-                 & Key.Ada_Name;
-            end if;
-         end Function_Name;
-
-         ---------------
-         -- Set_Field --
-         ---------------
-
-         procedure Set_Field
-           (Seq        : in out Sequence_Of_Statements;
-            Field_Name : String;
-            Value      : Boolean)
-         is
-         begin
-            Seq.Append
-              (New_Assignment_Statement
-                 ("Result." & Field_Name,
-                  (if Value then Object ("True") else Object ("False"))));
-         end Set_Field;
-
-      begin
-
-         Block.Add_Declaration
-           (Use_Type ("System.Storage_Elements.Storage_Array"));
-         Block.Add_Declaration
-           (Use_Type ("Marlowe.Database_Index"));
-         Block.Add_Declaration
-           (Syn.Declarations.New_Object_Declaration
-              ("Db_Index", "Marlowe.Database_Index", Literal (0)));
-
-         Check_Deferred_Keys (Block, Key_Table);
-
-         Block.Add_Statement
-           (New_Procedure_Call_Statement
-              (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
-
-         declare
-            Mark_Block       : Syn.Blocks.Block_Type;
-            Initialiser      : Function_Call_Expression :=
-                                 New_Function_Call_Expression
-                                   ("Marlowe_Keys.Handle.Search");
-         begin
-            Initialiser.Add_Actual_Argument
-              (Object ("Marlowe_Keys." & Table.Key_Reference_Name (Key)));
-            declare
-               Key_To_Storage   : constant Expression'Class :=
-                                    Table.To_Storage
-                                      (Table, Key_Table, "", Key,
-                                       With_Index => False);
-               Start_Storage    : constant Expression'Class :=
-                                    New_Function_Call_Expression
-                                      ("Marlowe.Key_Storage.To_Storage_Array",
-                                       "Marlowe.Database_Index'First");
-               Last_Storage     : constant Expression'Class :=
-                                    New_Function_Call_Expression
-                                      ("Marlowe.Key_Storage.To_Storage_Array",
-                                       "Marlowe.Database_Index'Last");
-            begin
-               Initialiser.Add_Actual_Argument
-                 (Operator
-                    (Name  => "&",
-                     Left  => Key_To_Storage,
-                     Right => Start_Storage));
-               Initialiser.Add_Actual_Argument
-                 (Operator
-                    (Name  => "&",
-                     Left  => Key_To_Storage,
-                     Right => Last_Storage));
-            end;
-
-            Initialiser.Add_Actual_Argument
-              (Object ("Marlowe.Closed"));
-            Initialiser.Add_Actual_Argument
-              (Object ("Marlowe.Closed"));
-            if First then
-               Initialiser.Add_Actual_Argument
-                 (Object ("Marlowe.Forward"));
-            else
-               Initialiser.Add_Actual_Argument
-                 (Object ("Marlowe.Backward"));
-            end if;
-
-            Mark_Block.Add_Declaration
-              (New_Constant_Declaration
-                 ("M", Data_Store_Cursor_Name,
-                  Initialiser));
-            Mark_Block.Add_Statement
-              (If_Statement
-                 (Object ("M.Valid"),
-                  New_Assignment_Statement
-                    ("Db_Index",
-                     New_Function_Call_Expression
-                       ("Marlowe.Key_Storage.To_Database_Index",
-                        Object ("M.Get_Key")))));
-            Block.Add_Statement
-              (Declare_Statement (Mark_Block));
-         end;
-
-         if Reference then
-            Block.Add_Statement
-              (New_Procedure_Call_Statement
-                 (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
-            Block.Add_Statement
-              (New_Return_Statement
-                 (New_Function_Call_Expression
-                    (Table.Ada_Name & "_Reference",
-                     Object ("Db_Index"))));
-         else
-
-            declare
-               Return_Sequence  : Sequence_Of_Statements;
-               Valid_Sequence   : Sequence_Of_Statements;
-               Invalid_Sequence : Sequence_Of_Statements;
-            begin
-
-               Return_Sequence.Append
-                 (New_Assignment_Statement
-                    (Target => "Result.Local.M_Index",
-                     Value  =>
-                       New_Function_Call_Expression
-                         (Table.Reference_Type_Name, "Db_Index")));
-
-               Fetch.Fetch_From_Index (Table       => Table,
-                                       Object_Name => "Result",
-                                       Target      => Valid_Sequence);
-
-               Set_Field (Valid_Sequence, "Finished", False);
-               Set_Field (Valid_Sequence, "Using_Key_Value", False);
-               Set_Field (Valid_Sequence, "Scanning", False);
-               Set_Field (Valid_Sequence, "Link.S_Locked", True);
-
-               Set_Field (Invalid_Sequence, "Finished", True);
-               Set_Field (Invalid_Sequence, "Using_Key_Value", False);
-               Set_Field (Invalid_Sequence, "Scanning", False);
-               Set_Field (Invalid_Sequence, "Link.S_Locked", False);
-
-               Return_Sequence.Append
-                 (If_Statement
-                    (Operator ("/=", Object ("Db_Index"), Literal (0)),
-                     Valid_Sequence,
-                     Invalid_Sequence));
-               Return_Sequence.Append
-                 (New_Procedure_Call_Statement
-                    (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
-
-               Block.Add_Statement
-                 (New_Return_Statement
-                    ("Result", Table.Implementation_Name,
-                     Return_Sequence));
-            end;
-         end if;
-
-         declare
-            Result_Type : constant String :=
-                            (if Reference
-                             then Table.Ada_Name & "_Reference"
-                             else Table.Type_Name);
-            Fn : Subprogram_Declaration'Class :=
-                   New_Function
-                     (Function_Name, Result_Type,
-                      Block);
-         begin
-            for I in 1 .. Key.Field_Count loop
-               declare
-                  Field : Kit.Schema.Fields.Field_Type
-                  renames Key.Field (I);
-               begin
-                  Fn.Add_Formal_Argument
-                    (New_Formal_Argument
-                       (Field.Ada_Name,
-                        Named_Subtype
-                          (Field.Get_Field_Type.Argument_Subtype)));
-               end;
-            end loop;
-            Table_Package.Append (Fn);
-         end;
-      end Create_Function;
-
    begin
-      for Reference in Boolean loop
-         if Key.Unique then
-            Create_Function (Reference, Unique => True, First => True);
-         else
-            Create_Function (Reference, Unique => True, First => True);
-            Create_Function (Reference, Unique => False, First => True);
-            Create_Function (Reference, Unique => False, First => False);
-         end if;
-      end loop;
-      Table_Package.Append (Syn.Declarations.New_Separator);
+      Create_Non_Iterator_Fetch
+        (Table, Key_Table, Table_Package, Key_Name,
+         Fetch_Type => Unique_Get);
    end Create_Unique_Get_Function;
 
 end Kit.Generate.Public_Get;

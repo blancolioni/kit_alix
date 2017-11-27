@@ -88,7 +88,7 @@ package body {database}.Tables is
       Rec : constant Kit_Record.Kit_Record_Type :=
         Kit_Record.Get_By_Name (Table.Name);
       Key : constant Kit_Key.Kit_Key_Type :=
-        Kit_Key.Get_By_Kit_Record (Rec.Reference);
+        Kit_Key.First_By_Kit_Record (Rec.Reference);
    begin
       if Key.Has_Element then
          return Key.Name;
@@ -98,7 +98,7 @@ package body {database}.Tables is
          loop
             declare
                Base_Key    : constant Kit_Key.Kit_Key_Type :=
-                 Kit_Key.Get_By_Kit_Record
+                 Kit_Key.First_By_Kit_Record
                  (Base.Base);
             begin
                if Base_Key.Has_Element then

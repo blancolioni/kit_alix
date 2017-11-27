@@ -2355,12 +2355,20 @@ package body Kit.Generate.Public_Interface is
                Key_Name      => Key.Standard_Name);
          else
             for Use_Key_Value in Boolean loop
-               if Key.Unique and then Use_Key_Value then
-                  Public_Get.Create_Unique_Get_Function
-                    (Table         => Table,
-                     Key_Table     => Base,
-                     Table_Package => Table_Package,
-                     Key_Name      => Key.Standard_Name);
+               if Use_Key_Value then
+                  if Key.Unique then
+                     Public_Get.Create_Unique_Get_Function
+                       (Table         => Table,
+                        Key_Table     => Base,
+                        Table_Package => Table_Package,
+                        Key_Name      => Key.Standard_Name);
+                  else
+                     Public_Get.Create_First_Last_Functions
+                       (Table         => Table,
+                        Key_Table     => Base,
+                        Table_Package => Table_Package,
+                        Key_Name      => Key.Standard_Name);
+                  end if;
                end if;
 
                Public_Get.Create_Selection_Function
