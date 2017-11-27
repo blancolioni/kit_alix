@@ -516,19 +516,28 @@ package body Kit.Parser is
          declare
             Name     : constant String := Tok_Text;
             Raw_Name : constant String := Tok_Raw_Text;
+            Bounded_String : constant Boolean :=
+                               Name = "string"
+                                   or else Name = "bounded_string";
+            Fixed_String   : constant Boolean :=
+                               Name = "fixed_string";
          begin
             Scan;
 
             if Kit.Schema.Types.Is_Type_Name (Name) then
                return Kit.Schema.Types.Get_Type (Name);
-            elsif Name = "string" then
+            elsif Bounded_String or else Fixed_String then
                if Tok /= Tok_Left_Paren
                  or else Next_Tok /= Tok_Integer_Constant
                  or else Next_Tok (2) /= Tok_Right_Paren
                then
                   Error ("missing constraint");
                   Skip_To (Tok_Semi, Tok_End);
-                  return Kit.Schema.Types.Standard_String (32);
+                  if Bounded_String then
+                     return Kit.Schema.Types.Standard_String (32);
+                  else
+                     return Kit.Schema.Types.Standard_Fixed_String (32);
+                  end if;
                end if;
                Scan;
                declare
@@ -536,7 +545,11 @@ package body Kit.Parser is
                begin
                   Scan;
                   Scan;
-                  return Kit.Schema.Types.Standard_String (Length);
+                  if Bounded_String then
+                     return Kit.Schema.Types.Standard_String (Length);
+                  else
+                     return Kit.Schema.Types.Standard_Fixed_String (Length);
+                  end if;
                end;
             elsif Db.Contains (Name) then
                return Db.Element (Name).Reference_Type;
