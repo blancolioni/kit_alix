@@ -91,7 +91,7 @@ package body {database}.Kit_Locking is
                select
                   accept Stop;
                   exit;
-               else
+               or
                   delay 5.0;
                   Check_Deadlock;
                end select;
