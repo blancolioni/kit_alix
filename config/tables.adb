@@ -1163,7 +1163,8 @@ package body {database}.Tables is
                X : String (1 .. Value'Length);
                Last : Natural;
             begin
-               Marlowe.Key_Storage.From_Storage (X, Last, Value);
+               Marlowe.Key_Storage.Bounded_String_From_Storage 
+                 (X, Last, Value);
                return X (1 .. Last);
             end;
          when {database}.R_Kit_Fixed_String =>
@@ -1270,7 +1271,7 @@ package body {database}.Tables is
                Marlowe.Key_Storage.To_Storage (X, Storage);
             end;
          when R_Kit_String =>
-            Marlowe.Key_Storage.To_Storage (Value, Storage);
+            Marlowe.Key_Storage.Bounded_String_To_Storage (Value, Storage);
          when {database}.R_Kit_Fixed_String =>
             declare
                Index : Natural := Value'First - 1;
