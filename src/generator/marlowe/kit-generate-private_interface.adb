@@ -158,7 +158,7 @@ package body Kit.Generate.Private_Interface is
          end if;
 
          if not Have_String_With
-           and then Field.Get_Field_Type.Is_String
+           and then Field.Get_Field_Type.Is_Bounded_String
          then
             Impl.With_Package ("Kit.Strings");
             Have_String_With := True;

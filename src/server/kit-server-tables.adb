@@ -488,7 +488,7 @@ package body Kit.Server.Tables is
             return "integer";
          when R_Kit_Float =>
             return "float";
-         when R_Kit_String =>
+         when R_Kit_Bounded_String | R_Kit_Fixed_String =>
             return "string";
          when R_Kit_Enumeration =>
             return "integer";

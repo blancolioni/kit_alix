@@ -52,13 +52,24 @@ package body Kit.Server.Storage is
                Approximate_Float_IO.Put (Result, Float (X));
                return Ada.Strings.Fixed.Trim (Result, Ada.Strings.Left);
             end;
-         when Kit.Db.R_Kit_String =>
+         when Kit.Db.R_Kit_Bounded_String =>
             declare
                X : String (1 .. Value'Length);
                Last : Natural;
             begin
                Marlowe.Key_Storage.From_Storage (X, Last, Value);
                return X (1 .. Last);
+            end;
+         when Kit.Db.R_Kit_Fixed_String =>
+            declare
+               X     : String (1 .. Natural (Value'Length));
+               Index : Natural := 0;
+            begin
+               for Unit of Value loop
+                  Index := Index + 1;
+                  X (Index) := Character'Val (Unit);
+               end loop;
+               return X;
             end;
          when Kit.Db.R_Kit_Enumeration =>
             declare
@@ -137,8 +148,18 @@ package body Kit.Server.Storage is
             begin
                Marlowe.Key_Storage.To_Storage (X, Storage);
             end;
-         when Kit.Db.R_Kit_String =>
+         when Kit.Db.R_Kit_Bounded_String =>
             Marlowe.Key_Storage.To_Storage (Value, Storage);
+         when Kit.Db.R_Kit_Fixed_String =>
+            declare
+               Index : Natural := Value'First - 1;
+            begin
+               for Unit of Storage loop
+                  Index := Index + 1;
+                  Unit := Character'Pos (Value (Index));
+               end loop;
+            end;
+
          when Kit.Db.R_Kit_Enumeration =>
             declare
                use type System.Storage_Elements.Storage_Element;

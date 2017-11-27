@@ -76,11 +76,11 @@ package body {database}.Tables is
    begin
       Item.Fields := new Database_Fields'(Item.Fields.all);
    end Adjust;
-   
+
    -----------------
    -- Default_Key --
    -----------------
-   
+
    function Default_Key
      (Table : Database_Table'Class)
      return String
@@ -109,7 +109,7 @@ package body {database}.Tables is
       end if;
       return "";
    end Default_Key;
-   
+
    -----------------
    -- Field_Count --
    -----------------
@@ -537,7 +537,7 @@ package body {database}.Tables is
                return Float_Type;
             when R_Kit_Long_Float =>
                return Long_Float_Type;
-            when R_Kit_String =>
+            when R_Kit_String | R_Kit_Fixed_String | R_Kit_Bounded_String =>
                return String_Type;
             when R_Kit_Reference =>
                return Reference_Type;
@@ -1158,13 +1158,24 @@ package body {database}.Tables is
                                                  Ada.Strings.Left);
                end if;
             end;
-         when R_Kit_String =>
+         when R_Kit_Bounded_String =>
             declare
                X : String (1 .. Value'Length);
                Last : Natural;
             begin
                Marlowe.Key_Storage.From_Storage (X, Last, Value);
                return X (1 .. Last);
+            end;
+         when {database}.R_Kit_Fixed_String =>
+            declare
+               X     : String (1 .. Natural (Value'Length));
+               Index : Natural := 0;
+            begin
+               for Unit of Value loop
+                  Index := Index + 1;
+                  X (Index) := Character'Val (Unit);
+               end loop;
+               return X;
             end;
          when R_Kit_Enumeration =>
             declare
@@ -1193,7 +1204,7 @@ package body {database}.Tables is
                                   {database}.Kit_Reference.Get_Kit_Reference
                                     (Type_Reference);
                Display_Field : Kit_Display_Field.Kit_Display_Field_Type :=
-                                 Kit_Display_Field.Get_By_Kit_Record
+                                 Kit_Display_Field.First_By_Kit_Record
                                    (Ref.Reference);
                Index      : Marlowe.Database_Index;
             begin
@@ -1260,6 +1271,15 @@ package body {database}.Tables is
             end;
          when R_Kit_String =>
             Marlowe.Key_Storage.To_Storage (Value, Storage);
+         when {database}.R_Kit_Fixed_String =>
+            declare
+               Index : Natural := Value'First - 1;
+            begin
+               for Unit of Storage loop
+                  Index := Index + 1;
+                  Unit := Character'Pos (Value (Index));
+               end loop;
+            end;
          when R_Kit_Enumeration =>
             declare
                use type System.Storage_Elements.Storage_Element;

@@ -310,7 +310,7 @@ package body Kit.Generate.Database_Package is
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Long_Float",
                            Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_String",
+      Result.With_Package (Db.Ada_Name & ".Kit_Bounded_String",
                            Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Reference",
                            Body_With => True);
