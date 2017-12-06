@@ -57,12 +57,13 @@ package body Kit.Cache is
 
    type Local_Cache_Access is access all Local_Cache_Type;
 
-   function Get_Local_Cache
-     (Table : Marlowe.Table_Index)
-      return Local_Cache_Access;
-
    Local_Cache_Table : array (Marlowe.Table_Index range 1 .. Max_Table_Index)
      of aliased Local_Cache_Type;
+
+   function Get_Local_Cache
+     (Table : Marlowe.Table_Index)
+      return Local_Cache_Access
+   is (Local_Cache_Table (Table)'Access);
 
    procedure Free is
       new Ada.Unchecked_Deallocation (Cache_Entry_Record'Class,
@@ -149,24 +150,6 @@ package body Kit.Cache is
    begin
       return From.Index;
    end Get_Index;
-
-   ---------------------
-   -- Get_Local_Cache --
-   ---------------------
-
-   function Get_Local_Cache
-     (Table : Marlowe.Table_Index)
-      return Local_Cache_Access
-   is
-      Result : constant Local_Cache_Access :=
-                 Local_Cache_Table (Table)'Access;
-   begin
---        if Result = null then
---           Result := new Local_Cache_Type;
---           Local_Cache_Table (Table) := Result;
---        end if;
-      return Result;
-   end Get_Local_Cache;
 
    ---------------------
    -- Get_Table_Index --
@@ -390,8 +373,8 @@ package body Kit.Cache is
                        Index  : Marlowe.Database_Index)
                       return Cache_Entry
    is
-      Local_Cache   : constant Local_Cache_Access := Get_Local_Cache (Rec);
-      Result : constant Cache_Entry := Local_Cache.Get (Index);
+      Local_Cache : constant Local_Cache_Access := Get_Local_Cache (Rec);
+      Result      : constant Cache_Entry := Local_Cache.Get (Index);
    begin
       if Result /= null then
          Update_LRU (Result);
