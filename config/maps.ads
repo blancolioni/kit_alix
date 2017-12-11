@@ -20,6 +20,8 @@ package {database}.{table}_Maps is
                      Default   : Element_Type)
                      return Element_Type;
 
+   procedure Clear (Container : in out Map);
+   
    procedure Insert (Container : in out Map;
                      {table} : {table}_Reference;
                      Element   : Element_Type);

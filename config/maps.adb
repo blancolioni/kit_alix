@@ -1,5 +1,14 @@
 package body {database}.{table}_Maps is
 
+   -----------
+   -- Clear --
+   -----------
+   
+   procedure Clear (Container : in out Map) is
+   begin
+      Container.Map.Clear;
+   end Clear;
+   
    --------------
    -- Contains --
    --------------
