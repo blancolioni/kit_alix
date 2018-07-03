@@ -39,6 +39,9 @@ package body Kit.UI.Gtk_UI is
 
    function Timeout_Handler return Boolean;
 
+   type Table_Display_Access is
+     access List_Of_Table_Displays.Vector;
+
    type Root_Gtk_UI is
      new Root_Kit_UI
    with
@@ -46,7 +49,7 @@ package body Kit.UI.Gtk_UI is
          Top_Level      : Gtk.Window.Gtk_Window;
          Table_List     : Gtk.Tree_View.Gtk_Tree_View;
          Table_Book     : Gtk.Notebook.Gtk_Notebook;
-         Table_Displays : access List_Of_Table_Displays.Vector;
+         Table_Displays : Table_Display_Access;
       end record;
 
    function Choose_Database
