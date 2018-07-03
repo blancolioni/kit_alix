@@ -123,6 +123,7 @@ package body Kit.Schema.Tables is
    begin
       Table.Keys.Append (Key);
       Table.Has_Key_Field := True;
+      Table.Has_Local_Key_Field := True;
    end Add_Key;
 
    -------------------
@@ -344,6 +345,7 @@ package body Kit.Schema.Tables is
       Item.Has_String_Type := False;
       Item.Has_Text_Type := False;
       Item.Has_Key_Field := False;
+      Item.Has_Local_Key_Field := False;
       Item.Has_Compound_Key_Field := False;
       Item.Fields.Clear;
       Current_Table := Current_Table + 1;
@@ -601,6 +603,15 @@ package body Kit.Schema.Tables is
    begin
       return Item.Has_Key_Field;
    end Has_Key_Field;
+
+   -------------------------
+   -- Has_Local_Key_Field --
+   -------------------------
+
+   function Has_Local_Key_Field (Item : Root_Table_Type) return Boolean is
+   begin
+      return Item.Has_Local_Key_Field;
+   end Has_Local_Key_Field;
 
    ---------------------
    -- Has_String_Type --

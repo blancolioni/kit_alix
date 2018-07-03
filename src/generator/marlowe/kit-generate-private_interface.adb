@@ -58,25 +58,30 @@ package body Kit.Generate.Private_Interface is
       procedure Create_Key_To_Storage
         (Key   : Kit.Schema.Keys.Key_Type)
       is
-         use Kit.Schema.Tables;
+         Block : Syn.Blocks.Block_Type;
       begin
          if Key.Field_Count > 1 then
+            Block.Add_Declaration
+              (Syn.Declarations.Use_Type
+                 ("System.Storage_Elements.Storage_Array"));
+            Block.Add_Statement
+              (Syn.Statements.New_Return_Statement
+                 (To_Storage_Expression
+                      (Key, 1)));
+
             declare
                use Syn, Syn.Declarations;
                Fn : Subprogram_Declaration'Class :=
                       Syn.Declarations.New_Function
                         (Key.Ada_Name & "_To_Storage",
                          "System.Storage_Elements.Storage_Array",
-                         To_Storage_Expression
-                           (Key, 1));
+                         Block);
             begin
                for I in 1 .. Key.Field_Count loop
                   Fn.Add_Formal_Argument
                     (Key.Field (I).Ada_Name,
                      Key.Field (I).Get_Field_Type.Argument_Subtype);
                end loop;
-               Fn.Add_Local_Declaration
-                 (Use_Type ("System.Storage_Elements.Storage_Array"));
                Top.Append (Fn);
             end;
          end if;
@@ -142,7 +147,6 @@ package body Kit.Generate.Private_Interface is
       -------------------
 
       procedure Add_Component (Field : Kit.Schema.Fields.Field_Type) is
-         use Kit.Schema.Tables;
       begin
          if Field.Get_Field_Type.Has_Default_Value then
             Syn.Types.Add_Component
@@ -418,10 +422,12 @@ package body Kit.Generate.Private_Interface is
       Create_Database_Record (Table, Impl_Package);
       Impl_Package.Add_Separator;
 
-      Impl_Package.Append_To_Body
-        (Syn.Declarations.Use_Type
-           ("System.Storage_Elements.Storage_Array"));
-
+--        if Table.Has_Local_Key_Field then
+--           Impl_Package.Append_To_Body
+--             (Syn.Declarations.Use_Type
+--                ("System.Storage_Elements.Storage_Array"));
+--        end if;
+--
       declare
          Block : Syn.Blocks.Block_Type;
       begin

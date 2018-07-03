@@ -853,8 +853,11 @@ package body Kit.Generate.Public_Get is
 
          Block.Add_Declaration
            (Use_Type ("System.Storage_Elements.Storage_Array"));
-         Block.Add_Declaration
-           (Use_Type ("Marlowe.Database_Index"));
+         if not Reference then
+            Block.Add_Declaration
+              (Use_Type ("Marlowe.Database_Index"));
+         end if;
+
          Block.Add_Declaration
            (Syn.Declarations.New_Object_Declaration
               ("Db_Index", "Marlowe.Database_Index", Literal (0)));
@@ -1146,6 +1149,9 @@ package body Kit.Generate.Public_Get is
       use Syn;
       use Syn.Expressions, Syn.Statements;
 
+      Scanning : constant Boolean :=
+                   not Bounds and then not Key_Value;
+
       Return_Sequence  : Sequence_Of_Statements;
       Key              : constant Kit.Schema.Keys.Key_Type :=
                            Table.Key (Key_Name);
@@ -1256,8 +1262,10 @@ package body Kit.Generate.Public_Get is
                           & ")";
 
       begin
-         Block.Add_Declaration
-           (Use_Type ("System.Storage_Elements.Storage_Array"));
+         if not Scanning then
+            Block.Add_Declaration
+              (Use_Type ("System.Storage_Elements.Storage_Array"));
+         end if;
 
          Check_Deferred_Keys (Block, Key_Table);
 

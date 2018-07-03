@@ -62,6 +62,7 @@ package Kit.Schema.Tables is
    function Has_String_Type (Item : Root_Table_Type) return Boolean;
    function Has_Text_Type (Item : Root_Table_Type) return Boolean;
    function Has_Key_Field (Item : Root_Table_Type) return Boolean;
+   function Has_Local_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Compound_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Display_Field (Item : Root_Table_Type) return Boolean;
 
@@ -286,6 +287,7 @@ private
          Magic                  : Natural;
          Has_String_Type        : Boolean := False;
          Has_Text_Type          : Boolean := False;
+         Has_Local_Key_Field    : Boolean := False;
          Has_Key_Field          : Boolean := False;
          Has_Compound_Key_Field : Boolean := False;
          Has_Display_Field      : Boolean := False;
