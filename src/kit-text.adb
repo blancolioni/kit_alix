@@ -103,7 +103,6 @@ package body Kit.Text is
       return String
    is
       use System.Storage_Elements;
-      use type Marlowe.File_And_Page;
    begin
 
       if Natural (Field.Local_Length) <= Field.Local_Text'Last then
