@@ -304,9 +304,6 @@ package body Kit.Generate.Public_Interface is
          Finalize_Block.Add_Declaration
            (Syn.Declarations.Use_Type
               ("System.Storage_Elements.Storage_Array"));
-         Finalize_Block.Add_Declaration
-           (Syn.Declarations.Use_Type
-              ("Marlowe.Database_Index"));
 
          Finalize_Block.Add_Statement
            (If_Statement
@@ -910,14 +907,14 @@ package body Kit.Generate.Public_Interface is
          Create_Abstract_Store;
       end if;
 
-      Store_Block.Add_Declaration
-        (Syn.Declarations.Use_Type
-           ("System.Storage_Elements.Storage_Array"));
-      if Table.Has_Key_Field then
-         Store_Block.Add_Declaration
-           (Syn.Declarations.Use_Type
-              ("Marlowe.Data_Stores.Key_Reference"));
-      end if;
+--        Store_Block.Add_Declaration
+--          (Syn.Declarations.Use_Type
+--             ("System.Storage_Elements.Storage_Array"));
+--        if Table.Has_Key_Field then
+--           Store_Block.Add_Declaration
+--             (Syn.Declarations.Use_Type
+--                ("Marlowe.Data_Stores.Key_Reference"));
+--        end if;
 
       Store_Block.Add_Declaration
         (Syn.Declarations.Renaming_Declaration
@@ -1665,8 +1662,6 @@ package body Kit.Generate.Public_Interface is
          Has_Element_Block : Syn.Blocks.Block_Type;
          --  Next_Block        : Syn.Blocks.Block_Type;
       begin
-         Has_Element_Block.Add_Declaration
-           (Use_Type ("Marlowe.Database_Index"));
          Has_Element_Block.Add_Statement
            (Syn.Statements.New_Return_Statement
               (Operator ("/=", Object ("Item.Local.M_Index"),
@@ -2411,7 +2406,6 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Reference_Get
         (Base : Kit.Schema.Tables.Table_Type)
       is
-         use Syn.Expressions;
       begin
 
          if Base.Ada_Name = Table.Ada_Name then
@@ -2808,7 +2802,6 @@ package body Kit.Generate.Public_Interface is
          end;
 
          declare
-            use Syn.Expressions;
             use Syn.Statements;
             Element : constant Subprogram_Declaration'Class :=
                          New_Function

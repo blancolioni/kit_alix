@@ -62,7 +62,6 @@ package body Kit.Generate.Database_Package is
       function Create_Close_Procedure
         return Syn.Declarations.Subprogram_Declaration'Class
       is
-         use Syn;
          Block : Syn.Blocks.Block_Type;
       begin
          if Kit.Options.Generate_Deadlock_Detection then
@@ -482,7 +481,6 @@ package body Kit.Generate.Database_Package is
          procedure Create_Key
            (Key : Kit.Schema.Keys.Key_Type)
          is
-            use Kit.Schema.Tables;
             New_Key : Function_Call_Expression'Class :=
                         New_Function_Call_Expression ("Kit_Key.Create");
             Block   : Syn.Blocks.Block_Type;

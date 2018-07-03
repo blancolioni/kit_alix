@@ -245,7 +245,7 @@ package body Kit.Templates is
             return Source;
          else
             declare
-               use Ada.Characters.Handling, Ada.Text_IO;
+               use Ada.Characters.Handling;
                use Ada.Strings;
                use Substitution_Maps;
                Key      : constant String :=
