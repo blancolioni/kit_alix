@@ -4,7 +4,7 @@ source_dir = src/generator
 source_dir = src/generator/marlowe
 source_dir = src/parser
 source_dir = src/schema
-depend = { project = XML version = any }
+depend = { project = Partoe version = any }
 depend = { project = Marlowe version = any }
 depend = { project = GCS version = any }
 depend = { project = WLib version = any }
