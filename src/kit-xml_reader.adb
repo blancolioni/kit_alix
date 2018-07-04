@@ -1,6 +1,6 @@
 with Ada.Directories;
 
-with XML.Parser;
+with Partoe.Parser;
 with Kit.Import.XML_DB;
 
 package body Kit.XML_Reader is
@@ -16,10 +16,10 @@ package body Kit.XML_Reader is
       Db  : constant Kit.Schema.Databases.Database_Type :=
               Kit.Schema.Databases.Create_Database
                 (Ada.Directories.Simple_Name (Path));
-      Reader : XML.XML_Document'Class :=
+      Reader : Partoe.Partoe_Document'Class :=
                  Kit.Import.XML_DB.XML_DB_Reader (Db);
    begin
-      XML.Parser.Run_Parser (Reader, Path);
+      Partoe.Parser.Run_Parser (Reader, Path);
       return Db;
    end Read_XML_File;
 

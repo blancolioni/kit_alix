@@ -17,7 +17,7 @@ package body Kit.Import.XML_DB is
                          Error);
 
    type XML_DB_Reader_Type is
-     new XML.XML_Document with
+     new Partoe.Partoe_Document with
       record
          Db : Kit.Schema.Databases.Database_Type;
          State : Reader_State := Start;
@@ -307,7 +307,7 @@ package body Kit.Import.XML_DB is
 
    function XML_DB_Reader
      (Db : Kit.Schema.Databases.Database_Type)
-      return XML.XML_Document'Class
+      return Partoe.Partoe_Document'Class
    is
    begin
       return Result : XML_DB_Reader_Type do
