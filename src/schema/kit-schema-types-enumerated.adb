@@ -190,7 +190,7 @@ package body Kit.Schema.Types.Enumerated is
 
    overriding function To_Storage_Array
      (Item        : Enumerated_Type;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class
    is
       use Syn, Syn.Expressions;
@@ -199,7 +199,7 @@ package body Kit.Schema.Types.Enumerated is
         ("Marlowe.Key_Storage.To_Storage_Array",
          New_Function_Call_Expression
            (Item.Ada_Name & "'Pos",
-            Object_Name),
+            Object),
          Literal (Size (Root_Kit_Type'Class (Item))));
    end To_Storage_Array;
 

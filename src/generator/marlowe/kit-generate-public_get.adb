@@ -1299,6 +1299,7 @@ package body Kit.Generate.Public_Get is
                            begin
                               if I = 1
                                 or else Field_Type.Is_Table_Reference
+                                or else Field_Type.Is_External_Type
                               then
                                  Fn.Add_Formal_Argument
                                    (New_Formal_Argument

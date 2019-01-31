@@ -82,8 +82,8 @@ package body Kit.Schema.Types is
    is ("Integer");
 
    overriding function To_Storage_Array
-     (Item        : Long_Integer_Type;
-      Object_Name : String)
+     (Item   : Long_Integer_Type;
+      Object : Syn.Expression'Class)
       return Syn.Expression'Class;
 
    overriding function Storage_Array_Transfer
@@ -117,7 +117,7 @@ package body Kit.Schema.Types is
    overriding
    function To_Storage_Array
      (Item        : Float_Type;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class;
 
    type Boolean_Type is new Root_Kit_Type with null record;
@@ -148,7 +148,7 @@ package body Kit.Schema.Types is
    overriding
    function To_Storage_Array
      (Item        : Table_Reference_Type_Record;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class;
 
    overriding
@@ -384,9 +384,8 @@ package body Kit.Schema.Types is
 
    overriding function To_Storage_Array
      (Item        : External_Type;
-      Object_Name : String)
-      return Syn.Expression'Class
-   is (Item.Local_Type.To_Storage_Array (Object_Name));
+      Object      : Syn.Expression'Class)
+      return Syn.Expression'Class;
 
    overriding function Storage_Array_Transfer
      (Item          : External_Type;
@@ -2002,14 +2001,14 @@ package body Kit.Schema.Types is
 
    function To_Storage_Array
      (Item        : Root_Kit_Type;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class
    is
       use Syn, Syn.Expressions;
    begin
       return New_Function_Call_Expression
         ("Marlowe.Key_Storage.To_Storage_Array",
-         Object (Object_Name),
+         Object,
          Literal (Item.Size));
    end To_Storage_Array;
 
@@ -2019,7 +2018,7 @@ package body Kit.Schema.Types is
 
    overriding function To_Storage_Array
      (Item        : Long_Integer_Type;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class
    is
       pragma Unreferenced (Item);
@@ -2027,7 +2026,7 @@ package body Kit.Schema.Types is
    begin
       return New_Function_Call_Expression
         ("Integer_64_Storage.To_Storage_Array",
-         Object (Object_Name));
+         Object);
    end To_Storage_Array;
 
    ----------------------
@@ -2036,7 +2035,7 @@ package body Kit.Schema.Types is
 
    overriding function To_Storage_Array
      (Item        : Table_Reference_Type_Record;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class
    is
       pragma Unreferenced (Item);
@@ -2044,7 +2043,7 @@ package body Kit.Schema.Types is
       Convert_To_Index : constant Expression'Class :=
                            New_Function_Call_Expression
                              ("Marlowe.Database_Index",
-                              Object_Name);
+                              Object);
    begin
       return New_Function_Call_Expression
         ("Marlowe.Key_Storage.To_Storage_Array",
@@ -2057,7 +2056,7 @@ package body Kit.Schema.Types is
 
    overriding function To_Storage_Array
      (Item        : Float_Type;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class
    is
       pragma Unreferenced (Item);
@@ -2065,7 +2064,25 @@ package body Kit.Schema.Types is
    begin
       return New_Function_Call_Expression
         ("Marlowe.Key_Storage.To_Storage_Array",
-         Object_Name);
+         Object);
+   end To_Storage_Array;
+
+   ----------------------
+   -- To_Storage_Array --
+   ----------------------
+
+   overriding function To_Storage_Array
+     (Item        : External_Type;
+      Object      : Syn.Expression'Class)
+      return Syn.Expression'Class
+   is
+      use Ada.Strings.Unbounded;
+   begin
+      return Item.Local_Type.To_Storage_Array
+        (Syn.Expressions.New_Function_Call_Expression
+           (To_String (Item.External_Package)
+            & "." & To_String (Item.To_Database),
+            Object));
    end To_Storage_Array;
 
    ----------------------
