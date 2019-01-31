@@ -1,5 +1,7 @@
 with System.Storage_Elements;
 
+with WL.String_Sets;
+
 with Syn.Blocks;
 with Syn.Expressions;
 with Syn.Statements;
@@ -7,13 +9,15 @@ with Syn.Types;
 
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
+with Kit.Schema.Types;
 
 package body Kit.Generate.Private_Interface is
 
    procedure Create_Compound_Key_To_Storage_Functions
-     (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Syn.Declarations.Package_Type'Class);
+     (Db     : in     Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
+      Top    : in out Syn.Declarations.Package_Type'Class;
+      Withed : in out WL.String_Sets.Set);
 
    procedure Create_Database_Record
      (Table : in     Kit.Schema.Tables.Table_Type;
@@ -39,7 +43,8 @@ package body Kit.Generate.Private_Interface is
    procedure Create_Compound_Key_To_Storage_Functions
      (Db    : in     Kit.Schema.Databases.Database_Type;
       Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Syn.Declarations.Package_Type'Class)
+      Top    : in out Syn.Declarations.Package_Type'Class;
+      Withed : in out WL.String_Sets.Set)
    is
       pragma Unreferenced (Db);
 
@@ -78,9 +83,26 @@ package body Kit.Generate.Private_Interface is
                          Block);
             begin
                for I in 1 .. Key.Field_Count loop
-                  Fn.Add_Formal_Argument
-                    (Key.Field (I).Ada_Name,
-                     Key.Field (I).Get_Field_Type.Argument_Subtype);
+                  declare
+                     Key_Field_Type : constant Kit.Schema.Types.Kit_Type :=
+                                        Key.Field (I).Get_Field_Type;
+                  begin
+                     if Key_Field_Type.Is_External_Type then
+                        declare
+                           P : constant String :=
+                                 Key_Field_Type.External_Type_Package_Name;
+                        begin
+                           if not Withed.Contains (P) then
+                              Top.With_Package (P);
+                              Withed.Insert (P);
+                           end if;
+                        end;
+                     end if;
+
+                     Fn.Add_Formal_Argument
+                       (Key.Field (I).Ada_Name,
+                        Key_Field_Type.Argument_Subtype);
+                  end;
                end loop;
                Top.Append (Fn);
             end;
@@ -454,8 +476,12 @@ package body Kit.Generate.Private_Interface is
       Create_Read_Write_Procedures (Table, Impl_Package);
       Create_Key_Mutexes (Table, Impl_Package);
 
-      Create_Compound_Key_To_Storage_Functions
-        (Db, Table, Impl_Package);
+      declare
+         External_Withs : WL.String_Sets.Set;
+      begin
+         Create_Compound_Key_To_Storage_Functions
+           (Db, Table, Impl_Package, External_Withs);
+      end;
 
       return Impl_Package;
    end Generate_Private_Interface;

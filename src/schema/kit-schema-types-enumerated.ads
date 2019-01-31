@@ -35,7 +35,7 @@ private
    overriding
    function To_Storage_Array
      (Item        : Enumerated_Type;
-      Object_Name : String)
+      Object      : Syn.Expression'Class)
       return Syn.Expression'Class;
 
    overriding

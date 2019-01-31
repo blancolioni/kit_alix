@@ -41,9 +41,15 @@ package Kit.Schema.Types is
    function Size (Item : Root_Kit_Type) return Natural;
 
    function To_Storage_Array
-     (Item        : Root_Kit_Type;
-      Object_Name : String)
+     (Item   : Root_Kit_Type;
+      Object : Syn.Expression'Class)
       return Syn.Expression'Class;
+
+   function To_Storage_Array
+     (Item        : Root_Kit_Type'Class;
+      Object_Name : String)
+      return Syn.Expression'Class
+   is (Item.To_Storage_Array (Syn.Object (Object_Name)));
 
    function Storage_Array_Transfer
      (Item          : Root_Kit_Type;
