@@ -1228,13 +1228,16 @@ package body Kit.Schema.Tables is
    -- To_Storage --
    ----------------
 
-   function To_Storage (Table       : Root_Table_Type;
-                        Base_Table  : Table_Type;
-                        Key_Table   : Table_Type;
-                        Object_Name : String;
-                        Key         : Kit.Schema.Keys.Key_Type;
-                        With_Index  : Boolean)
-                        return Syn.Expression'Class
+   function To_Storage
+     (Table       : Root_Table_Type;
+      Base_Table  : Table_Type;
+      Key_Table   : Table_Type;
+      Object_Name : String;
+      Key         : Kit.Schema.Keys.Key_Type;
+      With_Index  : Boolean;
+      Last_Index  : Natural := 0;
+      Fill_Low    : Boolean := True)
+      return Syn.Expression'Class
    is
       use Syn;
       use Syn.Expressions;
@@ -1255,25 +1258,81 @@ package body Kit.Schema.Tables is
                             else Object_Name & ".");
    begin
       if Key.Field_Count > 1 then
-         declare
-            Result : Function_Call_Expression :=
-                       New_Function_Call_Expression
-                         (Key_Table.Ada_Name
-                          & "_Impl."
-                          & Key.Ada_Name & "_To_Storage");
-         begin
-            for I in 1 .. Key.Field_Count loop
+         if Last_Index = 0 then
+            declare
+               Result : Function_Call_Expression :=
+                          New_Function_Call_Expression
+                            (Key_Table.Ada_Name
+                             & "_Impl."
+                             & Key.Ada_Name & "_To_Storage");
+            begin
+               for I in 1 .. Key.Field_Count loop
+                  Result.Add_Actual_Argument
+                    (Object
+                       (Object_Component
+                        & Key.Field (I).Ada_Name));
+               end loop;
+               if With_Index then
+                  return Long_Operator ("&", Result, Index_Part);
+               else
+                  return Result;
+               end if;
+            end;
+         elsif Last_Index = Key.Field_Count then
+            declare
+               Result : Function_Call_Expression :=
+                          New_Function_Call_Expression
+                            (Key_Table.Ada_Name
+                             & "_Impl."
+                             & Key.Ada_Name & "_To_Storage");
+            begin
+               for I in 1 .. Key.Field_Count loop
+                  if I = Last_Index then
+                     Result.Add_Actual_Argument
+                       (Object
+                          (Object_Component
+                           & Key.Field (I).Ada_Name));
+                  else
+                     Result.Add_Actual_Argument
+                       (Object
+                          (Key.Field (I).Ada_Name));
+                  end if;
+               end loop;
+               if With_Index then
+                  return Long_Operator ("&", Result, Index_Part);
+               else
+                  return Result;
+               end if;
+            end;
+         else
+            declare
+               Result : Function_Call_Expression :=
+                          New_Function_Call_Expression
+                            (Key_Table.Ada_Name
+                             & "_Impl.Partial_"
+                             & Key.Ada_Name & "_To_Storage");
+            begin
                Result.Add_Actual_Argument
-                 (Object
-                    (Object_Component
-                     & Key.Field (I).Ada_Name));
-            end loop;
-            if With_Index then
-               return Long_Operator ("&", Result, Index_Part);
-            else
-               return Result;
-            end if;
-         end;
+                 (if Fill_Low then Object ("True") else Object ("False"));
+               for I in 1 .. Last_Index loop
+                  if I = Last_Index then
+                     Result.Add_Actual_Argument
+                       (Object
+                          (Object_Component
+                           & Key.Field (I).Ada_Name));
+                  else
+                     Result.Add_Actual_Argument
+                       (Object
+                          (Key.Field (I).Ada_Name));
+                  end if;
+               end loop;
+               if With_Index then
+                  return Long_Operator ("&", Result, Index_Part);
+               else
+                  return Result;
+               end if;
+            end;
+         end if;
       else
          declare
             Field_Value : constant String :=
