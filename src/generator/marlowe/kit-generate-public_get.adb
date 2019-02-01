@@ -795,6 +795,10 @@ package body Kit.Generate.Public_Get is
       procedure Create_Function
         (Reference : Boolean);
 
+      ---------------------
+      -- Create_Function --
+      ---------------------
+
       procedure Create_Function
         (Reference : Boolean)
       is
@@ -1142,7 +1146,8 @@ package body Kit.Generate.Public_Get is
       Table_Package : in out Syn.Declarations.Package_Type'Class;
       Key_Name      : in     String;
       Key_Value     : in     Boolean;
-      Bounds        : in     Boolean)
+      Bounds        : in     Boolean;
+      Bounded_Index : in     Natural   := 0)
    is
 
       pragma Unreferenced (Db);
@@ -1155,32 +1160,52 @@ package body Kit.Generate.Public_Get is
       Return_Sequence  : Sequence_Of_Statements;
       Key              : constant Kit.Schema.Keys.Key_Type :=
                            Table.Key (Key_Name);
+      Field_Count      : constant Positive :=
+                           (if not Bounds
+                            or else Bounded_Index = 0
+                            then Key.Field_Count
+                            else Bounded_Index);
+
       function Function_Name return String;
 
-      function To_Storage (First : Boolean) return Expression'Class;
+      function To_Storage
+        (First : Boolean)
+         return Expression'Class;
 
       -------------------
       -- Function_Name --
       -------------------
 
       function Function_Name return String is
-         Base_Name : constant String :=
-                       (if Bounds
-                        then "Select_Bounded_By_"
-                        elsif Key_Value
-                        then "Select_By_"
-                        else "Scan_By_");
-
       begin
-         return Base_Name
-           & Kit.Names.Ada_Name (Key_Name);
+         if Bounds then
+            if Bounded_Index = 0
+              or else Key.Field_Count = 1
+            then
+               return "Select_Bounded_By_"
+                 & Kit.Names.Ada_Name (Key_Name);
+            else
+               return "Select_"
+                 & Kit.Names.Ada_Name (Key_Name)
+                 & "_Bounded_By_"
+                 & Key.Field (Bounded_Index).Ada_Name;
+            end if;
+         else
+            return (if Key_Value
+                    then "Select_By_"
+                    else "Scan_By_")
+              & Kit.Names.Ada_Name (Key_Name);
+         end if;
       end Function_Name;
 
       ----------------
       -- To_Storage --
       ----------------
 
-      function To_Storage (First : Boolean) return Expression'Class is
+      function To_Storage
+        (First       : Boolean)
+         return Expression'Class
+      is
       begin
          if not Bounds then
             return Table.To_Storage
@@ -1190,12 +1215,16 @@ package body Kit.Generate.Public_Get is
             return Table.To_Storage
               (Table, Key_Table,
                "Start_", Key,
-               With_Index => False);
+               With_Index => False,
+               Last_Index => Bounded_Index,
+               Fill_Low => True);
          else
             return Table.To_Storage
               (Table, Key_Table,
                "Finish_", Key,
-               With_Index => False);
+               With_Index => False,
+               Last_Index => Bounded_Index,
+               Fill_Low   => False);
          end if;
       end To_Storage;
 
@@ -1284,9 +1313,9 @@ package body Kit.Generate.Public_Get is
                   Key : constant Kit.Schema.Keys.Key_Type :=
                           Table.Key (Key_Name);
                begin
-                  if Bounds then
+                  if Bounds and then Bounded_Index = 0 then
                      for Is_Finish in Boolean loop
-                        for I in 1 .. Key.Field_Count loop
+                        for I in 1 .. Field_Count loop
                            declare
                               Tag        : constant String :=
                                              (if Is_Finish
@@ -1320,16 +1349,32 @@ package body Kit.Generate.Public_Get is
                         end loop;
                      end loop;
                   else
-                     for I in 1 .. Key.Field_Count loop
+                     for I in 1 .. Field_Count loop
                         declare
                            Field : Kit.Schema.Fields.Field_Type
                            renames Key.Field (I);
                         begin
-                           Fn.Add_Formal_Argument
-                             (New_Formal_Argument
-                                (Field.Ada_Name,
-                                 Named_Subtype
-                                   (Field.Get_Field_Type.Argument_Subtype)));
+                           if Bounds and then I = Bounded_Index then
+                              Fn.Add_Formal_Argument
+                                (New_Formal_Argument
+                                   ("Start_" & Field.Ada_Name,
+                                    Named_Subtype
+                                      (Field.Get_Field_Type
+                                       .Argument_Subtype)));
+                              Fn.Add_Formal_Argument
+                                (New_Formal_Argument
+                                   ("Finish_" & Field.Ada_Name,
+                                    Named_Subtype
+                                      (Field.Get_Field_Type
+                                       .Argument_Subtype)));
+                           else
+                              Fn.Add_Formal_Argument
+                                (New_Formal_Argument
+                                   (Field.Ada_Name,
+                                    Named_Subtype
+                                      (Field.Get_Field_Type
+                                       .Argument_Subtype)));
+                           end if;
                         end;
                      end loop;
                   end if;

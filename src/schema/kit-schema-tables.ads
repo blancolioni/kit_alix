@@ -132,34 +132,40 @@ package Kit.Schema.Tables is
                    Field : Kit.Schema.Fields.Field_Type);
       Table_First : Boolean := False);
 
-   function To_Storage (Table       : Root_Table_Type;
-                        Base_Table  : Table_Type;
-                        Key_Table   : Table_Type;
-                        Object_Name : String;
-                        Key         : Kit.Schema.Keys.Key_Type;
-                        With_Index  : Boolean)
-                        return Syn.Expression'Class;
+   function To_Storage
+     (Table       : Root_Table_Type;
+      Base_Table  : Table_Type;
+      Key_Table   : Table_Type;
+      Object_Name : String;
+      Key         : Kit.Schema.Keys.Key_Type;
+      With_Index  : Boolean;
+      Last_Index  : Natural := 0;
+      Fill_Low    : Boolean := True)
+      return Syn.Expression'Class;
 
-   function To_Storage (Table       : Root_Table_Type;
-                        Base_Table  : Table_Type;
-                        Key_Table   : Table_Type;
-                        Object_Name : String;
-                        Key         : Kit.Schema.Keys.Key_Type;
-                        New_Field   : Kit.Schema.Fields.Field_Type;
-                        Field_Value : String;
-                        With_Index  : Boolean)
-                        return Syn.Expression'Class;
+   function To_Storage
+     (Table       : Root_Table_Type;
+      Base_Table  : Table_Type;
+      Key_Table   : Table_Type;
+      Object_Name : String;
+      Key         : Kit.Schema.Keys.Key_Type;
+      New_Field   : Kit.Schema.Fields.Field_Type;
+      Field_Value : String;
+      With_Index  : Boolean)
+      return Syn.Expression'Class;
 
-   function To_Storage (Key_Value_Name   : String;
-                        Index_Value_Name : String;
-                        Key         : Kit.Schema.Keys.Key_Type)
-                        return Syn.Expression'Class;
+   function To_Storage
+     (Key_Value_Name   : String;
+      Index_Value_Name : String;
+      Key              : Kit.Schema.Keys.Key_Type)
+      return Syn.Expression'Class;
 
-   procedure Iterate (Table     : not null access Root_Table_Type'Class;
-                      Process   : not null access
-                        procedure (Item : Table_Type);
-                      Inclusive : Boolean;
-                      Table_First : Boolean := False);
+   procedure Iterate
+     (Table     : not null access Root_Table_Type'Class;
+      Process   : not null access
+        procedure (Item : Table_Type);
+      Inclusive : Boolean;
+      Table_First : Boolean := False);
 
    procedure Append
      (Table     : in out Root_Table_Type;

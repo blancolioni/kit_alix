@@ -51,9 +51,14 @@ package body Kit.Generate.Private_Interface is
       procedure Create_Key_To_Storage
         (Key   : Kit.Schema.Keys.Key_Type);
 
+      procedure Create_Partial_Key_To_Storage
+        (Key                 : Kit.Schema.Keys.Key_Type;
+         Partial_Field_Count : Positive);
+
       function To_Storage_Expression
         (Key   : Kit.Schema.Keys.Key_Type;
-         Index : Positive)
+         Index : Positive;
+         Last  : Natural := 0)
          return Syn.Expression'Class;
 
       ---------------------------
@@ -65,49 +70,115 @@ package body Kit.Generate.Private_Interface is
       is
          Block : Syn.Blocks.Block_Type;
       begin
-         if Key.Field_Count > 1 then
-            Block.Add_Declaration
-              (Syn.Declarations.Use_Type
-                 ("System.Storage_Elements.Storage_Array"));
-            Block.Add_Statement
-              (Syn.Statements.New_Return_Statement
-                 (To_Storage_Expression
-                      (Key, 1)));
-
-            declare
-               use Syn, Syn.Declarations;
-               Fn : Subprogram_Declaration'Class :=
-                      Syn.Declarations.New_Function
-                        (Key.Ada_Name & "_To_Storage",
-                         "System.Storage_Elements.Storage_Array",
-                         Block);
-            begin
-               for I in 1 .. Key.Field_Count loop
-                  declare
-                     Key_Field_Type : constant Kit.Schema.Types.Kit_Type :=
-                                        Key.Field (I).Get_Field_Type;
-                  begin
-                     if Key_Field_Type.Is_External_Type then
-                        declare
-                           P : constant String :=
-                                 Key_Field_Type.External_Type_Package_Name;
-                        begin
-                           if not Withed.Contains (P) then
-                              Top.With_Package (P);
-                              Withed.Insert (P);
-                           end if;
-                        end;
-                     end if;
-
-                     Fn.Add_Formal_Argument
-                       (Key.Field (I).Ada_Name,
-                        Key_Field_Type.Argument_Subtype);
-                  end;
-               end loop;
-               Top.Append (Fn);
-            end;
+         if Key.Field_Count = 1 then
+            return;
          end if;
+
+         Block.Add_Declaration
+           (Syn.Declarations.Use_Type
+              ("System.Storage_Elements.Storage_Array"));
+         Block.Add_Statement
+           (Syn.Statements.New_Return_Statement
+              (To_Storage_Expression
+                   (Key, 1)));
+
+         declare
+            use Syn, Syn.Declarations;
+            Fn : Subprogram_Declaration'Class :=
+                   Syn.Declarations.New_Function
+                     (Key.Ada_Name & "_To_Storage",
+                      "System.Storage_Elements.Storage_Array",
+                      Block);
+         begin
+            for I in 1 .. Key.Field_Count loop
+               declare
+                  Key_Field_Type : constant Kit.Schema.Types.Kit_Type :=
+                                     Key.Field (I).Get_Field_Type;
+               begin
+                  if Key_Field_Type.Is_External_Type then
+                     declare
+                        P : constant String :=
+                              Key_Field_Type.External_Type_Package_Name;
+                     begin
+                        if not Withed.Contains (P) then
+                           Top.With_Package (P);
+                           Withed.Insert (P);
+                        end if;
+                     end;
+                  end if;
+
+                  Fn.Add_Formal_Argument
+                    (Key.Field (I).Ada_Name,
+                     Key_Field_Type.Argument_Subtype);
+               end;
+            end loop;
+            Top.Append (Fn);
+         end;
+
+         for I in 1 .. Key.Field_Count - 1 loop
+            Create_Partial_Key_To_Storage (Key, I);
+         end loop;
+
       end Create_Key_To_Storage;
+
+      -----------------------------------
+      -- Create_Partial_Key_To_Storage --
+      -----------------------------------
+
+      procedure Create_Partial_Key_To_Storage
+        (Key                 : Kit.Schema.Keys.Key_Type;
+         Partial_Field_Count : Positive)
+      is
+         Block          : Syn.Blocks.Block_Type;
+         Missing_Length : Natural := 0;
+      begin
+         if Key.Field_Count = 1 then
+            return;
+         end if;
+
+         Block.Add_Declaration
+           (Syn.Declarations.Use_Type
+              ("System.Storage_Elements.Storage_Array"));
+
+         for I in Partial_Field_Count + 1 .. Key.Field_Count loop
+            Missing_Length := Missing_Length
+              + Key.Field (I).Size;
+         end loop;
+         Block.Add_Declaration
+           (Syn.Declarations.New_Constant_Declaration
+              ("Partial_Key_Suffix",
+               "System.Storage_Elements.Storage_Array (1 .."
+                 & Missing_Length'Image & ")",
+               Syn.Object ("(others => (if Fill_Low then 0 else 255))")));
+
+         Block.Add_Statement
+           (Syn.Statements.New_Return_Statement
+              (To_Storage_Expression
+                   (Key, 1, Partial_Field_Count)));
+
+         declare
+            use Syn, Syn.Declarations;
+            Fn : Subprogram_Declaration'Class :=
+                   Syn.Declarations.New_Function
+                     ("Partial_" & Key.Ada_Name & "_To_Storage",
+                      "System.Storage_Elements.Storage_Array",
+                      Block);
+         begin
+            Fn.Add_Formal_Argument
+              ("Fill_Low", "Boolean");
+            for I in 1 .. Partial_Field_Count loop
+               declare
+                  Key_Field_Type : constant Kit.Schema.Types.Kit_Type :=
+                                     Key.Field (I).Get_Field_Type;
+               begin
+                  Fn.Add_Formal_Argument
+                    (Key.Field (I).Ada_Name,
+                     Key_Field_Type.Argument_Subtype);
+               end;
+            end loop;
+            Top.Append (Fn);
+         end;
+      end Create_Partial_Key_To_Storage;
 
       ---------------------------
       -- To_Storage_Expression --
@@ -115,7 +186,8 @@ package body Kit.Generate.Private_Interface is
 
       function To_Storage_Expression
         (Key   : Kit.Schema.Keys.Key_Type;
-         Index : Positive)
+         Index : Positive;
+         Last  : Natural := 0)
          return Syn.Expression'Class
       is
          use Syn.Expressions;
@@ -125,11 +197,15 @@ package body Kit.Generate.Private_Interface is
                    Field.Get_Field_Type.To_Storage_Array
                      (Field.Ada_Name);
       begin
-         if Index = Key.Field_Count then
+         if Index = Last then
+            return Operator
+              ("&", This,
+               Syn.Object ("Partial_Key_Suffix"));
+         elsif Index = Key.Field_Count then
             return This;
          else
             return Operator ("&", This,
-                             To_Storage_Expression (Key, Index + 1));
+                             To_Storage_Expression (Key, Index + 1, Last));
          end if;
       end To_Storage_Expression;
 

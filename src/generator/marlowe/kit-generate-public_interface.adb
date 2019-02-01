@@ -2376,14 +2376,19 @@ package body Kit.Generate.Public_Interface is
                   Bounds        => False);
             end loop;
 
-            Public_Get.Create_Selection_Function
-              (Db            => Db,
-               Table         => Table,
-               Key_Table     => Base,
-               Table_Package => Table_Package,
-               Key_Name      => Key.Standard_Name,
-               Key_Value     => True,
-               Bounds        => True);
+            for I in 1 .. Key.Field_Count loop
+               if not Key.Field (I).Get_Field_Type.Is_Table_Reference then
+                  Public_Get.Create_Selection_Function
+                    (Db            => Db,
+                     Table         => Table,
+                     Key_Table     => Base,
+                     Table_Package => Table_Package,
+                     Key_Name      => Key.Standard_Name,
+                     Key_Value     => True,
+                     Bounds        => True,
+                     Bounded_Index => I);
+               end if;
+            end loop;
 
             if Base.Ada_Name = Table.Ada_Name
             --  and then Key.Ada_Name = Table.Ada_Name

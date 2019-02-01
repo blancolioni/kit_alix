@@ -11,14 +11,19 @@ package Kit.Generate.Public_Get is
       Table_Package : in out Syn.Declarations.Package_Type'Class;
       Key_Name      : in     String;
       Key_Value     : in     Boolean;
-      Bounds        : in     Boolean);
+      Bounds        : in     Boolean;
+      Bounded_Index : in     Natural   := 0);
 
    --  Generate a function which gets a selection from the given Table.
    --  Key_Table should be the table which originally declared the key.
-   --  If Bounds is true, a function with both upper and lower bounds is
-   --  generated.  If Key_Value is True, the function returns a selection
-   --  containing only records with a given value.  Otherwise, the selection
-   --  contains the entire table in key order.
+   --  If Key_Value is True, the function returns a selection
+   --  containing only records with a given value.  If Bounds is False,
+   --  the selection contains the entire table in key order.
+   --  If Bounds is True, a function is generated which accepts values
+   --  first 1 .. Bounded_Index - 1 key components, followed by
+   --  a lower and an upper bound for the Bounded_Index component.
+   --  A selection matching these constraints, with the remaining
+   --  components open, is returned.
 
    procedure Create_Unique_Get_Function
      (Table         : in     Kit.Schema.Tables.Table_Type;
