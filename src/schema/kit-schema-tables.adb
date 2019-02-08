@@ -592,7 +592,8 @@ package body Kit.Schema.Tables is
 
    function Has_Display_Field (Item : Root_Table_Type) return Boolean is
    begin
-      return Item.Has_Display_Field;
+      return (for some Field of Item.Fields => Field.Field.Display)
+        or else (for some Base of Item.Bases => Base.Has_Display_Field);
    end Has_Display_Field;
 
    -------------------

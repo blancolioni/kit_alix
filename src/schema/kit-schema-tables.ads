@@ -65,6 +65,7 @@ package Kit.Schema.Tables is
    function Has_Local_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Compound_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Display_Field (Item : Root_Table_Type) return Boolean;
+   function Has_Inherited_Table (Item : Root_Table_Type) return Boolean;
 
    function With_Vector_Package (Item : Root_Table_Type) return Boolean;
    function With_Map_Package (Item : Root_Table_Type) return Boolean;
@@ -312,5 +313,8 @@ private
      (Table : Root_Table_Type'Class;
       Base  : Table_Type)
       return Kit.Schema.Fields.Field_Type;
+
+   function Has_Inherited_Table (Item : Root_Table_Type) return Boolean
+   is (not Item.Bases.Is_Empty);
 
 end Kit.Schema.Tables;
