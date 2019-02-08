@@ -2,7 +2,6 @@ with Kit.Options;
 
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
-with Kit.Schema.Tables;
 with Kit.Schema.Types;
 
 with Syn.Blocks;
@@ -112,55 +111,10 @@ package body Kit.Generate.Database_Package is
          procedure Create_Table
            (Table : Kit.Schema.Tables.Table_Type)
          is
-            use Syn.Statements;
-
-            procedure Create_Key
-              (Base : Kit.Schema.Tables.Table_Type;
-               Key  : Kit.Schema.Keys.Key_Type);
-
-            ----------------
-            -- Create_Key --
-            ----------------
-
-            procedure Create_Key
-              (Base : Kit.Schema.Tables.Table_Type;
-               Key  : Kit.Schema.Keys.Key_Type)
-            is
-               pragma Unreferenced (Base);
-               use Syn;
-               use Syn.Expressions;
-               use Kit.Schema.Tables;
-
-               Call_Add_Key : Function_Call_Expression :=
-                                New_Function_Call_Expression
-                                  (Procedure_Name =>
-                                      "Marlowe_Keys.Handle.Add_Key");
-            begin
-               Call_Add_Key.Add_Actual_Argument
-                 (Literal (Table.Name & "_" & Key.Standard_Name));
-               Call_Add_Key.Add_Actual_Argument
-                 (Object (Table.Ada_Name & "_Table_Index"));
-               Call_Add_Key.Add_Actual_Argument
-                 (Literal (Key.Size));
-
-               Block.Add_Statement
-                 (New_Assignment_Statement
-                    ("Marlowe_Keys."
-                     & Table.Key_Reference_Name (Key),
-                     Call_Add_Key));
-            end Create_Key;
-
-            Proc  : Procedure_Call_Statement :=
-                      New_Procedure_Call_Statement
-                        ("Marlowe_Keys.Handle.Add_Table");
          begin
-            Proc.Add_Actual_Argument
-              (Syn.Literal (Table.Standard_Name));
-            Proc.Add_Actual_Argument
-              (Syn.Literal (Natural (Table.Length)));
-            Block.Add_Statement (Proc);
-
-            Table.Scan_Keys (Create_Key'Access);
+            Block.Append
+              (Syn.Statements.New_Procedure_Call_Statement
+                 ("Db_" & Table.Ada_Name & ".Create"));
          end Create_Table;
 
          ----------------
@@ -170,44 +124,10 @@ package body Kit.Generate.Database_Package is
          procedure Open_Table
            (Table : Kit.Schema.Tables.Table_Type)
          is
-            use Syn.Statements;
-
-            procedure Open_Key
-              (Base : Kit.Schema.Tables.Table_Type;
-               Key  : Kit.Schema.Keys.Key_Type);
-
-            --------------
-            -- Open_Key --
-            --------------
-
-            procedure Open_Key
-              (Base : Kit.Schema.Tables.Table_Type;
-               Key  : Kit.Schema.Keys.Key_Type)
-            is
-               pragma Unreferenced (Base);
-               use Syn.Expressions;
-               use Kit.Schema.Tables;
-
-               Call_Open_Key : Function_Call_Expression :=
-                                 New_Function_Call_Expression
-                                   (Procedure_Name =>
-                                      "Marlowe_Keys.Handle.Get_Reference");
-            begin
-               Call_Open_Key.Add_Actual_Argument
-                 (Syn.Literal
-                    (Table.Name & "_" & Key.Standard_Name));
-
-               Block.Add_Statement
-                 (New_Assignment_Statement
-                    ("Marlowe_Keys."
-                     & Table.Key_Reference_Name (Key),
-                     Call_Open_Key));
-            end Open_Key;
-
          begin
-
-            Table.Scan_Keys (Open_Key'Access);
-
+            Block.Append
+              (Syn.Statements.New_Procedure_Call_Statement
+                 ("Db_" & Table.Ada_Name & ".Open"));
          end Open_Table;
 
          Access_Db  : Syn.Statements.Procedure_Call_Statement :=
@@ -283,42 +203,6 @@ package body Kit.Generate.Database_Package is
       Result.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                            Body_With => True);
 
-      Result.With_Package (Db.Ada_Name & ".Kit_Record",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Record_Base",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Enumeration",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Field",
-                           Body_With => True);
-
-      if Db.Has_Display_Field then
-         Result.With_Package (Db.Ada_Name & ".Kit_Display_Field",
-                              Body_With => True);
-      end if;
-
-      Result.With_Package (Db.Ada_Name & ".Kit_Type",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Float",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Integer",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Long_Integer",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Literal",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Long_Float",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Bounded_String",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Fixed_String",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Reference",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Key",
-                           Body_With => True);
-      Result.With_Package (Db.Ada_Name & ".Kit_Key_Field",
-                           Body_With => True);
       Result.With_Package (Db.Ada_Name & ".Kit_Deferred_Keys",
                            Body_With => True);
 
@@ -326,6 +210,30 @@ package body Kit.Generate.Database_Package is
          Result.With_Package (Db.Ada_Name & ".Kit_Locking",
                               Body_With => True);
       end if;
+
+      Result.With_Package
+        (Db.Ada_Name & ".Database.Types", Body_With => True);
+
+      declare
+         procedure With_Table_Database
+           (Table : Kit.Schema.Tables.Table_Type);
+
+         -------------------------
+         -- With_Table_Database --
+         -------------------------
+
+         procedure With_Table_Database
+           (Table : Kit.Schema.Tables.Table_Type)
+         is
+         begin
+            Result.With_Package
+              (Db.Ada_Name & ".Database." & "Db_" & Table.Ada_Name,
+               Body_With => True);
+         end With_Table_Database;
+
+      begin
+         Db.Iterate (With_Table_Database'Access);
+      end;
 
       if False then
          Db.Iterate (Add_Implementation_With'Access);
@@ -346,61 +254,254 @@ package body Kit.Generate.Database_Package is
       return Result;
    end Generate_Database_Package;
 
-   -----------------------------------
-   -- Initialise_Database_Structure --
-   -----------------------------------
+   -------------------------------------
+   -- Generate_Database_Types_Package --
+   -------------------------------------
 
-   procedure Initialise_Database_Structure
-     (Db  : Kit.Schema.Databases.Database_Type;
-      Seq : in out Syn.Statement_Sequencer'Class)
+   function Generate_Database_Types_Package
+     (Db    : Kit.Schema.Databases.Database_Type)
+      return Syn.Declarations.Package_Type
    is
-
-      use Syn;
-      use Syn.Declarations;
-      use Syn.Expressions;
-      use Syn.Statements;
-
-      procedure Create_Table
-        (Table : Kit.Schema.Tables.Table_Type);
-
-      procedure Create_Table_Fields
-        (Table : Kit.Schema.Tables.Table_Type);
+      Result : Syn.Declarations.Package_Type :=
+                 Syn.Declarations.New_Package_Type
+                   (Db.Name & ".Database.Types");
+      Block  : Syn.Blocks.Block_Type;
 
       procedure Create_Type (T  : Kit.Schema.Types.Kit_Type);
 
-      Init_Block : Syn.Blocks.Block_Type;
+      -----------------
+      -- Create_Type --
+      -----------------
 
-      ------------------
-      -- Create_Table --
-      ------------------
-
-      procedure Create_Table
-        (Table : Kit.Schema.Tables.Table_Type)
-      is
-         Create : constant Declaration'Class :=
-                    New_Constant_Declaration
-                      (Table.Ada_Name & "_Ref",
-                       "Kit_Record_Reference",
-                       New_Function_Call_Expression
-                         ("Kit_Record.Create",
-                          Literal (Table.Standard_Name),
-                          Object (Table.Index_Image),
-                          Literal (Natural (Table.Length))));
+      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type) is
       begin
-         Init_Block.Add_Declaration (Create);
-         Init_Block.Append (Table.Reference_Type.Create_Database_Record);
-      end Create_Table;
+         if not T.Is_Table_Reference
+           and then not T.Is_External_Type
+         then
+            Block.Append (T.Create_Database_Record);
+         end if;
+      end Create_Type;
 
-      -------------------------
-      -- Create_Table_Fields --
-      -------------------------
+   begin
 
-      procedure Create_Table_Fields
+      Result.Set_Private;
+
+      Result.With_Package (Db.Ada_Name & ".Kit_Enumeration",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Float",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Integer",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Long_Integer",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Literal",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Long_Float",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Bounded_String",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Fixed_String",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Type",
+                           Body_With => True);
+
+      Kit.Schema.Types.Iterate_All_Types (Create_Type'Access);
+
+      Result.Append
+        (Syn.Declarations.New_Procedure ("Create_Types", Block));
+
+      return Result;
+
+   end Generate_Database_Types_Package;
+
+   -------------------------------------
+   -- Generate_Table_Database_Package --
+   -------------------------------------
+
+   function Generate_Table_Database_Package
+     (Db    : Kit.Schema.Databases.Database_Type;
+      Table : Kit.Schema.Tables.Table_Type)
+      return Syn.Declarations.Package_Type
+   is
+
+      Ref_Name   : constant String :=
+                     Table.Ada_Name & "_Ref";
+
+      Result : Syn.Declarations.Package_Type :=
+                 Syn.Declarations.New_Package_Type
+                   (Db.Name & ".Database."
+                    & "Db_" & Table.Ada_Name);
+
+      procedure Add_Base_With
+        (Table : Kit.Schema.Tables.Table_Type);
+
+      function Create_Database_Procedure
+        (Operation : Database_Operation)
+         return Syn.Declarations.Subprogram_Declaration'Class;
+
+      function Initialize_Table_Procedure
+        return Syn.Declarations.Subprogram_Declaration'Class;
+
+      -------------------
+      -- Add_Base_With --
+      -------------------
+
+      procedure Add_Base_With
         (Table : Kit.Schema.Tables.Table_Type)
       is
+      begin
+         Result.With_Package
+           (Withed       => Db.Ada_Name & ".Database.Db_" & Table.Ada_Name,
+            Body_With    => True);
+      end Add_Base_With;
 
-         Ref_Name : constant String :=
-                      Table.Ada_Name & "_Ref";
+      -------------------------------
+      -- Create_Database_Procedure --
+      -------------------------------
+
+      function Create_Database_Procedure
+        (Operation : Database_Operation)
+         return Syn.Declarations.Subprogram_Declaration'Class
+      is
+         use Syn.Declarations;
+         Block : Syn.Blocks.Block_Type;
+
+         procedure Create_Table;
+
+         procedure Open_Table;
+
+         ------------------
+         -- Create_Table --
+         ------------------
+
+         procedure Create_Table is
+
+            use Syn.Statements;
+
+            procedure Create_Key
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type);
+
+            ----------------
+            -- Create_Key --
+            ----------------
+
+            procedure Create_Key
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type)
+            is
+               pragma Unreferenced (Base);
+               use Syn;
+               use Syn.Expressions;
+               use Kit.Schema.Tables;
+
+               Call_Add_Key : Function_Call_Expression :=
+                                New_Function_Call_Expression
+                                  (Procedure_Name =>
+                                     "Marlowe_Keys.Handle.Add_Key");
+            begin
+               Call_Add_Key.Add_Actual_Argument
+                 (Literal (Table.Name & "_" & Key.Standard_Name));
+               Call_Add_Key.Add_Actual_Argument
+                 (Object (Table.Ada_Name & "_Table_Index"));
+               Call_Add_Key.Add_Actual_Argument
+                 (Literal (Key.Size));
+
+               Block.Add_Statement
+                 (New_Assignment_Statement
+                    ("Marlowe_Keys."
+                     & Table.Key_Reference_Name (Key),
+                     Call_Add_Key));
+            end Create_Key;
+
+            Proc  : Procedure_Call_Statement :=
+                      New_Procedure_Call_Statement
+                        ("Marlowe_Keys.Handle.Add_Table");
+         begin
+            Proc.Add_Actual_Argument
+              (Syn.Literal (Table.Standard_Name));
+            Proc.Add_Actual_Argument
+              (Syn.Literal (Natural (Table.Length)));
+            Block.Add_Statement (Proc);
+
+            Table.Scan_Keys (Create_Key'Access);
+         end Create_Table;
+
+         ----------------
+         -- Open_Table --
+         ----------------
+
+         procedure Open_Table is
+            use Syn.Statements;
+
+            procedure Open_Key
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type);
+
+            --------------
+            -- Open_Key --
+            --------------
+
+            procedure Open_Key
+              (Base : Kit.Schema.Tables.Table_Type;
+               Key  : Kit.Schema.Keys.Key_Type)
+            is
+               pragma Unreferenced (Base);
+               use Syn.Expressions;
+               use Kit.Schema.Tables;
+
+               Call_Open_Key : Function_Call_Expression :=
+                                 New_Function_Call_Expression
+                                   (Procedure_Name =>
+                                        "Marlowe_Keys.Handle.Get_Reference");
+            begin
+               Call_Open_Key.Add_Actual_Argument
+                 (Syn.Literal
+                    (Table.Name & "_" & Key.Standard_Name));
+
+               Block.Add_Statement
+                 (New_Assignment_Statement
+                    ("Marlowe_Keys."
+                     & Table.Key_Reference_Name (Key),
+                     Call_Open_Key));
+            end Open_Key;
+
+         begin
+
+            Table.Scan_Keys (Open_Key'Access);
+
+         end Open_Table;
+
+      begin
+
+         case Operation is
+            when Create =>
+               Create_Table;
+            when Open =>
+               Open_Table;
+         end case;
+
+         declare
+            Result : constant Subprogram_Declaration'Class :=
+                       New_Procedure (Operation_Name (Operation),
+                                      Block);
+         begin
+            return Result;
+         end;
+
+      end Create_Database_Procedure;
+
+      --------------------------------
+      -- Initialize_Table_Procedure --
+      --------------------------------
+
+      function Initialize_Table_Procedure
+        return Syn.Declarations.Subprogram_Declaration'Class
+      is
+
+         use Syn, Syn.Declarations, Syn.Expressions, Syn.Statements;
+
+         Init_Block : Syn.Blocks.Block_Type;
 
          procedure Create_Field
            (Field       : Kit.Schema.Fields.Field_Type);
@@ -420,14 +521,14 @@ package body Kit.Generate.Database_Package is
 
          procedure Create_Base (Base  : Kit.Schema.Tables.Table_Type) is
             New_Base : Procedure_Call_Statement'Class :=
-                          New_Procedure_Call_Statement
-                            ("Kit_Record_Base.Create");
+                         New_Procedure_Call_Statement
+                           ("Kit_Record_Base.Create");
          begin
             New_Base.Add_Actual_Argument
               (Literal (Natural (Table.Base_Index (Base))));
             New_Base.Add_Actual_Argument
               (Object
-                 (Base.Ada_Name & "_Ref"));
+                 ("Db_" & Base.Ada_Name & "." & Base.Ada_Name & "_Ref"));
             New_Base.Add_Actual_Argument
               (Object (Ref_Name));
             Init_Block.Append (New_Base);
@@ -497,9 +598,9 @@ package body Kit.Generate.Database_Package is
                   New_Key));
             for I in 1 .. Key.Field_Count loop
                declare
-                  Key_Field : Procedure_Call_Statement'Class :=
-                                New_Procedure_Call_Statement
-                                  ("Kit_Key_Field.Create");
+                  Key_Field   : Procedure_Call_Statement'Class :=
+                                  New_Procedure_Call_Statement
+                                    ("Kit_Key_Field.Create");
                   Field_Block : Syn.Blocks.Block_Type;
                begin
                   Field_Block.Add_Declaration
@@ -550,28 +651,105 @@ package body Kit.Generate.Database_Package is
          end Insert_Display_Field;
 
       begin
+         Init_Block.Append
+           (New_Assignment_Statement
+              (Ref_Name,
+               New_Function_Call_Expression
+                 ("Kit_Record.Create",
+                  Literal (Table.Standard_Name),
+                  Object (Table.Index_Image),
+                  Literal (Natural (Table.Length)))));
+
+         Init_Block.Append (Table.Reference_Type.Create_Database_Record);
          Table.Scan_Fields (Create_Field'Access);
          Table.Scan_Keys (Create_Key'Access);
          Table.Iterate (Create_Base'Access, Inclusive => False);
          Table.Iterate_All (Insert_Display_Field'Access);
-      end Create_Table_Fields;
 
-      -----------------
-      -- Create_Type --
-      -----------------
-
-      procedure Create_Type (T  : Kit.Schema.Types.Kit_Type) is
-      begin
-         if not T.Is_Table_Reference
-           and then not T.Is_External_Type
-         then
-            Seq.Append (T.Create_Database_Record);
-         end if;
-      end Create_Type;
+         return Syn.Declarations.New_Procedure
+           ("Initialize",
+            Init_Block);
+      end Initialize_Table_Procedure;
 
    begin
-      Kit.Schema.Types.Iterate_All_Types (Create_Type'Access);
-      Db.Iterate (Create_Table'Access);
+      Result.Set_Private;
+
+      Result.With_Package (Db.Ada_Name & ".Marlowe_Keys",
+                           Body_With => True);
+
+      if Table.Has_Display_Field then
+         Result.With_Package (Db.Ada_Name & ".Kit_Display_Field",
+                              Body_With => True);
+      end if;
+
+      Result.With_Package (Db.Ada_Name & ".Kit_Field",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Key",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Key_Field",
+                           Body_With => True);
+
+      Result.With_Package (Db.Ada_Name & ".Kit_Record",
+                           Body_With => True);
+      if Table.Has_Inherited_Table then
+         Result.With_Package (Db.Ada_Name & ".Kit_Record_Base");
+      end if;
+
+      Result.With_Package (Db.Ada_Name & ".Kit_Reference",
+                           Body_With => True);
+      Result.With_Package (Db.Ada_Name & ".Kit_Type",
+                           Body_With => True);
+      Table.Iterate (Add_Base_With'Access, Inclusive => False);
+
+      Result.Append
+        (Syn.Declarations.New_Object_Declaration
+           (Ref_Name,
+            "Kit_Record_Reference"));
+
+      Result.Append (Create_Database_Procedure (Create));
+      Result.Append (Create_Database_Procedure (Open));
+      Result.Append (Initialize_Table_Procedure);
+
+      return Result;
+
+   end Generate_Table_Database_Package;
+
+   -----------------------------------
+   -- Initialise_Database_Structure --
+   -----------------------------------
+
+   procedure Initialise_Database_Structure
+     (Db  : Kit.Schema.Databases.Database_Type;
+      Seq : in out Syn.Statement_Sequencer'Class)
+   is
+
+      use Syn;
+      use Syn.Statements;
+
+      procedure Create_Table_Fields
+        (Table : Kit.Schema.Tables.Table_Type);
+
+      Init_Block : Syn.Blocks.Block_Type;
+
+      -------------------------
+      -- Create_Table_Fields --
+      -------------------------
+
+      procedure Create_Table_Fields
+        (Table : Kit.Schema.Tables.Table_Type)
+      is
+      begin
+         Init_Block.Append
+           (Syn.Statements.New_Procedure_Call_Statement
+              (Db.Ada_Name & ".Database.Db_" & Table.Ada_Name
+               & ".Initialize"));
+      end Create_Table_Fields;
+
+   begin
+      Seq.Append
+        (Syn.Statements.New_Procedure_Call_Statement
+           (Db.Ada_Name & ".Database.Types.Create_Types"));
+
       Db.Iterate (Create_Table_Fields'Access);
       Seq.Append (Declare_Statement (Init_Block));
    end Initialise_Database_Structure;

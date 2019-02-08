@@ -5,7 +5,7 @@ package Kit.Version is
    Version_Release  : constant := 0;
    Build_Number     : constant := 0;
 
-   Version_String   : constant String := "0.3.0.0";
+   Version_String   : constant String := "0.3.1.0";
    Build_String     : constant String := "0";
 
    Component_Name   : constant String := "Kit";

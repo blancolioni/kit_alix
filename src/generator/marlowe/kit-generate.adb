@@ -486,6 +486,9 @@ package body Kit.Generate is
       procedure Private_Interface
         (Table : Kit.Schema.Tables.Table_Type);
 
+      procedure Table_Database_Package
+        (Table : Kit.Schema.Tables.Table_Type);
+
       --------------------
       -- Get_From_Cache --
       --------------------
@@ -533,6 +536,19 @@ package body Kit.Generate is
            (Kit.Generate.Public_Interface.Generate_Public_Interface
               (Db, Table, Top_Package));
       end Public_Interface;
+
+      ----------------------------
+      -- Table_Database_Package --
+      ----------------------------
+
+      procedure Table_Database_Package
+        (Table : Kit.Schema.Tables.Table_Type)
+      is
+      begin
+         Project.Add_Package
+           (Kit.Generate.Database_Package.Generate_Table_Database_Package
+              (Db, Table));
+      end Table_Database_Package;
 
    begin
 
@@ -585,6 +601,10 @@ package body Kit.Generate is
       Project.Add_Package
         (Table_Name_Map.Generate_Package (Db));
 
+      Project.Add_Package
+        (Database_Package.Generate_Database_Types_Package (Db));
+
+      Db.Iterate (Table_Database_Package'Access);
       Db.Iterate (Get_From_Cache'Access);
       Db.Iterate (Public_Interface'Access);
       Db.Iterate (Private_Interface'Access);
