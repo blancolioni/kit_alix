@@ -590,10 +590,34 @@ package body Kit.Schema.Tables is
    -- Has_Display_Field --
    -----------------------
 
-   function Has_Display_Field (Item : Root_Table_Type) return Boolean is
+   function Has_Display_Field
+     (Item : not null access Root_Table_Type)
+      return Boolean
+   is
+      Has_Display : Boolean := False;
+
+      procedure Check_Field
+        (Table : Table_Type;
+         Field : Kit.Schema.Fields.Field_Type);
+
+      -----------------
+      -- Check_Field --
+      -----------------
+
+      procedure Check_Field
+        (Table : Table_Type;
+         Field : Kit.Schema.Fields.Field_Type)
+      is
+         pragma Unreferenced (Table);
+      begin
+         if Field.Display then
+            Has_Display := True;
+         end if;
+      end Check_Field;
+
    begin
-      return (for some Field of Item.Fields => Field.Field.Display)
-        or else (for some Base of Item.Bases => Base.Has_Display_Field);
+      Item.Iterate_All (Check_Field'Access, True);
+      return Has_Display;
    end Has_Display_Field;
 
    -------------------

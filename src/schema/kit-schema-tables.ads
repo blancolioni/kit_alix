@@ -64,7 +64,9 @@ package Kit.Schema.Tables is
    function Has_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Local_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Compound_Key_Field (Item : Root_Table_Type) return Boolean;
-   function Has_Display_Field (Item : Root_Table_Type) return Boolean;
+   function Has_Display_Field
+     (Item : not null access Root_Table_Type)
+      return Boolean;
    function Has_Inherited_Table (Item : Root_Table_Type) return Boolean;
 
    function With_Vector_Package (Item : Root_Table_Type) return Boolean;
