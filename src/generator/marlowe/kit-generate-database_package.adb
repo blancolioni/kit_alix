@@ -645,7 +645,8 @@ package body Kit.Generate.Database_Package is
                      Argument_2     =>
                        New_Function_Call_Expression
                          ("Kit_Field.Get_Reference_By_Record_Field",
-                          Object (Base.Ada_Name & "_Ref"),
+                          Object ("Db_" & Base.Ada_Name & "."
+                            & Base.Ada_Name & "_Ref"),
                           Literal (Field.Standard_Name))));
             end if;
          end Insert_Display_Field;
@@ -692,7 +693,8 @@ package body Kit.Generate.Database_Package is
       Result.With_Package (Db.Ada_Name & ".Kit_Record",
                            Body_With => True);
       if Table.Has_Inherited_Table then
-         Result.With_Package (Db.Ada_Name & ".Kit_Record_Base");
+         Result.With_Package (Db.Ada_Name & ".Kit_Record_Base",
+                              Body_With => True);
       end if;
 
       Result.With_Package (Db.Ada_Name & ".Kit_Reference",
