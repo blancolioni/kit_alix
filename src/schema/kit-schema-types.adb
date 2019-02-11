@@ -1341,10 +1341,13 @@ package body Kit.Schema.Types is
       return Syn.Expression'Class
    is
    begin
-      return Syn.Object
-        ("Kit_Type.Get_By_Name ("""
-         & Root_Kit_Type'Class (Of_Kit_Type).Internal_Database_Name
-         & """).Reference");
+      return Syn.Expressions.Operator
+        (".",
+         Syn.Expressions.New_Function_Call_Expression
+           ("Kit_Type.Get_By_Name",
+            Syn.Literal
+              (Root_Kit_Type'Class (Of_Kit_Type).Internal_Database_Name)),
+         Syn.Object ("Get_Kit_Type_Reference"));
    end Reference_Database_Type;
 
    ---------------------------
