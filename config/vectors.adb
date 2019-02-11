@@ -31,7 +31,7 @@ package body {database}.{table}_Vectors is
    begin
       if Base_{table}_Vector.Last_Index = 0 then
          for {table} of {database}.{table}.Scan_By_Top_Record loop
-            Base_{table}_Vector.Append ({table}.Reference);
+            Base_{table}_Vector.Append ({table}.Get_{table}_Reference);
          end loop;
       end if;
       V.Container.Set_Length (Base_{table}_Vector.Length);

@@ -1003,7 +1003,9 @@ package body Kit.Generate.Public_Interface is
                              Syn.Blocks.Create_Block
                                (New_Procedure_Call_Statement
                                   ("Item.Set_" & Field.Ada_Name,
-                                   Object ("Value.Reference"))));
+                                   Object ("Value.Get_"
+                                     & Field.Get_Field_Type.Ada_Name
+                                     & "_Reference"))));
          begin
             Store.Add_Formal_Argument
               (New_Formal_Argument ("Value",
@@ -1232,7 +1234,7 @@ package body Kit.Generate.Public_Interface is
                Literal (Table.Name),
                New_Function_Call_Expression
                  (Table.Ada_Name & "_Reference'Image",
-                  "Item.Reference"))));
+                  "Item.Get_" & Table.Ada_Name & "_Reference"))));
 
       declare
          Identity : Subprogram_Declaration'Class :=
@@ -2101,7 +2103,7 @@ package body Kit.Generate.Public_Interface is
 
          Create_Ref_Block.Append
            (New_Return_Statement
-              (Object ("Result.Reference")));
+              (Object ("Result.Get_" & Table.Ada_Name & "_Reference")));
 
          declare
             Create_Ref_Fn : Subprogram_Declaration'Class :=
@@ -2417,7 +2419,7 @@ package body Kit.Generate.Public_Interface is
             declare
                Abstract_Get : constant Subprogram_Declaration'Class :=
                                 New_Abstract_Function
-                                  ("Reference",
+                                  ("Get_" & Base.Ada_Name & "_Reference",
                                    New_Formal_Argument ("Item",
                                      Named_Subtype
                                        (Table.Ada_Name & "_Interface")),
@@ -2435,7 +2437,7 @@ package body Kit.Generate.Public_Interface is
                                    ("Item", Base);
             Get              : Subprogram_Declaration'Class :=
                                  New_Function
-                                   ("Reference",
+                                   ("Get_" & Base.Ada_Name & "_Reference",
                                     Base.Ada_Name & "_Reference",
                                     Object (Index_Expression));
          begin

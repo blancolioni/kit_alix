@@ -615,7 +615,7 @@ package body Kit.Generate.Database_Package is
                     (New_Constant_Declaration
                        ("Field_Ref",
                         "Kit_Field_Reference",
-                        Object ("Key_Field.Reference")));
+                        Object ("Key_Field.Get_Kit_Field_Reference")));
                   Key_Field.Add_Actual_Argument (Object ("Ref"));
                   Key_Field.Add_Actual_Argument (Object ("Field_Ref"));
                   Field_Block.Add_Statement (Key_Field);
