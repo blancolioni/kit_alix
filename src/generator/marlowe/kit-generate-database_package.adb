@@ -63,6 +63,10 @@ package body Kit.Generate.Database_Package is
       is
          Block : Syn.Blocks.Block_Type;
       begin
+
+         Block.Add_Statement
+           (Syn.Statements.New_Procedure_Call_Statement
+              ("Kit.Notifier.Stop"));
          if Kit.Options.Generate_Deadlock_Detection then
             Block.Add_Statement
               (Syn.Statements.New_Procedure_Call_Statement
@@ -198,7 +202,8 @@ package body Kit.Generate.Database_Package is
 
       Result.With_Package (Data_Store_Package_Name, Body_With => True);
 
-      Result.With_Package ("Kit.Cache",    Body_With => True);
+      Result.With_Package ("Kit.Cache", Body_With => True);
+      Result.With_Package ("Kit.Notifier", Body_With => True);
 
       Result.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                            Body_With => True);
