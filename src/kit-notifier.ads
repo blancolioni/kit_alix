@@ -45,4 +45,6 @@ package Kit.Notifier is
      (Table   : Marlowe.Table_Index;
       Index   : Marlowe.Database_Index);
 
+   procedure Stop;
+
 end Kit.Notifier;
