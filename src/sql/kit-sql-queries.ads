@@ -10,6 +10,8 @@ package Kit.SQL.Queries is
    type Query_Element is
      new SQL_Element with private;
 
+   function Is_Empty (Query : Query_Element) return Boolean;
+
    procedure Clear (Query : in out Query_Element);
 
    procedure Add_Column
@@ -41,5 +43,8 @@ private
          Tables   : Kit.SQL.Tables.Lists.List;
          Order_By : Kit.SQL.Columns.Lists.List;
       end record;
+
+   function Is_Empty (Query : Query_Element) return Boolean
+   is (Query.Columns.Is_Empty or else Query.Tables.Is_Empty);
 
 end Kit.SQL.Queries;
