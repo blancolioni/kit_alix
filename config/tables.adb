@@ -88,13 +88,13 @@ package body {database}.Tables is
       Rec : constant Kit_Record.Kit_Record_Type :=
         Kit_Record.Get_By_Name (Table.Name);
       Key : constant Kit_Key.Kit_Key_Type :=
-        Kit_Key.First_By_Kit_Record (Rec.Reference);
+        Kit_Key.First_By_Kit_Record (Rec.Get_Kit_Record_Reference);
    begin
       if Key.Has_Element then
          return Key.Name;
       else
          for Base of
-           Kit_Record_Base.Select_By_Derived (Rec.Reference)
+           Kit_Record_Base.Select_By_Derived (Rec.Get_Kit_Record_Reference)
          loop
             declare
                Base_Key    : constant Kit_Key.Kit_Key_Type :=
@@ -199,7 +199,10 @@ package body {database}.Tables is
            (Table.Index, Item.Index, Storage'Address);
          Item.Value.Append (Storage);
 
-         for Base of Kit_Record_Base.Select_By_Derived (Rec.Reference) loop
+         for Base of
+           Kit_Record_Base.Select_By_Derived
+             (Rec.Get_Kit_Record_Reference)
+         loop
             declare
                Base_Record  : Kit_Record.Kit_Record_Type :=
                                 Kit_Record.Get (Base.Base);
@@ -345,7 +348,7 @@ package body {database}.Tables is
                  {database}.Kit_Record.Get_By_Table_Index (Table_Index);
    begin
       for Rec_Base of
-        {database}.Kit_Record_Base.Select_By_Derived (Rec.Reference)
+        {database}.Kit_Record_Base.Select_By_Derived (Rec.Get_Kit_Record_Reference)
       loop
          for Field of
            {database}.Kit_Field.Select_By_Kit_Record (Rec_Base.Base)
@@ -359,7 +362,7 @@ package body {database}.Tables is
       end loop;
 
       for Field of
-        {database}.Kit_Field.Select_By_Kit_Record (Rec.Reference)
+        {database}.Kit_Field.Select_By_Kit_Record (Rec.Get_Kit_Record_Reference)
       loop
          if (Field.Readable or else Field.Writeable)
            and then not Field.Base_Ref
@@ -385,7 +388,7 @@ package body {database}.Tables is
       pragma Assert (Rec.Has_Element);
       Field       : Kit_Field.Kit_Field_Type :=
                       Kit_Field.Get_By_Record_Field
-                        (Rec.Reference, Field_Name);
+                        (Rec.Get_Kit_Record_Reference, Field_Name);
       Field_Type_Ref : Kit_Type_Reference;
       Store_Index    : Positive := 1;
    begin
@@ -395,7 +398,7 @@ package body {database}.Tables is
          declare
             Bases : Kit_Record_Base.Selection :=
                       Kit_Record_Base.Select_By_Derived
-                        (Rec.Reference);
+                        (Rec.Get_Kit_Record_Reference);
             Found : Boolean := False;
          begin
             Store_Index := 2;
@@ -483,7 +486,7 @@ package body {database}.Tables is
                                     (Positive (Rec_Table));
                   Field       : Kit_Field.Kit_Field_Type :=
                                   Kit_Field.Get_By_Record_Field
-                                    (Rec.Reference,
+                                    (Rec.Get_Kit_Record_Reference,
                                      Field_Name (Start .. Last));
                   Store_Index    : Positive := 1;
                begin
@@ -493,7 +496,7 @@ package body {database}.Tables is
                      declare
                         Bases : Kit_Record_Base.Selection :=
                                   Kit_Record_Base.Select_By_Derived
-                                    (Rec.Reference);
+                                    (Rec.Get_Kit_Record_Reference);
                         Found : Boolean := False;
                      begin
                         Store_Index := 2;
@@ -576,7 +579,7 @@ package body {database}.Tables is
    begin
 
       for Base of
-        Kit_Record_Base.Select_By_Derived (Rec.Reference)
+        Kit_Record_Base.Select_By_Derived (Rec.Get_Kit_Record_Reference)
       loop
          for Field of
            Kit_Field.Select_By_Kit_Record (Base.Base)
@@ -604,7 +607,7 @@ package body {database}.Tables is
       end loop;
 
       for Field of
-        Kit_Field.Select_By_Kit_Record (Rec.Reference)
+        Kit_Field.Select_By_Kit_Record (Rec.Get_Kit_Record_Reference)
       loop
          if Field.Readable and then not Field.Base_Ref then
             declare
@@ -641,7 +644,7 @@ package body {database}.Tables is
                  {database}.Kit_Record.Get_By_Table_Index (Table_Index);
    begin
       for Rec_Base of
-        {database}.Kit_Record_Base.Select_By_Derived (Rec.Reference)
+        {database}.Kit_Record_Base.Select_By_Derived (Rec.Get_Kit_Record_Reference)
       loop
          for Key of
            {database}.Kit_Key.Select_By_Kit_Record (Rec_Base.Base)
@@ -651,7 +654,7 @@ package body {database}.Tables is
       end loop;
 
       for Key of
-        {database}.Kit_Key.Select_By_Kit_Record (Rec.Reference)
+        {database}.Kit_Key.Select_By_Kit_Record (Rec.Get_Kit_Record_Reference)
       loop
          Result.Append (Key.Name);
       end loop;
@@ -959,7 +962,7 @@ package body {database}.Tables is
       Start  : Storage_Offset := 1;
       Key_Fields : Kit_Key_Field.Selection :=
                     Kit_Key_Field.Select_By_Kit_Key
-                      (Key.Reference);
+                      (Key.Get_Kit_Key_Reference);
    begin
       if First then
          Result := (others => 0);
@@ -1163,7 +1166,7 @@ package body {database}.Tables is
                X : String (1 .. Value'Length);
                Last : Natural;
             begin
-               Marlowe.Key_Storage.Bounded_String_From_Storage 
+               Marlowe.Key_Storage.Bounded_String_From_Storage
                  (X, Last, Value);
                return X (1 .. Last);
             end;
@@ -1180,7 +1183,6 @@ package body {database}.Tables is
             end;
          when R_Kit_Enumeration =>
             declare
-               use type System.Storage_Elements.Storage_Element;
                X : Marlowe.Key_Storage.Unsigned_Integer := 0;
                Enum : Kit_Enumeration.Kit_Enumeration_Type :=
                         Kit_Enumeration.Get_By_Name
@@ -1191,7 +1193,7 @@ package body {database}.Tables is
                declare
                   Lit : constant Kit_Literal.Kit_Literal_Type :=
                           Kit_Literal.Get_By_Enum_Value
-                            (Enum.Reference, Natural (X));
+                            (Enum.Get_Kit_Enumeration_Reference, Natural (X));
                begin
                   return Lit.Name;
                end;
@@ -1200,7 +1202,7 @@ package body {database}.Tables is
             declare
                use type Marlowe.Database_Index;
                Type_Reference : constant {database}.Kit_Type_Reference :=
-                                  Value_Type.Reference;
+                                  Value_Type.Get_Kit_Type_Reference;
                Ref            : {database}.Kit_Reference.Kit_Reference_Type :=
                                   {database}.Kit_Reference.Get_Kit_Reference
                                     (Type_Reference);
@@ -1283,13 +1285,12 @@ package body {database}.Tables is
             end;
          when R_Kit_Enumeration =>
             declare
-               use type System.Storage_Elements.Storage_Element;
                Enum : Kit_Enumeration.Kit_Enumeration_Type :=
                         Kit_Enumeration.Get_By_Name
                           (Value_Type.Name);
                Lit : constant Kit_Literal.Kit_Literal_Type :=
                        Kit_Literal.Get_By_Enum_Name
-                         (Enum.Reference, Value);
+                         (Enum.Get_Kit_Enumeration_Reference, Value);
                X   : constant Marlowe.Key_Storage.Unsigned_Integer :=
                        Marlowe.Key_Storage.Unsigned_Integer (Lit.Value);
             begin
