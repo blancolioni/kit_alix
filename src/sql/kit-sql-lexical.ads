@@ -15,11 +15,11 @@ private package Kit.SQL.Lexical is
                  Tok_Character      => Tok_None,
                  Tok_Integer        => Tok_Integer_Constant,
                  Tok_Float          => Tok_Float_Constant,
-                 First_Keyword      => Tok_As,
-                 Keywords           => "as by from group having join "
-                                     & "order select where",
+                 First_Keyword      => Tok_And,
+                 Keywords           => "and as by from group having "
+                                     & "join not or order select where",
                  First_Symbol       => Tok_Comma,
-                 Symbols            => ", ; . * = /= > < >= <=",
+                 Symbols            => ", ; . * ( ) = /= > < >= <=",
                  Identifier_Start   => "abcdefghijklmnopqrstuvwxyz" &
                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ" &
                                        "_",

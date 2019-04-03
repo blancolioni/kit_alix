@@ -3,6 +3,10 @@ with Ada.Containers.Doubly_Linked_Lists;
 with Kit.SQL.Lexical;
 with Kit.SQL.Parser;
 
+with Kit.SQL.Constraints;
+with Kit.SQL.Database;
+with Kit.SQL.Requests;
+
 with Kit.Db.Tables;
 
 package body Kit.SQL.Queries is
@@ -29,8 +33,8 @@ package body Kit.SQL.Queries is
    procedure Execute_Query_Scan
      (Query : Query_Element'Class;
       On_Row : not null access
-        procedure (Table : String;
-                   Row   : Kit.Db.Tables.Database_Record'Class));
+        procedure (Table : Kit.SQL.Database.Table_Reference;
+                   Row   : Kit.SQL.Database.Record_Reference));
 
    ----------------
    -- Add_Column --
@@ -108,29 +112,39 @@ package body Kit.SQL.Queries is
                                 Natural (Query.Tables.Length) > 1;
 
       procedure Add_Row
-        (Table_Name : String;
-         Table_Row  : Kit.Db.Tables.Database_Record'Class);
+        (Table_Reference  : Kit.SQL.Database.Table_Reference;
+         Record_Reference : Kit.SQL.Database.Record_Reference);
 
       -------------
       -- Add_Row --
       -------------
 
       procedure Add_Row
-        (Table_Name : String;
-         Table_Row  : Kit.Db.Tables.Database_Record'Class)
+        (Table_Reference  : Kit.SQL.Database.Table_Reference;
+         Record_Reference : Kit.SQL.Database.Record_Reference)
       is
          use Kit.SQL.Data_Tables;
+         Table_Name : constant String :=
+                        Kit.SQL.Database.Get_Name (Table_Reference);
          Row : constant Row_Update_Cursor :=
                  Result.Add_Row;
       begin
-         for I in 1 .. Table_Row.Field_Count loop
+         for I in 1 .. Kit.SQL.Database.Get_Field_Count (Table_Reference) loop
             declare
-               Col : constant Column_Count :=
-                       Get_Query_Column
-                         (Cols, Table_Name, Table_Row.Field_Name (I));
+               Field_Reference : constant Kit.SQL.Database.Field_Reference :=
+                                   Kit.SQL.Database.Get_Field
+                                     (Table_Reference, I);
+               Field_Name      : constant String :=
+                                   Kit.SQL.Database.Get_Field_Name
+                                     (Field_Reference);
+               Col             : constant Column_Count :=
+                                   Get_Query_Column
+                                     (Cols, Table_Name, Field_Name);
             begin
                if Col > 0 then
-                  Set_Value (Row, Col, Table_Row.Get (I));
+                  Set_Value (Row, Col,
+                             Kit.SQL.Database.Get_Field_Value
+                               (Record_Reference, I));
                end if;
             end;
          end loop;
@@ -155,33 +169,37 @@ package body Kit.SQL.Queries is
    procedure Execute_Query_Scan
      (Query  : Query_Element'Class;
       On_Row : not null access
-        procedure (Table : String;
-                   Row   : Kit.Db.Tables.Database_Record'Class))
+        procedure (Table : Kit.SQL.Database.Table_Reference;
+                   Row   : Kit.SQL.Database.Record_Reference))
    is
+      Constraints : Kit.SQL.Constraints.Constraint_List;
+      Request     : Kit.SQL.Requests.Request_Type;
+
+      procedure On_Record
+        (Table        : Kit.SQL.Database.Table_Reference;
+         Record_Index : Marlowe.Database_Index);
+
+      ---------------
+      -- On_Record --
+      ---------------
+
+      procedure On_Record
+        (Table        : Kit.SQL.Database.Table_Reference;
+         Record_Index : Marlowe.Database_Index)
+      is
+      begin
+         On_Row (Table,
+                 Kit.SQL.Database.Get_Record_Reference (Table, Record_Index));
+      end On_Record;
+
    begin
-      for Query_Table of Query.Tables loop
-         declare
-            Table : constant Kit.Db.Tables.Database_Table :=
-                      Kit.Db.Tables.Get_Table (Query_Table.Table_Name);
+      if not Query.Predicate.Is_Empty then
+         Query.Predicate.Element.Get_Predicate_Constraints (Constraints);
+      end if;
+      Request.Create (Query.Tables, Constraints);
+      Request.Execute
+        (On_Record'Access);
 
-            procedure Handle_Row
-              (Item : Kit.Db.Tables.Database_Record'Class);
-
-            ----------------
-            -- Handle_Row --
-            ----------------
-
-            procedure Handle_Row
-              (Item : Kit.Db.Tables.Database_Record'Class)
-            is
-            begin
-               On_Row (Query_Table.Table_Name, Item);
-            end Handle_Row;
-
-         begin
-            Table.Iterate ("top_record", Handle_Row'Access);
-         end;
-      end loop;
    end Execute_Query_Scan;
 
    ----------------------
@@ -243,5 +261,17 @@ package body Kit.SQL.Queries is
          end loop;
       end return;
    end Get_Query_Columns;
+
+   -------------------
+   -- Set_Predicate --
+   -------------------
+
+   procedure Set_Predicate
+     (Query     : in out Query_Element;
+      Predicate : Kit.SQL.Expressions.Expression_Element'Class)
+   is
+   begin
+      Query.Predicate.Replace_Element (Predicate);
+   end Set_Predicate;
 
 end Kit.SQL.Queries;
