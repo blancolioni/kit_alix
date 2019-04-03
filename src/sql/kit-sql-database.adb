@@ -255,6 +255,13 @@ package body Kit.SQL.Database is
       end Add_Base;
 
    begin
+
+      Table.Name := +From.Name;
+      Table.Index := Marlowe.Table_Index (From.Table_Index);
+      Table.Length :=
+        System.Storage_Elements.Storage_Offset
+          (From.Record_Length);
+
       for Base of Kit.Db.Kit_Record_Base.Select_By_Derived (Reference) loop
          declare
             Base_Rec : constant Kit.Db.Kit_Record.Kit_Record_Type :=
@@ -374,14 +381,12 @@ package body Kit.SQL.Database is
                     Table_Rec.Fields.Element (Field);
       Field_Rec : constant Field_Record :=
                     Field_Vector.Element (Field_Ref);
-   begin
-      if Field_Rec.Base_Index = 0 then
-         return Rec.Data.Last_Element
-           (Field_Rec.Offset .. Field_Rec.Offset + Field_Rec.Length - 1);
-      else
-         return Rec.Data (Field_Rec.Base_Index)
-           (Field_Rec.Offset .. Field_Rec.Offset + Field_Rec.Length - 1);
-      end if;
+      Data : constant System.Storage_Elements.Storage_Array :=
+               (if Field_Rec.Base_Index = 0
+                then Rec.Data.Last_Element
+                else Rec.Data.Element (Field_Rec.Base_Index));
+   begin      return Data
+        (Field_Rec.Offset + 1 .. Field_Rec.Offset + Field_Rec.Length);
    end Get_Field_Storage;
 
    ---------------------
@@ -509,7 +514,7 @@ package body Kit.SQL.Database is
       return System.Storage_Elements.Storage_Array
    is
       use System.Storage_Elements;
-      Length : constant Storage_Count := Get_Key_Length (Key);
+      Length : constant Storage_Count := Get_Key_Length (Key) - 8;
    begin
       return Storage : constant Storage_Array (1 .. Length) :=
         (others => Storage_Element'Last);
@@ -523,9 +528,11 @@ package body Kit.SQL.Database is
      (Key : Key_Reference)
       return System.Storage_Elements.Storage_Array
    is
+      use System.Storage_Elements;
+      Length : constant Storage_Count := Get_Key_Length (Key) - 8;
    begin
-      return Storage : constant System.Storage_Elements.Storage_Array
-        (1 .. Get_Key_Length (Key)) := (others => 0);
+      return Storage : constant Storage_Array (1 .. Length) :=
+        (others => 0);
    end Get_Minimum;
 
    --------------
@@ -648,7 +655,7 @@ package body Kit.SQL.Database is
                Base_Index  : Marlowe.Database_Index;
                Index_First : constant Storage_Offset :=
                                Storage_Offset
-                                 ((Base.Index - 1) * 8 + 1);
+                                 ((Base.Index - 1) * 8 + 1 + 4);
                Index_Last  : constant Storage_Offset :=
                                Index_First + 7;
             begin
@@ -710,9 +717,10 @@ package body Kit.SQL.Database is
    begin
       while Mark.Valid loop
          declare
+            Key   : constant System.Storage_Elements.Storage_Array :=
+                      Mark.Get_Key;
             Index : constant Marlowe.Database_Index :=
-                      Marlowe.Key_Storage.To_Database_Index
-                        (Mark.Get_Key);
+                      Marlowe.Key_Storage.To_Database_Index (Key);
          begin
             Callback (Index);
             Mark.Next;
