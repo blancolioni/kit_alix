@@ -648,6 +648,14 @@ package body Kit.SQL.Database is
         (1 .. Table_Rec.Length);
    begin
       return Result : Cached_Record do
+         declare
+            Empty : System.Storage_Elements.Storage_Array (1 .. 0);
+         begin
+            for Base of Table_Rec.Bases loop
+               Result.Data.Append (Empty);
+            end loop;
+         end;
+
          Handle.Get_Record
            (Index    => Table_Rec.Index,
             Db_Index => Reference.Index,
@@ -673,7 +681,8 @@ package body Kit.SQL.Database is
                  (Index    => Base_Rec.Index,
                   Db_Index => Base_Index,
                   Data     => Base_Data'Address);
-               Result.Data.Append (Base_Data);
+               Result.Data.Replace_Element
+                 (Base.Index, Base_Data);
             end;
          end loop;
          Result.Data.Append (Table_Data);
