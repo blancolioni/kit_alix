@@ -57,6 +57,11 @@ package body Kit.SQL.Database.Types is
       Data      : System.Storage_Elements.Storage_Array)
       return String;
 
+   overriding function To_Storage
+     (With_Type : Float_Data_Type;
+      Value     : Float)
+      return System.Storage_Elements.Storage_Array;
+
    type String_Data_Type is new Data_Type with
       record
          Fixed  : Boolean;
@@ -209,6 +214,23 @@ package body Kit.SQL.Database.Types is
 
       return Type_Map.Element (Base.Name);
    end To_Data_Type;
+
+   ----------------
+   -- To_Storage --
+   ----------------
+
+   overriding function To_Storage
+     (With_Type : Float_Data_Type;
+      Value     : Float)
+      return System.Storage_Elements.Storage_Array
+   is
+   begin
+      if With_Type.Long then
+         return Marlowe.Key_Storage.To_Storage_Array (Long_Float (Value));
+      else
+         return Marlowe.Key_Storage.To_Storage_Array (Value);
+      end if;
+   end To_Storage;
 
    ---------------
    -- To_String --

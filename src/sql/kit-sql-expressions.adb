@@ -23,6 +23,11 @@ package body Kit.SQL.Expressions is
          Value : Float;
       end record;
 
+   overriding function To_Value
+     (Node : Float_Node)
+      return Kit.SQL.Constraints.Field_Value_Type
+   is (Kit.SQL.Constraints.To_Field_Value (Node.Value));
+
    type String_Node is
      new Root_Expression_Node with
       record
