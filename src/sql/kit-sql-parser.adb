@@ -21,6 +21,8 @@ package body Kit.SQL.Parser is
    function Parse_Expression
      return Kit.SQL.Expressions.Expression_Element'Class;
 
+   function Operator return Kit.SQL.Expressions.Operator_Type;
+
    ---------------
    -- At_Column --
    ---------------
@@ -49,6 +51,36 @@ package body Kit.SQL.Parser is
    begin
       return Tok = Tok_Identifier;
    end At_Table;
+
+   --------------
+   -- Operator --
+   --------------
+
+   function Operator return Kit.SQL.Expressions.Operator_Type is
+      use all type Kit.SQL.Expressions.Operator_Type;
+   begin
+      case Tok is
+         when Tok_EQ =>
+            return Op_EQ;
+         when Tok_NE =>
+            return Op_NE;
+         when Tok_LT =>
+            return Op_LT;
+         when Tok_GT =>
+            return Op_GT;
+         when Tok_LE =>
+            return Op_LE;
+         when Tok_GE =>
+            return Op_GE;
+         when Tok_And =>
+            return Op_And;
+         when Tok_Or =>
+            return Op_Or;
+         when others =>
+            raise Constraint_Error with
+              "not an operator: " & Tok'Image;
+      end case;
+   end Operator;
 
    ------------------
    -- Parse_Column --
@@ -158,6 +190,12 @@ package body Kit.SQL.Parser is
                do
                   Scan;
                end return;
+            when Tok_Character_Constant =>
+               return Expression : constant Expression_Element'Class :=
+                 String_Expression (Tok_Text)
+               do
+                  Scan;
+               end return;
             when Tok_Identifier =>
                return Expression : constant Expression_Element'Class :=
                  Identifier_Expression (Tok_Text)
@@ -183,13 +221,10 @@ package body Kit.SQL.Parser is
       begin
          if Tok <= Ops then
             declare
-               Arguments : Expression_List;
-               Op        : constant Token := Tok;
+               Op        : constant Operator_Type := Operator;
             begin
                Scan;
-               Arguments.Append (Left);
-               Arguments.Append (Parse_Atomic_Expression);
-               return Function_Call_Expression (Op'Image, Arguments);
+               return Operator_Expression (Op, Left, Parse_Atomic_Expression);
             end;
          else
             return Left;

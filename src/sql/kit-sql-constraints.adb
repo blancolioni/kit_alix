@@ -2,15 +2,12 @@ with Marlowe.Key_Storage;
 
 package body Kit.SQL.Constraints is
 
-   function To_Field_Value
-     (Storage : System.Storage_Elements.Storage_Array)
-      return Field_Value_Type;
-
    function To_Constraint
      (Table_Name : String;
       Field_Name : String;
       Class      : Constraint_Class;
-      Value      : Field_Value_Type)
+      Value      : Field_Value_Type;
+      Inclusive  : Boolean := True)
       return Constraint_Type;
 
    ---------
@@ -61,11 +58,13 @@ package body Kit.SQL.Constraints is
    function Maximum_Value
      (Table_Name : String;
       Field_Name : String;
-      Value      : Field_Value_Type)
+      Value      : Field_Value_Type;
+      Inclusive  : Boolean)
       return Constraint_Type
    is
    begin
-      return To_Constraint (Table_Name, Field_Name, Maximum, Value);
+      return To_Constraint
+        (Table_Name, Field_Name, Maximum, Value, Inclusive);
    end Maximum_Value;
 
    -------------------
@@ -75,12 +74,28 @@ package body Kit.SQL.Constraints is
    function Minimum_Value
      (Table_Name : String;
       Field_Name : String;
+      Value      : Field_Value_Type;
+      Inclusive  : Boolean)
+      return Constraint_Type
+   is
+   begin
+      return To_Constraint
+        (Table_Name, Field_Name, Minimum, Value, Inclusive);
+   end Minimum_Value;
+
+   ------------------
+   -- Not_Equal_To --
+   ------------------
+
+   function Not_Equal_To
+     (Table_Name : String;
+      Field_Name : String;
       Value      : Field_Value_Type)
       return Constraint_Type
    is
    begin
-      return To_Constraint (Table_Name, Field_Name, Minimum, Value);
-   end Minimum_Value;
+      return To_Constraint (Table_Name, Field_Name, Not_Equal, Value);
+   end Not_Equal_To;
 
    -------------------
    -- To_Constraint --
@@ -90,7 +105,8 @@ package body Kit.SQL.Constraints is
      (Table_Name : String;
       Field_Name : String;
       Class      : Constraint_Class;
-      Value      : Field_Value_Type)
+      Value      : Field_Value_Type;
+      Inclusive  : Boolean := True)
       return Constraint_Type
    is
    begin
@@ -98,7 +114,8 @@ package body Kit.SQL.Constraints is
         (Table_Name => +Table_Name,
          Field_Name => +Field_Name,
          Class      => Class,
-         Value      => Value);
+         Value      => Value,
+         Inclusive  => Inclusive);
    end To_Constraint;
 
    --------------------
@@ -106,15 +123,11 @@ package body Kit.SQL.Constraints is
    --------------------
 
    function To_Field_Value
-     (Integer_Value : Integer;
-      Size          : Natural)
+     (Value : Integer)
       return Field_Value_Type
    is
    begin
-      return To_Field_Value
-        (Marlowe.Key_Storage.To_Storage_Array
-           (Integer_Value,
-            System.Storage_Elements.Storage_Count (Size)));
+      return (Integer_Value, Value);
    end To_Field_Value;
 
    --------------------
@@ -122,28 +135,11 @@ package body Kit.SQL.Constraints is
    --------------------
 
    function To_Field_Value
-     (String_Value : String;
-      Size         : Natural)
+     (Value : String)
       return Field_Value_Type
    is
    begin
-      return To_Field_Value
-        (Marlowe.Key_Storage.To_Storage_Array
-           (String_Value,
-            System.Storage_Elements.Storage_Count (Size)));
-   end To_Field_Value;
-
-   --------------------
-   -- To_Field_Value --
-   --------------------
-
-   function To_Field_Value
-     (Storage : System.Storage_Elements.Storage_Array)
-      return Field_Value_Type
-   is
-   begin
-      return Field_Value_Type'
-        (Holder => Storage_Array_Holders.To_Holder (Storage));
+      return (String_Value, +Value);
    end To_Field_Value;
 
    ----------------
@@ -151,16 +147,31 @@ package body Kit.SQL.Constraints is
    ----------------
 
    function To_Storage
-     (Value   : Field_Value_Type;
-      Default : System.Storage_Elements.Storage_Array)
+     (Value      : Field_Value_Type;
+      Value_Type : Kit.SQL.Database.Data_Type'Class;
+      Default    : System.Storage_Elements.Storage_Array)
       return System.Storage_Elements.Storage_Array
    is
    begin
-      if Has_Value (Value) then
-         return Value.Holder.Element;
-      else
-         return Default;
-      end if;
+      case Value.Class is
+         when Empty_Value =>
+            return Default;
+         when Integer_Value =>
+            return Marlowe.Key_Storage.To_Storage_Array
+              (Value.Val_Integer, Value_Type.Size);
+         when Float_Value =>
+            return Marlowe.Key_Storage.To_Storage_Array
+              (Value.Val_Float);
+         when String_Value =>
+            declare
+               use System.Storage_Elements;
+               Data : Storage_Array (1 .. Value_Type.Size);
+            begin
+               Marlowe.Key_Storage.Bounded_String_To_Storage
+                 (-Value.Val_String, Data);
+               return Data;
+            end;
+      end case;
    end To_Storage;
 
 end Kit.SQL.Constraints;

@@ -87,6 +87,9 @@ package body Kit.SQL.Requests is
          Key               : Kit.SQL.Database.Key_Reference :=
                                Kit.SQL.Database.Get_Default_Key
                                  (Request.Table);
+         Field : Kit.SQL.Database.Field_Reference :=
+                   Kit.SQL.Database.Get_Field
+                     (Request.Table, 1);
          Min_Value : Kit.SQL.Constraints.Field_Value_Type :=
                        Kit.SQL.Constraints.No_Value;
          Max_Value : Kit.SQL.Constraints.Field_Value_Type :=
@@ -106,6 +109,7 @@ package body Kit.SQL.Requests is
                      if not Have_Equality_Key then
                         Have_Equality_Key := True;
                         Key := Constraint.Field_Key;
+                        Field := Constraint.Field_Ref;
                         Min_Value := Equality.Constraint;
                         Max_Value := Equality.Constraint;
                      end if;
@@ -120,11 +124,13 @@ package body Kit.SQL.Requests is
            Storage_Array_Holders.To_Holder
              (Kit.SQL.Constraints.To_Storage
                 (Min_Value,
+                 Kit.SQL.Database.Get_Field_Type (Field),
                  Kit.SQL.Database.Get_Minimum (Key)));
          Request.Search_Finish :=
            Storage_Array_Holders.To_Holder
              (Kit.SQL.Constraints.To_Storage
                 (Max_Value,
+                 Kit.SQL.Database.Get_Field_Type (Field),
                  Kit.SQL.Database.Get_Maximum (Key)));
          Request.Search_Start_Closed := Min_Closed;
          Request.Search_Finish_Closed := Max_Closed;

@@ -29,6 +29,14 @@ package Kit.SQL.Expressions is
      (Identifier : String)
       return Expression_Element'Class;
 
+   type Operator_Type is
+     (Op_Or, Op_And, Op_EQ, Op_NE, Op_LT, Op_GT, Op_LE, Op_GE);
+
+   function Operator_Expression
+     (Operator    : Operator_Type;
+      Left, Right : Expression_Element'Class)
+      return Expression_Element'Class;
+
    procedure Get_Predicate_Constraints
      (Expression  : Expression_Element'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class);
@@ -46,16 +54,29 @@ package Kit.SQL.Expressions is
 
 private
 
-   type Node_Interface is interface;
+   type Root_Expression_Node is abstract tagged null record;
 
    procedure Copy_Constraints
-     (Node        : Node_Interface;
+     (Node        : Root_Expression_Node;
       Children    : Expression_List'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class)
    is null;
 
+   procedure Add_Table_Field_Constraint
+     (Node : Root_Expression_Node;
+      Add  : not null access
+        procedure (Table_Name : String;
+                   Field_Name : String))
+   is null;
+
+   function To_Value
+     (Node : Root_Expression_Node)
+      return Kit.SQL.Constraints.Field_Value_Type
+   is (Kit.SQL.Constraints.No_Value);
+
    package Expression_Trees is
-     new Ada.Containers.Indefinite_Multiway_Trees (Node_Interface'Class);
+     new Ada.Containers.Indefinite_Multiway_Trees
+       (Root_Expression_Node'Class);
 
    type Expression_Element is
      new SQL_Element with
