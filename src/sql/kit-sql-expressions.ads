@@ -30,7 +30,7 @@ package Kit.SQL.Expressions is
       return Expression_Element'Class;
 
    type Operator_Type is
-     (Op_Or, Op_And, Op_EQ, Op_NE, Op_LT, Op_GT, Op_LE, Op_GE);
+     (Op_EQ, Op_NE, Op_LT, Op_GT, Op_LE, Op_GE);
 
    function Operator_Expression
      (Operator    : Operator_Type;

@@ -10,6 +10,26 @@ package body Kit.SQL.Constraints is
       Inclusive  : Boolean := True)
       return Constraint_Type;
 
+   type Constraint_Factory_Type is
+     new Constraint_Factory with
+      record
+         Class     : Constraint_Class;
+         Inclusive : Boolean := True;
+      end record;
+
+   overriding function Create
+     (Factory    : Constraint_Factory_Type;
+      Table_Name : String;
+      Field_Name : String;
+      Value      : Field_Value_Type)
+      return Constraint_Type'Class
+   is (To_Constraint
+       (Table_Name => Table_Name,
+        Field_Name => Field_Name,
+        Class      => Factory.Class,
+        Value      => Value,
+        Inclusive  => Factory.Inclusive));
+
    ---------
    -- Add --
    ---------
@@ -36,6 +56,21 @@ package body Kit.SQL.Constraints is
       return To_Constraint (Table_Name, Field_Name, Equal, Value);
    end Equal_To;
 
+   --------------
+   -- Equality --
+   --------------
+
+   function Equality
+     (Negated : Boolean)
+      return Constraint_Factory'Class
+   is
+   begin
+      return Factory : constant Constraint_Factory_Type :=
+        Constraint_Factory_Type'
+          (Class     => (if Negated then Not_Equal else Equal),
+           Inclusive => True);
+   end Equality;
+
    -------------
    -- Iterate --
    -------------
@@ -50,6 +85,21 @@ package body Kit.SQL.Constraints is
          Process (Constraint);
       end loop;
    end Iterate;
+
+   -------------
+   -- Maximum --
+   -------------
+
+   function Maximum
+     (Inclusive : Boolean)
+      return Constraint_Factory'Class
+   is
+   begin
+      return Factory : constant Constraint_Factory_Type :=
+        Constraint_Factory_Type'
+          (Class     => Maximum,
+           Inclusive => Inclusive);
+   end Maximum;
 
    -------------------
    -- Maximum_Value --
@@ -66,6 +116,21 @@ package body Kit.SQL.Constraints is
       return To_Constraint
         (Table_Name, Field_Name, Maximum, Value, Inclusive);
    end Maximum_Value;
+
+   -------------
+   -- Minimum --
+   -------------
+
+   function Minimum
+     (Inclusive : Boolean)
+      return Constraint_Factory'Class
+   is
+   begin
+      return Factory : constant Constraint_Factory_Type :=
+        Constraint_Factory_Type'
+          (Class     => Minimum,
+           Inclusive => Inclusive);
+   end Minimum;
 
    -------------------
    -- Minimum_Value --

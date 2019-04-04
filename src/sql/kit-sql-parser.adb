@@ -72,10 +72,6 @@ package body Kit.SQL.Parser is
             return Op_LE;
          when Tok_GE =>
             return Op_GE;
-         when Tok_And =>
-            return Op_And;
-         when Tok_Or =>
-            return Op_Or;
          when others =>
             raise Constraint_Error with
               "not an operator: " & Tok'Image;
