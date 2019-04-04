@@ -86,6 +86,7 @@ package body Kit.SQL.Database is
          Offset      : System.Storage_Elements.Storage_Offset;
          Length      : System.Storage_Elements.Storage_Count;
          Default_Key : Real_Key_Reference;
+         Display     : Boolean;
       end record;
 
    package Field_Record_Vectors is
@@ -124,13 +125,15 @@ package body Kit.SQL.Database is
 
    type Table_Record is
       record
-         Name        : Ada.Strings.Unbounded.Unbounded_String;
-         Index       : Marlowe.Table_Index;
-         Length      : System.Storage_Elements.Storage_Count;
-         Bases       : Table_Base_Vectors.Vector;
-         Fields      : Field_Reference_Vectors.Vector;
-         Keys        : Key_Reference_Vectors.Vector;
-         Default_Key : Real_Key_Reference;
+         Name          : Ada.Strings.Unbounded.Unbounded_String;
+         Index         : Marlowe.Table_Index;
+         Schema_Ref    : Kit.Db.Kit_Record_Reference;
+         Length        : System.Storage_Elements.Storage_Count;
+         Bases         : Table_Base_Vectors.Vector;
+         Fields        : Field_Reference_Vectors.Vector;
+         Keys          : Key_Reference_Vectors.Vector;
+         Default_Key   : Real_Key_Reference;
+         Display_Field : Field_Reference := No_Field;
       end record;
 
    function Get_Table
@@ -239,10 +242,14 @@ package body Kit.SQL.Database is
                                     (Types.To_Data_Type (Field.Field_Type)),
                                 Offset      => Storage (Field.Field_Offset),
                                 Length      => Storage (Field.Field_Length),
-                                Default_Key => 1);
+                                Default_Key => 1,
+                                Display     => Field.Display);
             begin
                Field_Vector.Append (Field_Rec);
                Table.Fields.Append (Field_Vector.Last_Index);
+               if Field_Rec.Display then
+                  Table.Display_Field := Field_Vector.Last_Index;
+               end if;
             end;
          end loop;
 
@@ -342,9 +349,12 @@ package body Kit.SQL.Database is
 
       Table.Name := +From.Name;
       Table.Index := Marlowe.Table_Index (From.Table_Index);
+      Table.Schema_Ref := Reference;
       Table.Length :=
         System.Storage_Elements.Storage_Offset
           (From.Record_Length);
+
+      Table_Vector.Append (Table);
 
       for Base of Kit.Db.Kit_Record_Base.Select_By_Derived (Reference) loop
          declare
@@ -382,7 +392,7 @@ package body Kit.SQL.Database is
 
       end loop;
 
-      Table_Vector.Append (Table);
+      Table_Vector.Replace_Element (Table_Ref, Table);
       Table_Map.Insert (From.Name, Table_Ref);
    end Create_Table;
 
@@ -409,6 +419,18 @@ package body Kit.SQL.Database is
    begin
       return Table_Vector.Element (Table).Default_Key;
    end Get_Default_Key;
+
+   -----------------------
+   -- Get_Display_Field --
+   -----------------------
+
+   function Get_Display_Field
+     (Table : Table_Reference)
+      return Field_Reference
+   is
+   begin
+      return Table_Vector.Element (Table).Display_Field;
+   end Get_Display_Field;
 
    ---------------
    -- Get_Field --
@@ -710,6 +732,25 @@ package body Kit.SQL.Database is
       end if;
       return Table_Vector.Element (Reference);
    end Get_Table;
+
+   -------------------------
+   -- Get_Table_Reference --
+   -------------------------
+
+   function Get_Table_Reference
+     (From : Kit.Db.Kit_Record_Reference)
+      return Table_Reference
+   is
+      use type Kit.Db.Kit_Record_Reference;
+   begin
+      for Ref in 1 .. Table_Vector.Last_Index loop
+         if Table_Vector.Element (Ref).Schema_Ref = From then
+            return Ref;
+         end if;
+      end loop;
+      raise Constraint_Error with
+        "no such table: " & Kit.Db.Kit_Record.Get (From).Name;
+   end Get_Table_Reference;
 
    ------------------
    -- Is_Field_Key --

@@ -11,6 +11,7 @@ with Kit.Db.Kit_Enumeration;
 with Kit.Db.Kit_Fixed_String;
 with Kit.Db.Kit_Integer;
 with Kit.Db.Kit_Literal;
+with Kit.Db.Kit_Reference;
 with Kit.Db.Kit_Type;
 
 package body Kit.SQL.Database.Types is
@@ -64,6 +65,16 @@ package body Kit.SQL.Database.Types is
 
    overriding function To_String
      (With_Type : String_Data_Type;
+      Data      : System.Storage_Elements.Storage_Array)
+      return String;
+
+   type Table_Reference_Data_Type is new Data_Type with
+      record
+         Table : Table_Reference;
+      end record;
+
+   overriding function To_String
+     (With_Type : Table_Reference_Data_Type;
       Data      : System.Storage_Elements.Storage_Array)
       return String;
 
@@ -170,6 +181,19 @@ package body Kit.SQL.Database.Types is
                   return Result;
                end;
 
+            when R_Kit_Reference =>
+               declare
+                  use Kit.Db.Kit_Reference;
+                  Kit_Ref : constant Kit_Reference_Type :=
+                              Get_Kit_Reference
+                                (Base.Get_Kit_Type_Reference);
+               begin
+                  return Table_Reference_Data_Type'
+                    (Name  => Name,
+                     Size  => Size,
+                     Table => Get_Table_Reference (Kit_Ref.Reference));
+               end;
+
             when others =>
                return Data_Type'
                  (Name => Name,
@@ -270,6 +294,34 @@ package body Kit.SQL.Database.Types is
          Marlowe.Key_Storage.Bounded_String_From_Storage (S, Last, Data);
       end if;
       return S (1 .. Last);
+   end To_String;
+
+   ---------------
+   -- To_String --
+   ---------------
+
+   overriding function To_String
+     (With_Type : Table_Reference_Data_Type;
+      Data      : System.Storage_Elements.Storage_Array)
+      return String
+   is
+      Index : Marlowe.Database_Index;
+   begin
+      Marlowe.Key_Storage.From_Storage (Index, Data);
+      declare
+         Table : constant Table_Reference := With_Type.Table;
+         Display : constant Field_Reference :=
+                     Get_Display_Field (Table);
+      begin
+         if Display = No_Field then
+            return Ada.Strings.Fixed.Trim (Index'Image, Ada.Strings.Left);
+         else
+            return Get_Field_Type (Display).To_String
+              (Get_Field_Value
+                 (Get_Record_Reference (Table, Index),
+                  Display));
+         end if;
+      end;
    end To_String;
 
 end Kit.SQL.Database.Types;
