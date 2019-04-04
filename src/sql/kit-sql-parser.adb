@@ -145,7 +145,7 @@ package body Kit.SQL.Parser is
                   end;
                end loop;
 
-               return Function_Call_Expression ("and", Arguments);
+               return And_Expression (Arguments);
             end;
          else
             return Left;

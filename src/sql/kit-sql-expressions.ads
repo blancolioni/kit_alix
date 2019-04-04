@@ -47,6 +47,10 @@ package Kit.SQL.Expressions is
      (List       : in out Expression_List;
       Expression : Expression_Element'Class);
 
+   function And_Expression
+     (Arguments     : Expression_List'Class)
+      return Expression_Element'Class;
+
    function Function_Call_Expression
      (Function_Name : String;
       Arguments     : Expression_List'Class)

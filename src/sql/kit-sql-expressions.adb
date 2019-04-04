@@ -63,8 +63,24 @@ package body Kit.SQL.Expressions is
       Children    : Expression_List'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class);
 
+   type And_Node is
+     new Root_Expression_Node with
+      record
+         null;
+      end record;
+
+   overriding procedure Copy_Constraints
+     (Node        : And_Node;
+      Children    : Expression_List'Class;
+      Constraints : in out Kit.SQL.Constraints.Constraint_List'Class);
+
    function To_Expression
      (Node : Root_Expression_Node'Class)
+      return Expression_Element'Class;
+
+   function To_Expression
+     (Node      : Root_Expression_Node'Class;
+      Arguments : Expression_List'Class)
       return Expression_Element'Class;
 
    function To_Node
@@ -86,6 +102,19 @@ package body Kit.SQL.Expressions is
    begin
       Add ("", -Node.Name);
    end Add_Table_Field_Constraint;
+
+   --------------------
+   -- And_Expression --
+   --------------------
+
+   function And_Expression
+     (Arguments     : Expression_List'Class)
+      return Expression_Element'Class
+   is
+      Node : And_Node;
+   begin
+      return To_Expression (Node, Arguments);
+   end And_Expression;
 
    ------------
    -- Append --
@@ -149,9 +178,53 @@ package body Kit.SQL.Expressions is
                Left.Add_Table_Field_Constraint
                  (Add_Constraint'Access);
             end;
+         when Op_LT =>
+            declare
+               procedure Add_Constraint
+                 (Table_Name : String;
+                  Field_Name : String);
+
+               --------------------
+               -- Add_Constraint --
+               --------------------
+
+               procedure Add_Constraint
+                 (Table_Name : String;
+                  Field_Name : String)
+               is
+               begin
+                  Constraints.Add
+                    (Kit.SQL.Constraints.Maximum_Value
+                       (Table_Name, Field_Name,
+                        To_Node (Children.List.Last_Element).To_Value,
+                        Inclusive => False));
+               end Add_Constraint;
+
+               Left : constant Root_Expression_Node'Class :=
+                        To_Node (Children.List.First_Element);
+            begin
+               Left.Add_Table_Field_Constraint
+                 (Add_Constraint'Access);
+            end;
          when others =>
             null;
       end case;
+   end Copy_Constraints;
+
+   ----------------------
+   -- Copy_Constraints --
+   ----------------------
+
+   overriding procedure Copy_Constraints
+     (Node        : And_Node;
+      Children    : Expression_List'Class;
+      Constraints : in out Kit.SQL.Constraints.Constraint_List'Class)
+   is
+      pragma Unreferenced (Node);
+   begin
+      for Child of Children.List loop
+         Child.Get_Predicate_Constraints (Constraints);
+      end loop;
    end Copy_Constraints;
 
    ----------------------
@@ -281,6 +354,26 @@ package body Kit.SQL.Expressions is
       Expr.Create;
       Expr.Tree.Insert_Child
         (Expr.Tree.Root, Expression_Trees.No_Element, Node);
+      return Expr;
+   end To_Expression;
+
+   -------------------
+   -- To_Expression --
+   -------------------
+
+   function To_Expression
+     (Node      : Root_Expression_Node'Class;
+      Arguments : Expression_List'Class)
+      return Expression_Element'Class
+   is
+      Expr : Expression_Element'Class := To_Expression (Node);
+   begin
+      for Arg of Arguments.List loop
+         Expr.Tree.Copy_Subtree
+           (Expression_Trees.First_Child (Expr.Tree.Root),
+            Before => Expression_Trees.No_Element,
+            Source => Expression_Trees.First_Child (Arg.Tree.Root));
+      end loop;
       return Expr;
    end To_Expression;
 
