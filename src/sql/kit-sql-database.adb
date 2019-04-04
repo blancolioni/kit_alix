@@ -14,6 +14,7 @@ with Kit.Db.Marlowe_Keys;
 
 with Kit.Db.Kit_Field;
 with Kit.Db.Kit_Key;
+with Kit.Db.Kit_Key_Field;
 with Kit.Db.Kit_Record;
 with Kit.Db.Kit_Record_Base;
 
@@ -78,6 +79,7 @@ package body Kit.SQL.Database is
          Name        : Ada.Strings.Unbounded.Unbounded_String;
          Table       : Table_Reference;
          Base_Table  : Table_Reference;
+         Schema_Ref  : Kit.Db.Kit_Field_Reference;
          Base_Index  : Natural;
          Index       : Positive;
          Field_Type  : Data_Type_Holders.Holder;
@@ -189,6 +191,10 @@ package body Kit.SQL.Database is
          Ref    : Table_Reference;
          Index  : Natural);
 
+      function Find_Field
+        (Ref : Kit.Db.Kit_Field_Reference)
+         return Natural;
+
       --------------
       -- Add_Base --
       --------------
@@ -213,27 +219,27 @@ package body Kit.SQL.Database is
            Kit.Db.Kit_Field.Select_By_Kit_Record
              (Rec.Get_Kit_Record_Reference)
          loop
-            if Index = 0 or else not Field.Base_Ref then
-               declare
-                  subtype Storage is System.Storage_Elements.Storage_Offset;
-                  Field_Rec : constant Field_Record :=
-                                Field_Record'
-                                  (Name        => +Field.Name,
-                                   Table       => Table_Ref,
-                                   Base_Table  => Ref,
-                                   Base_Index  => Index,
-                                   Index       => 1,
-                                   Field_Type  =>
-                                     Data_Type_Holders.To_Holder
-                                       (Types.To_Data_Type (Field.Field_Type)),
-                                   Offset      => Storage (Field.Field_Offset),
-                                   Length      => Storage (Field.Field_Length),
-                                   Default_Key => 1);
-               begin
-                  Field_Vector.Append (Field_Rec);
-                  Table.Fields.Append (Field_Vector.Last_Index);
-               end;
-            end if;
+            declare
+               subtype Storage is System.Storage_Elements.Storage_Offset;
+               Field_Rec : constant Field_Record :=
+                             Field_Record'
+                               (Name        => +Field.Name,
+                                Table       => Table_Ref,
+                                Base_Table  => Ref,
+                                Base_Index  => Index,
+                                Index       => 1,
+                                Schema_Ref  =>
+                                  Field.Get_Kit_Field_Reference,
+                                Field_Type  =>
+                                  Data_Type_Holders.To_Holder
+                                    (Types.To_Data_Type (Field.Field_Type)),
+                                Offset      => Storage (Field.Field_Offset),
+                                Length      => Storage (Field.Field_Length),
+                                Default_Key => 1);
+            begin
+               Field_Vector.Append (Field_Rec);
+               Table.Fields.Append (Field_Vector.Last_Index);
+            end;
          end loop;
 
          for Key of
@@ -242,7 +248,8 @@ package body Kit.SQL.Database is
          loop
             declare
                subtype Storage is System.Storage_Elements.Storage_Offset;
-               Key_Rec : constant Key_Record :=
+               use type Kit.Db.Kit_Field_Reference;
+               Key_Rec : Key_Record :=
                            Key_Record'
                              (Name        => +Key.Name,
                               Table       => Table_Ref,
@@ -254,16 +261,78 @@ package body Kit.SQL.Database is
                               Marlowe_Ref =>
                                 Handle.Get_Reference
                                   (From.Name & "_" & Key.Name));
+               Cancel : Boolean := False;
+
             begin
-               Key_Vector.Append (Key_Rec);
-               if Table.Keys.Is_Empty then
-                  Table.Default_Key := Key_Vector.Last_Index;
+               for Key_Field of
+                 Kit.Db.Kit_Key_Field.Select_By_Kit_Key
+                   (Key.Get_Kit_Key_Reference)
+               loop
+                  if Key_Field.Kit_Field = Kit.Db.Null_Kit_Field_Reference then
+                     Ada.Text_IO.Put_Line
+                       (Ada.Text_IO.Standard_Error,
+                        "warning: key "
+                        & (-Key_Rec.Name)
+                        & " in table "
+                        & (-Table.Name)
+                        & " has a null field");
+                     Cancel := True;
+
+                  else
+
+                     declare
+                        Field_Index : constant Natural :=
+                                        Find_Field (Key_Field.Kit_Field);
+                     begin
+                        if Field_Index = 0 then
+                           raise Constraint_Error with
+                             "cannot find field "
+                             & Kit.Db.Kit_Field.Get (Key_Field.Kit_Field).Name
+                             & " of key "
+                             & (-Key_Rec.Name)
+                             & " in table "
+                             & (-Table.Name);
+                        else
+                           Key_Rec.Fields.Append
+                             (Table.Fields.Element (Field_Index));
+                        end if;
+                     end;
+                  end if;
+               end loop;
+
+               if not Cancel then
+                  Key_Vector.Append (Key_Rec);
+                  if Table.Keys.Is_Empty then
+                     Table.Default_Key := Key_Vector.Last_Index;
+                  end if;
+                  Table.Keys.Append (Key_Vector.Last_Index);
                end if;
-               Table.Keys.Append (Key_Vector.Last_Index);
             end;
          end loop;
 
       end Add_Base;
+
+      ----------------
+      -- Find_Field --
+      ----------------
+
+      function Find_Field
+        (Ref : Kit.Db.Kit_Field_Reference)
+         return Natural
+      is
+      begin
+         for I in 1 .. Table.Fields.Last_Index loop
+            declare
+               use type Kit.Db.Kit_Field_Reference;
+               Field : constant Field_Reference := Table.Fields.Element (I);
+            begin
+               if Field_Vector.Element (Field).Schema_Ref = Ref then
+                  return I;
+               end if;
+            end;
+         end loop;
+         return 0;
+      end Find_Field;
 
    begin
 
@@ -289,6 +358,25 @@ package body Kit.SQL.Database is
         (Rec    => From,
          Ref    => Table_Ref,
          Index  => 0);
+
+      for Field of Table.Fields loop
+         Field_Vector (Field).Default_Key := Table.Default_Key;
+      end loop;
+
+      for Key of Table.Keys loop
+         declare
+            Key_Rec : constant Key_Record := Key_Vector.Element (Key);
+            Field   : constant Field_Reference :=
+                        Key_Rec.Fields.First_Element;
+         begin
+            if Field_Vector.Element (Field).Default_Key
+              = Table.Default_Key
+            then
+               Field_Vector.Reference (Field).Default_Key := Key;
+            end if;
+         end;
+
+      end loop;
 
       Table_Vector.Append (Table);
       Table_Map.Insert (From.Name, Table_Ref);
