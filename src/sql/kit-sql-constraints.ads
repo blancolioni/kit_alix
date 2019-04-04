@@ -1,7 +1,8 @@
 private with Ada.Containers.Doubly_Linked_Lists;
-private with Ada.Containers.Indefinite_Holders;
 
 with System.Storage_Elements;
+
+with Kit.SQL.Database;
 
 package Kit.SQL.Constraints is
 
@@ -15,18 +16,17 @@ package Kit.SQL.Constraints is
    function Has_Value (Value : Field_Value_Type) return Boolean;
 
    function To_Field_Value
-     (Integer_Value : Integer;
-      Size          : Natural)
+     (Value : Integer)
       return Field_Value_Type;
 
    function To_Field_Value
-     (String_Value : String;
-      Size         : Natural)
+     (Value : String)
       return Field_Value_Type;
 
    function To_Storage
-     (Value   : Field_Value_Type;
-      Default : System.Storage_Elements.Storage_Array)
+     (Value      : Field_Value_Type;
+      Value_Type : Kit.SQL.Database.Data_Type'Class;
+      Default    : System.Storage_Elements.Storage_Array)
       return System.Storage_Elements.Storage_Array;
 
    type Constraint_Type is tagged private;
@@ -37,16 +37,24 @@ package Kit.SQL.Constraints is
    function Minimum_Value
      (Table_Name : String;
       Field_Name : String;
-      Value      : Field_Value_Type)
+      Value      : Field_Value_Type;
+      Inclusive  : Boolean)
       return Constraint_Type;
 
    function Maximum_Value
      (Table_Name : String;
       Field_Name : String;
-      Value      : Field_Value_Type)
+      Value      : Field_Value_Type;
+      Inclusive  : Boolean)
       return Constraint_Type;
 
    function Equal_To
+     (Table_Name : String;
+      Field_Name : String;
+      Value      : Field_Value_Type)
+      return Constraint_Type;
+
+   function Not_Equal_To
      (Table_Name : String;
       Field_Name : String;
       Value      : Field_Value_Type)
@@ -81,21 +89,27 @@ package Kit.SQL.Constraints is
 
 private
 
-   package Storage_Array_Holders is
-     new Ada.Containers.Indefinite_Holders
-       (System.Storage_Elements.Storage_Array,
-        System.Storage_Elements."=");
+   type Value_Class is
+     (Empty_Value, Integer_Value, Float_Value, String_Value);
 
-   type Field_Value_Type is
+   type Field_Value_Type (Class : Value_Class := Empty_Value) is
       record
-         Holder : Storage_Array_Holders.Holder;
+         case Class is
+            when Empty_Value =>
+               null;
+            when Integer_Value =>
+               Val_Integer : Integer;
+            when Float_Value =>
+               Val_Float   : Float;
+            when String_Value =>
+               Val_String  : Ada.Strings.Unbounded.Unbounded_String;
+         end case;
       end record;
 
-   No_Value : constant Field_Value_Type :=
-                (Holder => Storage_Array_Holders.Empty_Holder);
+   No_Value : constant Field_Value_Type := (others => <>);
 
    function Has_Value (Value : Field_Value_Type) return Boolean
-   is (not Value.Holder.Is_Empty);
+   is (Value.Class /= Empty_Value);
 
    type Constraint_Type is tagged
       record
@@ -103,6 +117,7 @@ private
          Field_Name : Ada.Strings.Unbounded.Unbounded_String;
          Class      : Constraint_Class;
          Value      : Field_Value_Type;
+         Inclusive  : Boolean;
       end record;
 
    function Table_Name
