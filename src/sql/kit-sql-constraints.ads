@@ -23,6 +23,10 @@ package Kit.SQL.Constraints is
      (Value : String)
       return Field_Value_Type;
 
+   function To_Field_Value
+     (Value : Float)
+      return Field_Value_Type;
+
    function To_Storage
      (Value      : Field_Value_Type;
       Value_Type : Kit.SQL.Database.Data_Type'Class;

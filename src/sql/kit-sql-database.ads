@@ -51,6 +51,11 @@ package Kit.SQL.Database is
       Data      : System.Storage_Elements.Storage_Array)
       return String;
 
+   function To_Storage
+     (With_Type : Data_Type;
+      Value     : Float)
+      return System.Storage_Elements.Storage_Array;
+
    type Field_Reference is private;
 
    No_Field : constant Field_Reference;

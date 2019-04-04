@@ -878,6 +878,22 @@ package body Kit.SQL.Database is
       end loop;
    end Scan;
 
+   ----------------
+   -- To_Storage --
+   ----------------
+
+   function To_Storage
+     (With_Type : Data_Type;
+      Value     : Float)
+      return System.Storage_Elements.Storage_Array
+   is
+      pragma Unreferenced (Value);
+      use System.Storage_Elements;
+   begin
+      return Result : constant Storage_Array (1 .. With_Type.Size) :=
+        (others => 0);
+   end To_Storage;
+
    ---------------
    -- To_String --
    ---------------

@@ -271,6 +271,18 @@ package body Kit.SQL.Constraints is
    --------------------
 
    function To_Field_Value
+     (Value : Float)
+      return Field_Value_Type
+   is
+   begin
+      return (Float_Value, Value);
+   end To_Field_Value;
+
+   --------------------
+   -- To_Field_Value --
+   --------------------
+
+   function To_Field_Value
      (Value : String)
       return Field_Value_Type
    is
@@ -296,7 +308,7 @@ package body Kit.SQL.Constraints is
             return Marlowe.Key_Storage.To_Storage_Array
               (Value.Val_Integer, Value_Type.Size);
          when Float_Value =>
-            return Marlowe.Key_Storage.To_Storage_Array
+            return Value_Type.To_Storage
               (Value.Val_Float);
          when String_Value =>
             declare
