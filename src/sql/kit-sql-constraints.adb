@@ -97,6 +97,77 @@ package body Kit.SQL.Constraints is
       return To_Constraint (Table_Name, Field_Name, Not_Equal, Value);
    end Not_Equal_To;
 
+   ------------------
+   -- Satisfied_By --
+   ------------------
+
+   function Satisfied_By
+     (Constraint : Constraint_Type;
+      Field_Type : Kit.SQL.Database.Data_Type'Class;
+      Data       : System.Storage_Elements.Storage_Array)
+      return Boolean
+   is
+   begin
+      case Constraint.Class is
+         when Always =>
+            return True;
+         when Never =>
+            return False;
+         when Maximum | Minimum | Equal | Not_Equal =>
+            declare
+               use System.Storage_Elements;
+               use all type Marlowe.Key_Storage.Compare_Result;
+               Constraint_Data : constant Storage_Array :=
+                                   To_Storage
+                                     (Constraint.Value,
+                                      Field_Type,
+                                      Data);
+               Compare : constant Marlowe.Key_Storage.Compare_Result :=
+                           Marlowe.Key_Storage.Compare
+                             (Left  => Data,
+                              Right => Constraint_Data);
+            begin
+               return (case Compare is
+                          when Less =>
+                            Constraint.Class in Maximum | Not_Equal,
+                          when Equal =>
+                            Constraint.Inclusive or else
+                       Constraint.Class = Equal,
+                          when Greater =>
+                            Constraint.Class in Minimum | Not_Equal);
+            end;
+      end case;
+   end Satisfied_By;
+
+   ------------------
+   -- Satisfied_By --
+   ------------------
+
+   function Satisfied_By
+     (List      : Constraint_List'Class;
+      Reference : Kit.SQL.Database.Record_Reference)
+      return Boolean
+   is
+   begin
+      for Constraint of List loop
+         declare
+            Field : constant Kit.SQL.Database.Field_Reference :=
+                      Kit.SQL.Database.Get_Field
+                        (Kit.SQL.Database.Get_Table_Reference (Reference),
+                         -Constraint.Field_Name);
+         begin
+            if not Constraint.Satisfied_By
+              (Kit.SQL.Database.Get_Field_Type (Field),
+               Kit.SQL.Database.Get_Field_Value
+                 (Reference, Field))
+            then
+               return False;
+            end if;
+         end;
+      end loop;
+      return True;
+   end Satisfied_By;
+
    -------------------
    -- To_Constraint --
    -------------------

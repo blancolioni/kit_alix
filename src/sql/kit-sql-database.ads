@@ -17,6 +17,10 @@ package Kit.SQL.Database is
       Index : Marlowe.Database_Index)
       return Record_Reference;
 
+   function Get_Table_Reference
+     (Rec : Record_Reference)
+      return Table_Reference;
+
    function Get_Field_Value
      (Reference : Record_Reference;
       Index     : Positive)
@@ -155,5 +159,10 @@ private
      (Of_Type : Data_Type'Class)
       return System.Storage_Elements.Storage_Count
    is (Of_Type.Size);
+
+   function Get_Table_Reference
+     (Rec : Record_Reference)
+      return Table_Reference
+   is (Rec.Table);
 
 end Kit.SQL.Database;
