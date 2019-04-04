@@ -1,6 +1,7 @@
 with System.Storage_Elements;
 
 with Marlowe;
+with Kit.Db;
 
 package Kit.SQL.Database is
 
@@ -19,6 +20,10 @@ package Kit.SQL.Database is
 
    function Get_Table_Reference
      (Rec : Record_Reference)
+      return Table_Reference;
+
+   function Get_Table_Reference
+     (From : Kit.Db.Kit_Record_Reference)
       return Table_Reference;
 
    function Get_Field_Value
@@ -58,6 +63,10 @@ package Kit.SQL.Database is
    function Get_Field
      (Table : Table_Reference;
       Name  : String)
+      return Field_Reference;
+
+   function Get_Display_Field
+     (Table : Table_Reference)
       return Field_Reference;
 
    function Get_Field_Name
