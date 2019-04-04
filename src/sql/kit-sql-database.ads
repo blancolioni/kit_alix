@@ -20,11 +20,18 @@ package Kit.SQL.Database is
    function Get_Field_Value
      (Reference : Record_Reference;
       Index     : Positive)
-      return String;
+      return System.Storage_Elements.Storage_Array;
 
    function Get_Field_Value
      (Reference : Record_Reference;
       Name      : String)
+      return System.Storage_Elements.Storage_Array;
+
+   type Data_Type is abstract tagged private;
+
+   function To_String
+     (With_Type : Data_Type;
+      Data      : System.Storage_Elements.Storage_Array)
       return String;
 
    type Field_Reference is private;
@@ -45,10 +52,14 @@ package Kit.SQL.Database is
      (Reference : Field_Reference)
       return String;
 
+   function Get_Field_Type
+     (Field     : Field_Reference)
+      return Data_Type'Class;
+
    function Get_Field_Value
      (Reference : Record_Reference;
       Field     : Field_Reference)
-      return String;
+      return System.Storage_Elements.Storage_Array;
 
    type Key_Reference is private;
 
@@ -120,5 +131,11 @@ private
    type Key_Reference is new Natural;
 
    No_Key : constant Key_Reference := 0;
+
+   type Data_Type is tagged
+      record
+         Name : Ada.Strings.Unbounded.Unbounded_String;
+         Size : System.Storage_Elements.Storage_Count;
+      end record;
 
 end Kit.SQL.Database;
