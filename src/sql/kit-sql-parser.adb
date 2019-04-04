@@ -265,6 +265,10 @@ package body Kit.SQL.Parser is
      (Query : in out Kit.SQL.Queries.Query_Element'Class)
    is
    begin
+      if Tok = Tok_Exit then
+         raise Exit_Command;
+      end if;
+
       if Tok /= Tok_Select then
          Raise_Error ("expected 'select'");
       end if;
@@ -316,10 +320,6 @@ package body Kit.SQL.Parser is
 
       if Tok = Tok_Semicolon then
          Scan;
-      end if;
-
-      if Tok /= Tok_End_Of_File then
-         Error ("unexpected token '" & Tok'Image & "'");
       end if;
 
    exception
