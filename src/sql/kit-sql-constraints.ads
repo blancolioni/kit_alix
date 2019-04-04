@@ -76,6 +76,12 @@ package Kit.SQL.Constraints is
      (Constraint : Constraint_Type)
       return Field_Value_Type;
 
+   function Satisfied_By
+     (Constraint : Constraint_Type;
+      Field_Type : Kit.SQL.Database.Data_Type'Class;
+      Data       : System.Storage_Elements.Storage_Array)
+      return Boolean;
+
    type Constraint_List is tagged private;
 
    procedure Add
@@ -86,6 +92,11 @@ package Kit.SQL.Constraints is
      (List : Constraint_List'Class;
       Process : not null access
         procedure (Constraint : Constraint_Type'Class));
+
+   function Satisfied_By
+     (List      : Constraint_List'Class;
+      Reference : Kit.SQL.Database.Record_Reference)
+      return Boolean;
 
 private
 

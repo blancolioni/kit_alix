@@ -159,7 +159,12 @@ package body Kit.SQL.Requests is
         (Record_Index : Marlowe.Database_Index)
       is
       begin
-         On_Record (Request.Table, Record_Index);
+         if Request.Constraints.Satisfied_By
+           (Kit.SQL.Database.Get_Record_Reference
+              (Request.Table, Record_Index))
+         then
+            On_Record (Request.Table, Record_Index);
+         end if;
       end Check_Constraints;
 
    begin

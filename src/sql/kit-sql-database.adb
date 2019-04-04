@@ -81,7 +81,7 @@ package body Kit.SQL.Database is
          Base_Table  : Table_Reference;
          Schema_Ref  : Kit.Db.Kit_Field_Reference;
          Base_Index  : Natural;
-         Index       : Positive;
+         Table_Index : Positive;
          Field_Type  : Data_Type_Holders.Holder;
          Offset      : System.Storage_Elements.Storage_Offset;
          Length      : System.Storage_Elements.Storage_Count;
@@ -185,6 +185,7 @@ package body Kit.SQL.Database is
                     Table_Vector.Last_Index + 1;
       Handle    : constant Marlowe.Data_Stores.Data_Store :=
                     Kit.Db.Marlowe_Keys.Handle;
+      Next_Index : Natural := 0;
 
       procedure Add_Base
         (Rec    : Kit.Db.Kit_Record.Kit_Record_Type;
@@ -219,6 +220,9 @@ package body Kit.SQL.Database is
            Kit.Db.Kit_Field.Select_By_Kit_Record
              (Rec.Get_Kit_Record_Reference)
          loop
+
+            Next_Index := Next_Index + 1;
+
             declare
                subtype Storage is System.Storage_Elements.Storage_Offset;
                Field_Rec : constant Field_Record :=
@@ -227,7 +231,7 @@ package body Kit.SQL.Database is
                                 Table       => Table_Ref,
                                 Base_Table  => Ref,
                                 Base_Index  => Index,
-                                Index       => 1,
+                                Table_Index => Next_Index,
                                 Schema_Ref  =>
                                   Field.Get_Kit_Field_Reference,
                                 Field_Type  =>
@@ -529,7 +533,7 @@ package body Kit.SQL.Database is
    begin
       return Get_Field_Value
         (Reference,
-         Field_Vector.Element (Get_Field (Reference.Table, Name)).Index);
+         Get_Field (Reference.Table, Name));
    end Get_Field_Value;
 
    ---------------------
@@ -541,10 +545,11 @@ package body Kit.SQL.Database is
       Field     : Field_Reference)
       return System.Storage_Elements.Storage_Array
    is
+      Rec : constant Field_Record :=
+              Field_Vector.Element (Field);
    begin
       return Get_Field_Value
-        (Reference,
-         Field_Vector.Element (Field).Index);
+        (Reference, Rec.Table_Index);
    end Get_Field_Value;
 
    -------------
