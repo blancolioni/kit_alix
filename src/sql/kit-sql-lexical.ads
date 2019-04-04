@@ -1,5 +1,5 @@
 with GCS.Lexer;
-with GCS.Styles;
+with GCS.Styles;                       use GCS.Styles;
 
 with Kit.SQL.Tokens;                   use Kit.SQL.Tokens;
 
@@ -12,7 +12,7 @@ private package Kit.SQL.Lexical is
                  Tok_Bad_Character  => Tok_Bad_Character,
                  Tok_Identifier     => Tok_Identifier,
                  Tok_String         => Tok_String_Constant,
-                 Tok_Character      => Tok_None,
+                 Tok_Character      => Tok_Character_Constant,
                  Tok_Integer        => Tok_Integer_Constant,
                  Tok_Float          => Tok_Float_Constant,
                  First_Keyword      => Tok_And,
@@ -28,4 +28,5 @@ private package Kit.SQL.Lexical is
                                        "0123456789" &
                                        "_",
                  Line_Comment_Start => "--",
-                 Properties         => (GCS.Styles.Ada_Property_List));
+                 Properties         => (Multi_Characters => True,
+                                        others => False));

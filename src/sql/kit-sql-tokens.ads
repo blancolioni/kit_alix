@@ -4,7 +4,7 @@ private package Kit.SQL.Tokens is
       (Tok_None, Tok_End_Of_File, Tok_Bad_Character,
        Tok_Identifier,
        Tok_Integer_Constant, Tok_Float_Constant,
-       Tok_String_Constant,
+       Tok_String_Constant, Tok_Character_Constant,
 
        Tok_And, Tok_As, Tok_By, Tok_From, Tok_Group,
        Tok_Having, Tok_Join, Tok_Not, Tok_Or, Tok_Order,
