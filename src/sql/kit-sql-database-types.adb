@@ -309,12 +309,15 @@ package body Kit.SQL.Database.Types is
    begin
       Marlowe.Key_Storage.From_Storage (Index, Data);
       declare
+         use type Marlowe.Database_Index;
          Table : constant Table_Reference := With_Type.Table;
          Display : constant Field_Reference :=
                      Get_Display_Field (Table);
       begin
          if Display = No_Field then
             return Ada.Strings.Fixed.Trim (Index'Image, Ada.Strings.Left);
+         elsif Index = 0 then
+            return "";
          else
             return Get_Field_Type (Display).To_String
               (Get_Field_Value
