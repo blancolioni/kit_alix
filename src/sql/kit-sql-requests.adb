@@ -82,7 +82,9 @@ package body Kit.SQL.Requests is
       declare
          use all type Kit.SQL.Constraints.Constraint_Class;
          Have_Equality_Key : Boolean := False;
---           Have_Min_Max_Key  : Boolean := False;
+         Have_Min_Max_Key  : Boolean := False;
+--           Have_Min_Key      : Boolean := False;
+--           Have_Max_Key      : Boolean := False;
 --           Have_Key          : Boolean := False;
          Key               : Kit.SQL.Database.Key_Reference :=
                                Kit.SQL.Database.Get_Default_Key
@@ -102,8 +104,12 @@ package body Kit.SQL.Requests is
               (Constraint.Field_Key, Constraint.Field_Ref)
             then
                declare
-                  Equality : constant Constraint_Status :=
-                               Constraint.Constraints (Equal);
+                  Equality   : constant Constraint_Status :=
+                                 Constraint.Constraints (Equal);
+                  Min_Status : constant Constraint_Status :=
+                                 Constraint.Constraints (Minimum);
+                  Max_Status : constant Constraint_Status :=
+                                 Constraint.Constraints (Maximum);
                begin
                   if Equality.Have_Constraint then
                      if not Have_Equality_Key then
@@ -112,6 +118,18 @@ package body Kit.SQL.Requests is
                         Field := Constraint.Field_Ref;
                         Min_Value := Equality.Constraint;
                         Max_Value := Equality.Constraint;
+                     end if;
+                  elsif Min_Status.Have_Constraint
+                    and then Max_Status.Have_Constraint
+                  then
+                     if not Have_Equality_Key
+                       and then not Have_Min_Max_Key
+                     then
+                        Have_Min_Max_Key := True;
+                        Key := Constraint.Field_Key;
+                        Field := Constraint.Field_Ref;
+                        Min_Value := Min_Status.Constraint;
+                        Max_Value := Max_Status.Constraint;
                      end if;
                   end if;
                end;
