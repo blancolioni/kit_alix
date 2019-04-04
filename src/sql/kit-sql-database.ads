@@ -29,6 +29,14 @@ package Kit.SQL.Database is
 
    type Data_Type is abstract tagged private;
 
+   function Name
+     (Of_Type : Data_Type'Class)
+      return String;
+
+   function Size
+     (Of_Type : Data_Type'Class)
+      return System.Storage_Elements.Storage_Count;
+
    function To_String
      (With_Type : Data_Type;
       Data      : System.Storage_Elements.Storage_Array)
@@ -137,5 +145,15 @@ private
          Name : Ada.Strings.Unbounded.Unbounded_String;
          Size : System.Storage_Elements.Storage_Count;
       end record;
+
+   function Name
+     (Of_Type : Data_Type'Class)
+      return String
+   is (-Of_Type.Name);
+
+   function Size
+     (Of_Type : Data_Type'Class)
+      return System.Storage_Elements.Storage_Count
+   is (Of_Type.Size);
 
 end Kit.SQL.Database;
