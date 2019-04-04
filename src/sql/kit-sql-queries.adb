@@ -137,14 +137,18 @@ package body Kit.SQL.Queries is
                Field_Name      : constant String :=
                                    Kit.SQL.Database.Get_Field_Name
                                      (Field_Reference);
+               Field_Type      : constant Kit.SQL.Database.Data_Type'Class :=
+                                   Kit.SQL.Database.Get_Field_Type
+                                     (Field_Reference);
                Col             : constant Column_Count :=
                                    Get_Query_Column
                                      (Cols, Table_Name, Field_Name);
             begin
                if Col > 0 then
                   Set_Value (Row, Col,
-                             Kit.SQL.Database.Get_Field_Value
-                               (Record_Reference, I));
+                             Field_Type.To_String
+                               (Kit.SQL.Database.Get_Field_Value
+                                  (Record_Reference, I)));
                end if;
             end;
          end loop;

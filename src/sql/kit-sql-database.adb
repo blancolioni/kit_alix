@@ -1,6 +1,7 @@
 with Ada.Text_IO;
 
 with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Indefinite_Holders;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Vectors;
 
@@ -15,6 +16,8 @@ with Kit.Db.Kit_Field;
 with Kit.Db.Kit_Key;
 with Kit.Db.Kit_Record;
 with Kit.Db.Kit_Record_Base;
+
+with Kit.SQL.Database.Types;
 
 package body Kit.SQL.Database is
 
@@ -66,6 +69,10 @@ package body Kit.SQL.Database is
    Record_List : Cached_Record_Lists.List;
    Record_Map  : Cached_Record_Maps.Map;
 
+   package Data_Type_Holders is
+     new Ada.Containers.Indefinite_Holders
+       (Data_Type'Class);
+
    type Field_Record is
       record
          Name        : Ada.Strings.Unbounded.Unbounded_String;
@@ -73,6 +80,7 @@ package body Kit.SQL.Database is
          Base_Table  : Table_Reference;
          Base_Index  : Natural;
          Index       : Positive;
+         Field_Type  : Data_Type_Holders.Holder;
          Offset      : System.Storage_Elements.Storage_Offset;
          Length      : System.Storage_Elements.Storage_Count;
          Default_Key : Real_Key_Reference;
@@ -215,6 +223,9 @@ package body Kit.SQL.Database is
                                    Base_Table  => Ref,
                                    Base_Index  => Index,
                                    Index       => 1,
+                                   Field_Type  =>
+                                     Data_Type_Holders.To_Holder
+                                       (Types.To_Data_Type (Field.Field_Type)),
                                    Offset      => Storage (Field.Field_Offset),
                                    Length      => Storage (Field.Field_Length),
                                    Default_Key => 1);
@@ -385,9 +396,22 @@ package body Kit.SQL.Database is
                (if Field_Rec.Base_Index = 0
                 then Rec.Data.Last_Element
                 else Rec.Data.Element (Field_Rec.Base_Index));
-   begin      return Data
+   begin
+      return Data
         (Field_Rec.Offset + 1 .. Field_Rec.Offset + Field_Rec.Length);
    end Get_Field_Storage;
+
+   --------------------
+   -- Get_Field_Type --
+   --------------------
+
+   function Get_Field_Type
+     (Field     : Field_Reference)
+      return Data_Type'Class
+   is
+   begin
+      return Field_Vector.Element (Field).Field_Type.Element;
+   end Get_Field_Type;
 
    ---------------------
    -- Get_Field_Value --
@@ -396,30 +420,13 @@ package body Kit.SQL.Database is
    function Get_Field_Value
      (Reference : Record_Reference;
       Index     : Positive)
-      return String
+      return System.Storage_Elements.Storage_Array
    is
       Rec : constant Cached_Record := Get_Record (Reference);
       Value : constant System.Storage_Elements.Storage_Array :=
                 Get_Field_Storage (Rec, Index);
-      Result : String (1 .. Value'Length * 3 - 1);
-      Hex_Digit : constant String (1 .. 16) :=
-                    "0123456789ABCDEF";
    begin
-      for I in Value'Range loop
-         declare
-            use type System.Storage_Elements.Storage_Offset;
-            Index : constant Positive :=
-                      Natural (I - Value'First) * 3 + 1;
-            D     : constant Natural := Natural (Value (I));
-         begin
-            Result (Index) := Hex_Digit (Natural (D / 16) + 1);
-            Result (Index + 1) := Hex_Digit (Natural (D mod 16) + 1);
-            if I < Value'Last then
-               Result (Index + 2) := '-';
-            end if;
-         end;
-      end loop;
-      return Result;
+      return Value;
    end Get_Field_Value;
 
    ---------------------
@@ -429,7 +436,7 @@ package body Kit.SQL.Database is
    function Get_Field_Value
      (Reference : Record_Reference;
       Name      : String)
-      return String
+      return System.Storage_Elements.Storage_Array
    is
    begin
       return Get_Field_Value
@@ -444,7 +451,7 @@ package body Kit.SQL.Database is
    function Get_Field_Value
      (Reference : Record_Reference;
       Field     : Field_Reference)
-      return String
+      return System.Storage_Elements.Storage_Array
    is
    begin
       return Get_Field_Value
@@ -727,5 +734,36 @@ package body Kit.SQL.Database is
          end;
       end loop;
    end Scan;
+
+   ---------------
+   -- To_String --
+   ---------------
+
+   function To_String
+     (With_Type : Data_Type;
+      Data      : System.Storage_Elements.Storage_Array)
+      return String
+   is
+      pragma Unreferenced (With_Type);
+      Result    : String (1 .. Data'Length * 3 - 1);
+      Hex_Digit : constant String (1 .. 16) :=
+                    "0123456789ABCDEF";
+   begin
+      for I in Data'Range loop
+         declare
+            use type System.Storage_Elements.Storage_Offset;
+            Index : constant Positive :=
+                      Natural (I - Data'First) * 3 + 1;
+            D     : constant Natural := Natural (Data (I));
+         begin
+            Result (Index) := Hex_Digit (Natural (D / 16) + 1);
+            Result (Index + 1) := Hex_Digit (Natural (D mod 16) + 1);
+            if I < Data'Last then
+               Result (Index + 2) := '-';
+            end if;
+         end;
+      end loop;
+      return Result;
+   end To_String;
 
 end Kit.SQL.Database;
