@@ -82,6 +82,28 @@ package Kit.SQL.Constraints is
       Data       : System.Storage_Elements.Storage_Array)
       return Boolean;
 
+   type Constraint_Factory is interface;
+
+   function Create
+     (Factory    : Constraint_Factory;
+      Table_Name : String;
+      Field_Name : String;
+      Value      : Field_Value_Type)
+      return Constraint_Type'Class
+      is abstract;
+
+   function Equality
+     (Negated : Boolean)
+      return Constraint_Factory'Class;
+
+   function Minimum
+     (Inclusive : Boolean)
+      return Constraint_Factory'Class;
+
+   function Maximum
+     (Inclusive : Boolean)
+      return Constraint_Factory'Class;
+
    type Constraint_List is tagged private;
 
    procedure Add

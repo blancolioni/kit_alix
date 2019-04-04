@@ -149,66 +149,41 @@ package body Kit.SQL.Expressions is
       Children    : Expression_List'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class)
    is
+      use Kit.SQL.Constraints;
+
+      Factory : constant Constraint_Factory'Class :=
+                  (case Node.Op is
+                      when Op_EQ => Equality (Negated => False),
+                      when Op_NE => Equality (Negated => True),
+                      when Op_LT => Maximum (Inclusive => False),
+                      when Op_LE => Maximum (Inclusive => True),
+                      when Op_GT => Minimum (Inclusive => False),
+                      when Op_GE => Minimum (Inclusive => True));
+
+      procedure Add_Constraint
+        (Table_Name : String;
+         Field_Name : String);
+
+      --------------------
+      -- Add_Constraint --
+      --------------------
+
+      procedure Add_Constraint
+        (Table_Name : String;
+         Field_Name : String)
+      is
+      begin
+         Constraints.Add
+           (Factory.Create
+              (Table_Name, Field_Name,
+               To_Node (Children.List.Last_Element).To_Value));
+      end Add_Constraint;
+
+      Left : constant Root_Expression_Node'Class :=
+               To_Node (Children.List.First_Element);
    begin
-      case Node.Op is
-         when Op_EQ =>
-            declare
-               procedure Add_Constraint
-                 (Table_Name : String;
-                  Field_Name : String);
-
-               --------------------
-               -- Add_Constraint --
-               --------------------
-
-               procedure Add_Constraint
-                 (Table_Name : String;
-                  Field_Name : String)
-               is
-               begin
-                  Constraints.Add
-                    (Kit.SQL.Constraints.Equal_To
-                       (Table_Name, Field_Name,
-                        To_Node (Children.List.Last_Element).To_Value));
-               end Add_Constraint;
-
-               Left : constant Root_Expression_Node'Class :=
-                        To_Node (Children.List.First_Element);
-            begin
-               Left.Add_Table_Field_Constraint
-                 (Add_Constraint'Access);
-            end;
-         when Op_LT =>
-            declare
-               procedure Add_Constraint
-                 (Table_Name : String;
-                  Field_Name : String);
-
-               --------------------
-               -- Add_Constraint --
-               --------------------
-
-               procedure Add_Constraint
-                 (Table_Name : String;
-                  Field_Name : String)
-               is
-               begin
-                  Constraints.Add
-                    (Kit.SQL.Constraints.Maximum_Value
-                       (Table_Name, Field_Name,
-                        To_Node (Children.List.Last_Element).To_Value,
-                        Inclusive => False));
-               end Add_Constraint;
-
-               Left : constant Root_Expression_Node'Class :=
-                        To_Node (Children.List.First_Element);
-            begin
-               Left.Add_Table_Field_Constraint
-                 (Add_Constraint'Access);
-            end;
-         when others =>
-            null;
-      end case;
+      Left.Add_Table_Field_Constraint
+        (Add_Constraint'Access);
    end Copy_Constraints;
 
    ----------------------
