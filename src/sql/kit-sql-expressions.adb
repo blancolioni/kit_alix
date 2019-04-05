@@ -1,13 +1,18 @@
+with Ada.Containers.Indefinite_Holders;
+
 package body Kit.SQL.Expressions is
 
+   package Expression_Element_Holders is
+     new Ada.Containers.Indefinite_Holders (Expression_Element'Class);
+
    type Boolean_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
          Value : Boolean;
       end record;
 
    type Integer_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
          Value : Integer;
       end record;
@@ -18,7 +23,7 @@ package body Kit.SQL.Expressions is
    is (Kit.SQL.Constraints.To_Field_Value (Node.Value));
 
    type Float_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
          Value : Float;
       end record;
@@ -29,7 +34,7 @@ package body Kit.SQL.Expressions is
    is (Kit.SQL.Constraints.To_Field_Value (Node.Value));
 
    type String_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
          Value : Ada.Strings.Unbounded.Unbounded_String;
       end record;
@@ -40,7 +45,7 @@ package body Kit.SQL.Expressions is
    is (Kit.SQL.Constraints.To_Field_Value (-Node.Value));
 
    type Identifier_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
          Name : Ada.Strings.Unbounded.Unbounded_String;
       end record;
@@ -52,47 +57,32 @@ package body Kit.SQL.Expressions is
                    Field_Name : String));
 
    type Function_Call_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
-         Name : Ada.Strings.Unbounded.Unbounded_String;
+         Name      : Ada.Strings.Unbounded.Unbounded_String;
+         Arguments : Expression_Lists.List;
       end record;
 
    type Operator_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
-         Op : Operator_Type;
+         Op          : Operator_Type;
+         Left, Right : Expression_Element_Holders.Holder;
       end record;
 
    overriding procedure Copy_Constraints
      (Node        : Operator_Node;
-      Children    : Expression_List'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class);
 
    type And_Node is
-     new Root_Expression_Node with
+     new Expression_Element with
       record
-         null;
+         Arguments : Expression_Lists.List;
       end record;
 
    overriding procedure Copy_Constraints
      (Node        : And_Node;
-      Children    : Expression_List'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class);
-
-   function To_Expression
-     (Node : Root_Expression_Node'Class)
-      return Expression_Element'Class;
-
-   function To_Expression
-     (Node      : Root_Expression_Node'Class;
-      Arguments : Expression_List'Class)
-      return Expression_Element'Class;
-
-   function To_Node
-     (Expression : Expression_Element'Class)
-      return Root_Expression_Node'Class
-   is (Expression_Trees.Element
-         (Expression_Trees.First_Child (Expression.Tree.Root)));
 
    --------------------------------
    -- Add_Table_Field_Constraint --
@@ -118,7 +108,8 @@ package body Kit.SQL.Expressions is
    is
       Node : And_Node;
    begin
-      return To_Expression (Node, Arguments);
+      Node.Arguments := Arguments.List;
+      return Node;
    end And_Expression;
 
    ------------
@@ -141,8 +132,10 @@ package body Kit.SQL.Expressions is
      (Value : Boolean)
       return Expression_Element'Class
    is
+      Result : Boolean_Node;
    begin
-      return To_Expression (Boolean_Node'(Value => Value));
+      Result.Value := Value;
+      return Result;
    end Boolean_Expression;
 
    ----------------------
@@ -151,7 +144,6 @@ package body Kit.SQL.Expressions is
 
    overriding procedure Copy_Constraints
      (Node        : Operator_Node;
-      Children    : Expression_List'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class)
    is
       use Kit.SQL.Constraints;
@@ -180,14 +172,11 @@ package body Kit.SQL.Expressions is
       begin
          Constraints.Add
            (Factory.Create
-              (Table_Name, Field_Name,
-               To_Node (Children.List.Last_Element).To_Value));
+              (Table_Name, Field_Name, Node.Right.Element.To_Value));
       end Add_Constraint;
 
-      Left : constant Root_Expression_Node'Class :=
-               To_Node (Children.List.First_Element);
    begin
-      Left.Add_Table_Field_Constraint
+      Node.Left.Element.Add_Table_Field_Constraint
         (Add_Constraint'Access);
    end Copy_Constraints;
 
@@ -197,13 +186,11 @@ package body Kit.SQL.Expressions is
 
    overriding procedure Copy_Constraints
      (Node        : And_Node;
-      Children    : Expression_List'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class)
    is
-      pragma Unreferenced (Node);
    begin
-      for Child of Children.List loop
-         Child.Get_Predicate_Constraints (Constraints);
+      for Child of Node.Arguments loop
+         Child.Copy_Constraints (Constraints);
       end loop;
    end Copy_Constraints;
 
@@ -215,8 +202,10 @@ package body Kit.SQL.Expressions is
      (Value : Float)
       return Expression_Element'Class
    is
+      Result : Float_Node;
    begin
-      return To_Expression (Float_Node'(Value => Value));
+      Result.Value := Value;
+      return Result;
    end Float_Expression;
 
    ------------------------------
@@ -228,17 +217,11 @@ package body Kit.SQL.Expressions is
       Arguments     : Expression_List'Class)
       return Expression_Element'Class
    is
-      Call : Expression_Element'Class :=
-               To_Expression
-                 (Function_Call_Node'(Name => +Function_Name));
+      Result : Function_Call_Node;
    begin
-      for Arg of Arguments.List loop
-         Call.Tree.Copy_Subtree
-           (Expression_Trees.First_Child (Call.Tree.Root),
-            Before => Expression_Trees.No_Element,
-            Source => Expression_Trees.First_Child (Arg.Tree.Root));
-      end loop;
-      return Call;
+      Result.Name := +Function_Name;
+      Result.Arguments := Arguments.List;
+      return Result;
    end Function_Call_Expression;
 
    -------------------------------
@@ -249,16 +232,8 @@ package body Kit.SQL.Expressions is
      (Expression  : Expression_Element'Class;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class)
    is
-      Top : constant Expression_Trees.Cursor :=
-              Expression_Trees.First_Child (Expression.Tree.Root);
-      Args : Expression_List;
    begin
-      for Child in Expression.Tree.Iterate_Children (Top) loop
-         Args.List.Append (To_Expression (Expression_Trees.Element (Child)));
-      end loop;
-
-      Expression_Trees.Element (Top).Copy_Constraints
-        (Args, Constraints);
+      Expression.Copy_Constraints (Constraints);
    end Get_Predicate_Constraints;
 
    ---------------------------
@@ -269,8 +244,10 @@ package body Kit.SQL.Expressions is
      (Identifier : String)
       return Expression_Element'Class
    is
+      Result : Identifier_Node;
    begin
-      return To_Expression (Identifier_Node'(Name => +Identifier));
+      Result.Name := +Identifier;
+      return Result;
    end Identifier_Expression;
 
    ------------------------
@@ -281,8 +258,10 @@ package body Kit.SQL.Expressions is
      (Value : Integer)
       return Expression_Element'Class
    is
+      Result : Integer_Node;
    begin
-      return To_Expression (Integer_Node'(Value => Value));
+      Result.Value := Value;
+      return Result;
    end Integer_Expression;
 
    -------------------------
@@ -294,19 +273,12 @@ package body Kit.SQL.Expressions is
       Left, Right : Expression_Element'Class)
       return Expression_Element'Class
    is
-      Call : Expression_Element'Class :=
-               To_Expression
-                 (Operator_Node'(Op => Operator));
+      Result : Operator_Node;
    begin
-      Call.Tree.Copy_Subtree
-        (Expression_Trees.First_Child (Call.Tree.Root),
-         Before => Expression_Trees.No_Element,
-         Source => Expression_Trees.First_Child (Left.Tree.Root));
-      Call.Tree.Copy_Subtree
-        (Expression_Trees.First_Child (Call.Tree.Root),
-         Before => Expression_Trees.No_Element,
-         Source => Expression_Trees.First_Child (Right.Tree.Root));
-      return Call;
+      Result.Op := Operator;
+      Result.Left := Expression_Element_Holders.To_Holder (Left);
+      Result.Right := Expression_Element_Holders.To_Holder (Right);
+      return Result;
    end Operator_Expression;
 
    -----------------------
@@ -317,44 +289,10 @@ package body Kit.SQL.Expressions is
      (Value : String)
       return Expression_Element'Class
    is
+      Result : String_Node;
    begin
-      return To_Expression (String_Node'(Value => +Value));
+      Result.Value := +Value;
+      return Result;
    end String_Expression;
-
-   -------------------
-   -- To_Expression --
-   -------------------
-
-   function To_Expression
-     (Node : Root_Expression_Node'Class)
-      return Expression_Element'Class
-   is
-      Expr : Expression_Element;
-   begin
-      Expr.Create;
-      Expr.Tree.Insert_Child
-        (Expr.Tree.Root, Expression_Trees.No_Element, Node);
-      return Expr;
-   end To_Expression;
-
-   -------------------
-   -- To_Expression --
-   -------------------
-
-   function To_Expression
-     (Node      : Root_Expression_Node'Class;
-      Arguments : Expression_List'Class)
-      return Expression_Element'Class
-   is
-      Expr : Expression_Element'Class := To_Expression (Node);
-   begin
-      for Arg of Arguments.List loop
-         Expr.Tree.Copy_Subtree
-           (Expression_Trees.First_Child (Expr.Tree.Root),
-            Before => Expression_Trees.No_Element,
-            Source => Expression_Trees.First_Child (Arg.Tree.Root));
-      end loop;
-      return Expr;
-   end To_Expression;
 
 end Kit.SQL.Expressions;

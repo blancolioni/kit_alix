@@ -1,5 +1,3 @@
-private with Ada.Containers.Indefinite_Multiway_Trees;
-
 with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 
 with Kit.SQL.Constraints;
@@ -58,35 +56,25 @@ package Kit.SQL.Expressions is
 
 private
 
-   type Root_Expression_Node is abstract tagged null record;
+   type Expression_Element is
+     new SQL_Element with null record;
 
    procedure Copy_Constraints
-     (Node        : Root_Expression_Node;
-      Children    : Expression_List'Class;
+     (Expression  : Expression_Element;
       Constraints : in out Kit.SQL.Constraints.Constraint_List'Class)
    is null;
 
    procedure Add_Table_Field_Constraint
-     (Node : Root_Expression_Node;
-      Add  : not null access
+     (Expression  : Expression_Element;
+      Add         : not null access
         procedure (Table_Name : String;
                    Field_Name : String))
    is null;
 
    function To_Value
-     (Node : Root_Expression_Node)
+     (Expression  : Expression_Element)
       return Kit.SQL.Constraints.Field_Value_Type
    is (Kit.SQL.Constraints.No_Value);
-
-   package Expression_Trees is
-     new Ada.Containers.Indefinite_Multiway_Trees
-       (Root_Expression_Node'Class);
-
-   type Expression_Element is
-     new SQL_Element with
-      record
-         Tree : Expression_Trees.Tree;
-      end record;
 
    package Expression_Lists is
      new Ada.Containers.Indefinite_Doubly_Linked_Lists
