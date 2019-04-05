@@ -1,3 +1,4 @@
+private with Ada.Finalization;
 private with Ada.Strings.Fixed.Equal_Case_Insensitive;
 private with Ada.Strings.Unbounded;
 private with Ada.Text_IO;
@@ -15,18 +16,19 @@ package Kit.SQL is
 
    type SQL_Element is abstract tagged private;
 
-   procedure Create (Element : in out SQL_Element'Class);
-
 private
 
    type File_Reference is new Natural;
 
-   type SQL_Element is abstract tagged
+   type SQL_Element is abstract new Ada.Finalization.Controlled with
       record
          File   : File_Reference;
          Line   : Ada.Text_IO.Count;
          Column : Ada.Text_IO.Count;
       end record;
+
+   overriding procedure Initialize
+     (Element : in out SQL_Element);
 
    function "+" (S : String) return Ada.Strings.Unbounded.Unbounded_String
                  renames Ada.Strings.Unbounded.To_Unbounded_String;
