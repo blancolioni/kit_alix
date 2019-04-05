@@ -16,8 +16,9 @@ private package Kit.SQL.Lexical is
                  Tok_Integer        => Tok_Integer_Constant,
                  Tok_Float          => Tok_Float_Constant,
                  First_Keyword      => Tok_And,
-                 Keywords           => "and as by exit from group having "
-                                     & "join not or order select where",
+                 Keywords           => "and as between by exit "
+                                     & "from group having join not "
+                                     & "or order select where",
                  First_Symbol       => Tok_Comma,
                  Symbols            => ", ; . * ( ) = /= > < >= <=",
                  Identifier_Start   => "abcdefghijklmnopqrstuvwxyz" &
