@@ -222,6 +222,28 @@ package body Kit.SQL.Parser is
                Scan;
                return Operator_Expression (Op, Left, Parse_Atomic_Expression);
             end;
+         elsif Tok = Tok_Between then
+            Scan;
+            declare
+               Low : constant Expression_Element'Class :=
+                       Parse_Atomic_Expression;
+            begin
+               if Tok = Tok_And then
+                  Scan;
+                  declare
+                     High : constant Expression_Element'Class :=
+                              Parse_Atomic_Expression;
+                     Args : Expression_List;
+                  begin
+                     Args.Append (Operator_Expression (Op_GE, Left, Low));
+                     Args.Append (Operator_Expression (Op_LE, Left, High));
+                     return And_Expression (Args);
+                  end;
+               else
+                  Raise_Error ("expected 'and'");
+                  return Left;
+               end if;
+            end;
          else
             return Left;
          end if;

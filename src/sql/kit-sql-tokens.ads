@@ -6,9 +6,9 @@ private package Kit.SQL.Tokens is
        Tok_Integer_Constant, Tok_Float_Constant,
        Tok_String_Constant, Tok_Character_Constant,
 
-       Tok_And, Tok_As, Tok_By, Tok_Exit, Tok_From, Tok_Group,
-       Tok_Having, Tok_Join, Tok_Not, Tok_Or, Tok_Order,
-       Tok_Select, Tok_Where,
+       Tok_And, Tok_As, Tok_Between, Tok_By, Tok_Exit,
+       Tok_From, Tok_Group, Tok_Having, Tok_Join, Tok_Not,
+       Tok_Or, Tok_Order, Tok_Select, Tok_Where,
 
        Tok_Comma, Tok_Semicolon, Tok_Dot, Tok_Asterisk,
        Tok_Left_Paren, Tok_Right_Paren,
