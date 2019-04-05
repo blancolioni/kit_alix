@@ -26,9 +26,7 @@ package body Kit.SQL.Columns is
 
    function All_Columns return Column_Element'Class is
    begin
-      return Result : All_Columns_Element do
-         Result.Create;
-      end return;
+      return Result : All_Columns_Element;
    end All_Columns;
 
    ------------
@@ -85,7 +83,6 @@ package body Kit.SQL.Columns is
    is
    begin
       return Result : Named_Column_Element do
-         Result.Create;
          Result.Table_Name := +Table_Name;
          Result.Column_Name := +Column_Name;
       end return;

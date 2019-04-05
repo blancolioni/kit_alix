@@ -78,7 +78,8 @@ package body Kit.SQL.Queries is
 
    procedure Clear (Query : in out Query_Element) is
    begin
-      Query := (others => <>);
+      Query := (Ada.Finalization.Controlled with others => <>);
+      Query.Initialize;
    end Clear;
 
    ------------
@@ -92,7 +93,6 @@ package body Kit.SQL.Queries is
    begin
       Query.Clear;
       Kit.SQL.Lexical.Open_String (Text);
-      Query.Create;
       Kit.SQL.Parser.Parse_Query (Query);
       Kit.SQL.Lexical.Close;
    end Create;

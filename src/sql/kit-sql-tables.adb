@@ -10,7 +10,6 @@ package body Kit.SQL.Tables is
    is
    begin
       return Result : Table_Element do
-         Result.Create;
          Result.Name := +Name;
       end return;
    end Table;
