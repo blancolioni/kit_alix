@@ -17,3 +17,4 @@ src/server/generated
 src/server/leander
 *.orig
 config/test
+src/kit-paths.ads
