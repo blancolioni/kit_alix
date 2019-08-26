@@ -135,7 +135,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
                         Kit.Db.Kit_Record.Get_By_Name (Table_Name);
          Kit_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
                         Kit.Db.Kit_Key.First_By_Kit_Record
-                          (Kit_Record.Reference);
+                          (Kit_Record.Get_Kit_Record_Reference);
          Found      : Boolean := False;
       begin
          if Kit_Key.Has_Element then
@@ -145,7 +145,8 @@ package body Kit.UI.Gtk_UI.Table_Book is
               (Result.Scan, Table, Kit_Key.Name);
          else
             for Base of
-              Kit.Db.Kit_Record_Base.Select_By_Derived (Kit_Record.Reference)
+              Kit.Db.Kit_Record_Base.Select_By_Derived
+                (Kit_Record.Get_Kit_Record_Reference)
             loop
                if not Found then
                   declare
@@ -215,7 +216,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
                      Kit.Db.Kit_Record.Get_By_Name (Table_Name (Display.all));
       Kit_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
                      Kit.Db.Kit_Key.Get_By_Record_Key
-                       (Kit_Record.Reference, Standard_Title);
+                       (Kit_Record.Get_Kit_Record_Reference, Standard_Title);
       Found      : Boolean := False;
    begin
       if Kit_Key.Has_Element then
@@ -225,7 +226,7 @@ package body Kit.UI.Gtk_UI.Table_Book is
       else
          for Base of
            Kit.Db.Kit_Record_Base.Select_By_Derived
-             (Kit_Record.Reference)
+             (Kit_Record.Get_Kit_Record_Reference)
          loop
             declare
                Base_Key : constant Kit.Db.Kit_Key.Kit_Key_Type :=
