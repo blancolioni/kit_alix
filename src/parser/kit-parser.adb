@@ -14,6 +14,7 @@ with Kit.Paths;
 with Kit.Schema.Aspects;
 with Kit.Schema.Fields;
 with Kit.Schema.Keys;
+with Kit.Schema.Properties;
 with Kit.Schema.Tables;
 with Kit.Schema.Types;
 with Kit.Schema.Types.Enumerated;
@@ -42,6 +43,10 @@ package body Kit.Parser is
      (Db : Kit.Schema.Databases.Database_Type)
      with Pre => Tok = Tok_Type;
 
+   procedure Parse_Representation_Clause
+     (Db : Kit.Schema.Databases.Database_Type)
+     with Pre => Tok = Tok_For;
+
    procedure Parse_Bases (Db    : Kit.Schema.Databases.Database_Type;
                           Table : Kit.Schema.Tables.Table_Type);
 
@@ -68,7 +73,9 @@ package body Kit.Parser is
 
    function At_Declaration return Boolean is
    begin
-      return Tok = Tok_Record or else Tok = Tok_Type;
+      return Tok = Tok_Record
+        or else Tok = Tok_Type
+        or else Tok = Tok_For;
    end At_Declaration;
 
    --------------
@@ -498,6 +505,127 @@ package body Kit.Parser is
 
    end Parse_Record;
 
+   ---------------------------------
+   -- Parse_Representation_Clause --
+   ---------------------------------
+
+   procedure Parse_Representation_Clause
+     (Db : Kit.Schema.Databases.Database_Type)
+   is
+      pragma Unreferenced (Db);
+   begin
+      pragma Assert (Tok = Tok_For);
+      Scan;
+
+      declare
+         Name : constant String := Parse_Qualified_Identifier;
+         OK   : Boolean := True;
+      begin
+         if not Kit.Schema.Properties.Properties_Exist (Name) then
+            Error (Name & " has no configurable attributes");
+            OK := False;
+         end if;
+
+         if Tok = Tok_Apostrophe then
+            Scan;
+         elsif Tok = Tok_Identifier then
+            Error ("missing apostrophe in represenation clause");
+         elsif Tok = Tok_Use then
+            Error ("missing attribute");
+            OK := False;
+         else
+            Error ("invalid represenation clause");
+            Skip_To (Tok_Semi);
+            Scan;
+            return;
+         end if;
+
+         if Tok = Tok_Identifier then
+            declare
+               Attribute : constant String := Tok_Text;
+            begin
+               Scan;
+
+               if OK then
+                  if not Kit.Schema.Properties.Get_Properties (Name)
+                    .Has_Property (Attribute)
+                  then
+                     Error (Attribute & ": no such attribute for object "
+                            & Name);
+                     OK := False;
+                  end if;
+               end if;
+
+               if Tok = Tok_Use then
+                  Scan;
+               elsif Tok = Tok_String_Constant
+                 or else Tok = Tok_Left_Paren
+               then
+                  Error ("missing 'use'");
+               elsif Tok = Tok_Semi then
+                  Error ("missing value for representation clause");
+                  Scan;
+                  return;
+               else
+                  Error ("missing value");
+                  Skip_To (Tok_Semi);
+                  Scan;
+                  return;
+               end if;
+
+               if Tok = Tok_String_Constant then
+                  if OK then
+                     Kit.Schema.Properties.Get_Properties (Name)
+                       .Set_Property (Attribute,
+                                      Kit.Schema.Properties.String_Value
+                                        (Tok_Text));
+                  end if;
+                  Scan;
+               elsif Tok = Tok_Left_Paren then
+                  declare
+                     Value : Kit.Schema.Properties.Kit_Property_Value :=
+                       Kit.Schema.Properties.List_Value;
+                  begin
+                     Scan;
+                     while Tok = Tok_String_Constant loop
+                        Kit.Schema.Properties.Append (Value, Tok_Text);
+                        Scan;
+                        if Tok = Tok_Comma then
+                           Scan;
+                        elsif Tok = Tok_String_Constant then
+                           Error ("missing ','");
+                        elsif Tok /= Tok_Right_Paren then
+                           Error ("invalid list value");
+                           Skip_To (Tok_Semi);
+                           Scan;
+                           return;
+                        end if;
+                     end loop;
+
+                     Kit.Schema.Properties.Get_Properties (Name)
+                       .Set_Property (Attribute, Value);
+                  end;
+               else
+                  Error ("expected a string or a list");
+                  Skip_To (Tok_Semi);
+                  Scan;
+               end if;
+            end;
+         else
+            Error ("missing identifier");
+            Skip_To (Tok_Semi);
+            Scan;
+         end if;
+      end;
+
+      if Tok = Tok_Semi then
+         Scan;
+      else
+         Error ("missing ';'");
+      end if;
+
+   end Parse_Representation_Clause;
+
    ----------------
    -- Parse_Type --
    ----------------
@@ -841,6 +969,8 @@ package body Kit.Parser is
                Parse_Record (Db);
             elsif Tok = Tok_Type then
                Parse_Type_Declaration (Db);
+            elsif Tok = Tok_For then
+               Parse_Representation_Clause (Db);
             else
                pragma Assert (False);
             end if;

@@ -471,7 +471,7 @@ package body Kit.Generate is
       return Syn.Projects.Project
    is
       Top_Package : Syn.Declarations.Package_Type :=
-        Syn.Declarations.New_Package_Type (Db.Name);
+        Syn.Declarations.New_Package_Type (Db.Database_Package_Name);
 
       Project : Syn.Projects.Project;
 

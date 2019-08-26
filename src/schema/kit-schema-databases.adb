@@ -42,6 +42,15 @@ package body Kit.Schema.Databases is
                  new Root_Database_Type;
    begin
       Result.Create (Name);
+      Result.Set_Property
+        ("database_package_name",
+         Kit.Schema.Properties.String_Value (Name));
+      Result.Set_Property
+        ("handle_package_name",
+         Kit.Schema.Properties.String_Value (Name & ".Handles"));
+
+      Result.Register_Properties (Name);
+
       return Result;
    end Create_Database;
 
@@ -156,6 +165,19 @@ package body Kit.Schema.Databases is
       Table_Vectors.Next (Table_Vectors.Cursor (Position));
    end Next;
 
+   ------------------
+   -- Set_Property --
+   ------------------
+
+   overriding procedure Set_Property
+     (Database   : in out Root_Database_Type;
+      Name       : String;
+      Value      : Kit.Schema.Properties.Kit_Property_Value)
+   is
+   begin
+      Database.Properties.Set_Property (Name, Value);
+   end Set_Property;
+
    -----------------
    -- Table_Count --
    -----------------
@@ -178,17 +200,5 @@ package body Kit.Schema.Databases is
          Db.Append (T);
       end loop;
    end With_Database;
-
-   -----------
-   -- Write --
-   -----------
-
-   procedure Write (Db     : Root_Database_Type;
-                    Writer : in out Syn.Writer.Writer_Interface'Class)
-   is
-   begin
-      Writer.Put_Line ("package " & Db.Name & " is");
-      Writer.Put_Line ("end " & Db.Name & ";");
-   end Write;
 
 end Kit.Schema.Databases;
