@@ -18,3 +18,6 @@ src/server/leander
 *.orig
 config/test
 src/kit-paths.ads
+gnatinspect.db
+kit_ui-loc.xml
+tests/scratch
