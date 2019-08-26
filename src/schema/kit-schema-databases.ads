@@ -78,6 +78,11 @@ private
          Properties : Kit.Schema.Properties.Properties_Map;
       end record;
 
+   overriding function Ada_Name
+     (Db : Root_Database_Type)
+      return String
+   is (Db.Database_Package_Name);
+
    overriding function Has_Property
      (Database : Root_Database_Type;
       Name     : String)
@@ -96,8 +101,9 @@ private
       Value      : Kit.Schema.Properties.Kit_Property_Value);
 
    function Database_Package_Name (Db : Root_Database_Type) return String
-   is (Kit.Schema.Properties.To_String
-       (Db.Properties.Get_Property (Database_Package_Name_Property)));
+   is (Kit.Names.Ada_Name
+       (Kit.Schema.Properties.To_String
+        (Db.Properties.Get_Property (Database_Package_Name_Property))));
 
    function Handle_Package_Name (Db : Root_Database_Type) return String
    is (Kit.Schema.Properties.To_String

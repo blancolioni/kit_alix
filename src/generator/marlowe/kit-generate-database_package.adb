@@ -28,7 +28,7 @@ package body Kit.Generate.Database_Package is
    is
       Result : Syn.Declarations.Package_Type :=
                  Syn.Declarations.New_Package_Type
-                   (Db.Name & ".Database");
+                   (Db.Ada_Name & ".Database");
 
       procedure Add_Implementation_With
         (Table : Kit.Schema.Tables.Table_Type);
@@ -232,7 +232,8 @@ package body Kit.Generate.Database_Package is
          is
          begin
             Result.With_Package
-              (Db.Ada_Name & ".Database." & "Db_" & Table.Ada_Name,
+              (Db.Ada_Name & ".Database."
+               & "Db_" & Table.Ada_Name,
                Body_With => True);
          end With_Table_Database;
 
@@ -269,7 +270,7 @@ package body Kit.Generate.Database_Package is
    is
       Result : Syn.Declarations.Package_Type :=
                  Syn.Declarations.New_Package_Type
-                   (Db.Name & ".Database.Types");
+                   (Db.Ada_Name & ".Database.Types");
       Block  : Syn.Blocks.Block_Type;
 
       procedure Create_Type (T  : Kit.Schema.Types.Kit_Type);
@@ -334,7 +335,7 @@ package body Kit.Generate.Database_Package is
 
       Result : Syn.Declarations.Package_Type :=
                  Syn.Declarations.New_Package_Type
-                   (Db.Name & ".Database."
+                   (Db.Ada_Name & ".Database."
                     & "Db_" & Table.Ada_Name);
 
       procedure Add_Base_With
@@ -356,7 +357,9 @@ package body Kit.Generate.Database_Package is
       is
       begin
          Result.With_Package
-           (Withed       => Db.Ada_Name & ".Database.Db_" & Table.Ada_Name,
+           (Withed       =>
+              Db.Ada_Name
+            & ".Database.Db_" & Table.Ada_Name,
             Body_With    => True);
       end Add_Base_With;
 
