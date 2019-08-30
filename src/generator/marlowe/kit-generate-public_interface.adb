@@ -1861,6 +1861,9 @@ package body Kit.Generate.Public_Interface is
          procedure Database_Insert
            (Base : Kit.Schema.Tables.Table_Type);
 
+         procedure Copy_Record
+           (Base : Kit.Schema.Tables.Table_Type);
+
          procedure Set_Field (Field_Name : String;
                               Value      : String);
 
@@ -1870,6 +1873,11 @@ package body Kit.Generate.Public_Interface is
          procedure Initialise_Field
            (Base     : Kit.Schema.Tables.Table_Type;
             Field    : Kit.Schema.Fields.Field_Type);
+
+         function Local_Base
+           (Base : Kit.Schema.Tables.Table_Type)
+            return String
+         is ("T" & Base.Index_Image & "_Access");
 
          --------------------------
          -- Add_Create_Arguments --
@@ -1914,17 +1922,31 @@ package body Kit.Generate.Public_Interface is
          begin
             Sequence.Append
               (New_Assignment_Statement
-                 ("Result" & Base.Base_Component_Name,
+                 (Local_Base (Base),
                   New_Allocation_Expression
                     (Base.Ada_Name & "_Cache.Cache_Record")));
             if Base.Name = "kit_root_record" then
                Sequence.Append
                  (New_Assignment_Statement
-                    ("Result" & Base.Base_Component_Name
+                    (Local_Base (Base)
                      & ".Db.Top_Record",
                      Object ("R_" & Table.Ada_Name)));
             end if;
          end Allocate_Context;
+
+         -----------------
+         -- Copy_Record --
+         -----------------
+
+         procedure Copy_Record
+           (Base : Kit.Schema.Tables.Table_Type)
+         is
+         begin
+            Sequence.Append
+              (New_Assignment_Statement
+                 ("Result" & Base.Base_Component_Name,
+                  Object (Local_Base (Base) & ".Db")));
+         end Copy_Record;
 
          ---------------------
          -- Database_Insert --
@@ -1935,9 +1957,11 @@ package body Kit.Generate.Public_Interface is
          is
             use Syn.Expressions;
 
+            Base_Access : constant String := Local_Base (Base);
             Index_Field : constant String :=
-                            Table.Database_Index_Component
-                              ("Result", Base);
+              (if Base.Ada_Name = Table.Ada_Name
+               then "Result.Local.M_Index"
+               else Local_Base (Table) & ".Db" & Base.Base_Index_Name);
 
             procedure Set_Base_Index
               (Meta_Base : Kit.Schema.Tables.Table_Type);
@@ -1949,15 +1973,14 @@ package body Kit.Generate.Public_Interface is
             procedure Set_Base_Index
               (Meta_Base : Kit.Schema.Tables.Table_Type)
             is
+               Target_Component : constant String :=
+                 Base_Access & ".Db" & Meta_Base.Base_Index_Name;
+               Source_Component : constant String :=
+                 Local_Base (Table) & ".Db" & Meta_Base.Base_Index_Name;
             begin
                Sequence.Append
                  (New_Assignment_Statement
-                    (Table.Database_Index_Component
-                       ("Result", Base, Meta_Base),
-                        Object
-                          (Table.Database_Index_Component
-                             ("Result",
-                              Meta_Base))));
+                    (Target_Component, Object (Source_Component)));
             end Set_Base_Index;
 
          begin
@@ -1972,12 +1995,12 @@ package body Kit.Generate.Public_Interface is
                        ("Marlowe_Keys.Handle.Insert_Record",
                         Literal (Integer (Base.Reference_Index))))));
             if Base.Ada_Name /= Table.Ada_Name then
-               Base.Iterate (Set_Base_Index'Access, Inclusive   => False);
+               Base.Iterate (Set_Base_Index'Access, Inclusive => False);
             end if;
 
             Sequence.Append
               (New_Procedure_Call_Statement
-                 ("Result" & Base.Base_Component_Name & ".Initialise",
+                 (Base_Access & ".Initialise",
                   Literal (Integer (Base.Reference_Index)),
                   New_Function_Call_Expression
                     ("Marlowe.Database_Index",
@@ -1987,8 +2010,7 @@ package body Kit.Generate.Public_Interface is
               (New_Procedure_Call_Statement
                  ("Kit.Cache.Insert",
                   New_Function_Call_Expression
-                    ("Kit.Cache.Cache_Entry",
-                     "Result" & Base.Base_Component_Name)));
+                    ("Kit.Cache.Cache_Entry", Base_Access)));
 
             Sequence.Append
               (New_Procedure_Call_Statement
@@ -1996,12 +2018,12 @@ package body Kit.Generate.Public_Interface is
                   New_Function_Call_Expression
                     ("Marlowe.Database_Index",
                      Object (Index_Field)),
-                  Object ("Result" & Base.Base_Component_Name & ".Db")));
+                  Object (Base_Access & ".Db")));
 
             Perform_X_Lock
               (Sequence       => Sequence,
                Table_Name     => Base.Ada_Name,
-               Object_Name    => "Result" & Base.Base_Component_Name,
+               Object_Name    => Base_Access,
                Request_Object =>
                  "Result.Local.T" & Base.Index_Image & "_Request",
                Index_Object   => Index_Field);
@@ -2068,11 +2090,40 @@ package body Kit.Generate.Public_Interface is
                         Inclusive => True,
                         Table_First => False);
 
+         Table.Iterate (Copy_Record'Access,
+                        Inclusive => True,
+                        Table_First => False);
+
          Sequence.Append ("Result.Local.X_Locked := True");
 
          declare
             Block : Syn.Blocks.Block_Type;
+
+            procedure Declare_Access
+              (Base : Kit.Schema.Tables.Table_Type);
+
+            --------------------
+            -- Declare_Access --
+            --------------------
+
+            procedure Declare_Access
+              (Base : Kit.Schema.Tables.Table_Type)
+            is
+            begin
+               Block.Add_Declaration
+                 (Declarations.New_Object_Declaration
+                    (Name        => Local_Base (Base),
+                     Object_Type =>
+                       Named_Subtype
+                         (Base.Ada_Name & "_Cache.Cache_Access")));
+            end Declare_Access;
+
          begin
+
+            Table.Iterate (Declare_Access'Access,
+                           Inclusive   => True,
+                           Table_First => False);
+
             Block.Append
               (New_Return_Statement
                  ("Result", Implementation_Type, Sequence));
@@ -2261,7 +2312,7 @@ package body Kit.Generate.Public_Interface is
          begin
             Context_Defn.Add_Component
               (Name & "_Data",
-               It.Ada_Name & "_Cache.Cache_Access");
+               It.Ada_Name & "_Impl." & It.Ada_Name & "_Database_Record");
             if Kit.Options.Generate_Deadlock_Detection then
                Context_Defn.Add_Component
                  (Name & "_Request",

@@ -245,7 +245,7 @@ package body Kit.Schema.Tables is
       pragma Unreferenced (Table);
    begin
       return Object_Name & Base.Base_Component_Name
-        & ".Db." & Field.Ada_Name;
+        & "." & Field.Ada_Name;
    end Base_Field_Name;
 
    ----------------
