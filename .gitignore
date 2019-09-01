@@ -21,3 +21,13 @@ src/kit-paths.ads
 gnatinspect.db
 kit_ui-loc.xml
 tests/scratch
+tests/src
+tests/src-master
+*.stdout
+*.stderr
+*.cswi
+*.exe
+*.db-shm
+*.db-wal
+*.cgpr
+*.bexch

@@ -15,7 +15,9 @@ package body Kit.Generate.Fetch is
       Target      : in out Syn.Statement_Sequencer'Class)
    is
 
+      procedure Lock_Base (Base   : Kit.Schema.Tables.Table_Type);
       procedure Get_Base (Base   : Kit.Schema.Tables.Table_Type);
+      procedure Unlock_Base (Base   : Kit.Schema.Tables.Table_Type);
 
       --------------
       -- Get_Base --
@@ -34,15 +36,54 @@ package body Kit.Generate.Fetch is
                             Table.Database_Index_Component
                               (Object_Name, Base);
       begin
+         Lock_Base (Base);
          Target.Append
            (New_Assignment_Statement
               (Base_Target,
-               New_Function_Call_Expression
-                 (Cache_Package & ".Get",
+               Operator
+                 (".",
                   New_Function_Call_Expression
-                    ("Marlowe.Database_Index",
-                     Index_Variable))));
+                    (Cache_Package & ".Get",
+                     New_Function_Call_Expression
+                       ("Marlowe.Database_Index",
+                        Index_Variable),
+                     Object ("False")),
+                  Object ("Db"))));
       end Get_Base;
+
+      ---------------
+      -- Lock_Base --
+      ---------------
+
+      procedure Lock_Base (Base   : Kit.Schema.Tables.Table_Type) is
+         use Syn.Statements;
+         Index_Variable : constant String :=
+           Table.Database_Index_Component
+             (Object_Name, Base);
+      begin
+         Target.Append
+           (New_Procedure_Call_Statement
+              (Base.Ada_Name & "_Cache.S_Lock",
+               Syn.Expressions.New_Function_Call_Expression
+                 ("Marlowe.Database_Index", Index_Variable)));
+      end Lock_Base;
+
+      -----------------
+      -- Unlock_Base --
+      -----------------
+
+      procedure Unlock_Base (Base   : Kit.Schema.Tables.Table_Type) is
+         use Syn.Statements;
+         Index_Variable : constant String :=
+                            Table.Database_Index_Component
+                              (Object_Name, Base);
+      begin
+         Target.Append
+           (New_Procedure_Call_Statement
+              (Base.Ada_Name & "_Cache.Unlock",
+               Syn.Expressions.New_Function_Call_Expression
+                 ("Marlowe.Database_Index", Index_Variable)));
+      end Unlock_Base;
 
    begin
       if Kit.Options.Generate_Debug then
@@ -59,12 +100,15 @@ package body Kit.Generate.Fetch is
                      Literal
                        ("Fetch " & Table.Ada_Name & ": "),
                      New_Function_Call_Expression
-                       ("Marlowe.Database_Index'Image",
-                        Object (Object_Name & ".Index")))));
+                       ("To_String",
+                        Object (Object_Name & ".M_Index")))));
          end;
       end if;
 
       Table.Iterate (Get_Base'Access,
+                     Inclusive   => True,
+                     Table_First => True);
+      Table.Iterate (Unlock_Base'Access,
                      Inclusive   => True,
                      Table_First => True);
    end Fetch_From_Index;

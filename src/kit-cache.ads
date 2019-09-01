@@ -11,14 +11,14 @@ package Kit.Cache is
                     Index  : Marlowe.Database_Index)
       is abstract;
 
-   overriding
-   procedure X_Lock (Item : not null access Cache_Entry_Record);
+   overriding procedure U_Lock
+     (Item : not null access Cache_Entry_Record);
 
-   overriding
-   procedure S_Lock (Item : not null access Cache_Entry_Record);
+   overriding procedure S_Lock
+     (Item : not null access Cache_Entry_Record);
 
-   overriding
-   procedure Unlock (Item : not null access Cache_Entry_Record);
+   overriding procedure Unlock
+     (Item : not null access Cache_Entry_Record);
 
    procedure Initialise (Ent   : in out Cache_Entry_Record'Class;
                          Rec   : in     Marlowe.Table_Index;

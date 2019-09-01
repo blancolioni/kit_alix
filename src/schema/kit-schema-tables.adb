@@ -210,7 +210,7 @@ package body Kit.Schema.Tables is
       return String
    is
    begin
-      return ".Local.T" & Table.Index_Image & "_Data";
+      return ".T" & Table.Index_Image & "_Data";
    end Base_Component_Name;
 
    ----------------
@@ -414,10 +414,10 @@ package body Kit.Schema.Tables is
    is
    begin
       if Table.Ada_Name = Base.Ada_Name then
-         return Object_Name & ".Local.M_Index";
+         return Object_Name & ".M_Index";
       else
          return Object_Name
-           & Table.Base_Component_Name & ".Db"
+           & Table.Base_Component_Name
            & Base.Base_Index_Name;
       end if;
    end Database_Index_Component;
@@ -436,7 +436,7 @@ package body Kit.Schema.Tables is
       pragma Unreferenced (Table);
    begin
       return Object_Name
-        & Base_1.Base_Component_Name & ".Db"
+        & Base_1.Base_Component_Name & "."
         & Base_2.Base_Index_Name;
    end Database_Index_Component;
 
@@ -1366,7 +1366,7 @@ package body Kit.Schema.Tables is
                                and then Object_Component /= ""
                                and then Object_Component
                                  (Object_Component'Last) /= '_'
-                               then "Local.T" & Table.Index_Image & "_Data.Db."
+                               then "T" & Table.Index_Image & "_Data."
                                else "")
                             & Key.Field (1).Ada_Name;
             Key_Part : constant Expression'Class :=

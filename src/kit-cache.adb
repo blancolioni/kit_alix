@@ -228,8 +228,9 @@ package body Kit.Cache is
                declare
                   E    : Cache_Entry := Element (Position);
                begin
-                  if E.X_Locked
-                    or else E.S_Locked
+                  if E.Is_X_Locked
+                    or else E.Is_U_Locked
+                    or else E.Is_S_Locked
                     or else E.Dirty
                     or else E.References > 0
                   then
@@ -396,8 +397,9 @@ package body Kit.Cache is
                                & " index"
                                & Marlowe.Database_Index'Image
                                  (Item.Index)
-                               & " s = " & Boolean'Image (Item.S_Locked)
-                               & " x = " & Boolean'Image (Item.X_Locked));
+                               & " s = " & Boolean'Image (Item.Is_S_Locked)
+                               & " u = " & Boolean'Image (Item.Is_U_Locked)
+                               & " x = " & Boolean'Image (Item.Is_X_Locked));
          Ada.Text_IO.Flush;
 
       end if;
@@ -447,6 +449,45 @@ package body Kit.Cache is
    end To_Cache_Index;
 
    ------------
+   -- U_Lock --
+   ------------
+
+   overriding procedure U_Lock
+     (Item : not null access Cache_Entry_Record)
+   is
+   begin
+      if Debug_Locking then
+         declare
+            use type Marlowe.Table_Index;
+            use type Marlowe.Database_Index;
+         begin
+            Ada.Text_IO.Put_Line ("U_Lock: table"
+                                  & Marlowe.Table_Index'Image
+                                    (Item.Get_Table_Index)
+                                  & " index"
+                                  & Marlowe.Database_Index'Image
+                                    (Item.Index)
+                                  & " s = "
+                                  & Boolean'Image (Item.Is_S_Locked)
+                                  & " u = "
+                                  & Boolean'Image (Item.Is_U_Locked)
+                                  & " x = "
+                                  & Boolean'Image (Item.Is_X_Locked));
+            Ada.Text_IO.Flush;
+         end;
+      end if;
+      Locking.Root_Lockable_Type (Item.all).U_Lock;
+      Item.Dirty := True;
+      Item.Reference;
+
+      Tick_Mutex.Lock;
+      Item.Last_Access := Global_Tick;
+      Global_Tick   := Global_Tick + 1;
+      Tick_Mutex.Unlock;
+
+   end U_Lock;
+
+   ------------
    -- Unlock --
    ------------
 
@@ -460,11 +501,12 @@ package body Kit.Cache is
                                & " index"
                                & Marlowe.Database_Index'Image
                                  (Item.Index)
-                               & " s = " & Boolean'Image (Item.S_Locked)
-                               & " x = " & Boolean'Image (Item.X_Locked));
+                               & " s = " & Boolean'Image (Item.Is_S_Locked)
+                               & " u = " & Boolean'Image (Item.Is_U_Locked)
+                               & " x = " & Boolean'Image (Item.Is_X_Locked));
          Ada.Text_IO.Flush;
       end if;
-      if Item.X_Locked then
+      if Item.Is_X_Locked then
          Item.Dirty := False;
          Cache_Entry_Record'Class (Item.all).Write (Item.Index);
       end if;
@@ -518,39 +560,5 @@ package body Kit.Cache is
 
       end if;
    end Update_LRU;
-
-   ------------
-   -- X_Lock --
-   ------------
-
-   overriding
-   procedure X_Lock (Item : not null access Cache_Entry_Record) is
-   begin
-      if Debug_Locking then
-         declare
-            use type Marlowe.Table_Index;
-            use type Marlowe.Database_Index;
-         begin
-            Ada.Text_IO.Put_Line ("X_Lock: table"
-                                  & Marlowe.Table_Index'Image
-                                    (Item.Get_Table_Index)
-                                  & " index"
-                                  & Marlowe.Database_Index'Image
-                                    (Item.Index)
-                                  & " s = " & Boolean'Image (Item.S_Locked)
-                                  & " x = " & Boolean'Image (Item.X_Locked));
-            Ada.Text_IO.Flush;
-         end;
-      end if;
-      Locking.Root_Lockable_Type (Item.all).X_Lock;
-      Item.Dirty := True;
-      Item.Reference;
-
-      Tick_Mutex.Lock;
-      Item.Last_Access := Global_Tick;
-      Global_Tick   := Global_Tick + 1;
-      Tick_Mutex.Unlock;
-
-   end X_Lock;
 
 end Kit.Cache;
