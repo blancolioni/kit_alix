@@ -1030,6 +1030,7 @@ package body Kit.Generate.Public_Get is
       use Syn;
       use Syn.Expressions, Syn.Statements;
 
+      Empty_Sequence   : Sequence_Of_Statements;
       Return_Sequence  : Sequence_Of_Statements;
 
       function Function_Name
@@ -1076,6 +1077,7 @@ package body Kit.Generate.Public_Get is
    begin
 
       for Update in Boolean loop
+         Return_Sequence := Empty_Sequence;
          Return_Sequence.Append
            (New_Procedure_Call_Statement
               (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
@@ -1103,6 +1105,10 @@ package body Kit.Generate.Public_Get is
          Set_Field (Return_Sequence, "Finished", False);
          Set_Field (Return_Sequence, "Using_Key_Value", False);
          Set_Field (Return_Sequence, "Scanning", False);
+
+         if Update then
+            Set_Field (Return_Sequence, "Read_Only", Value => False);
+         end if;
 
          Return_Sequence.Append
            (New_Procedure_Call_Statement
