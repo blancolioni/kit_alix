@@ -12,6 +12,7 @@ package body Kit.Generate.Fetch is
    procedure Fetch_From_Index
      (Table       : Kit.Schema.Tables.Table_Type;
       Object_Name : String;
+      Update      : Boolean;
       Target      : in out Syn.Statement_Sequencer'Class)
    is
 
@@ -58,12 +59,16 @@ package body Kit.Generate.Fetch is
       procedure Lock_Base (Base   : Kit.Schema.Tables.Table_Type) is
          use Syn.Statements;
          Index_Variable : constant String :=
-           Table.Database_Index_Component
-             (Object_Name, Base);
+                            Table.Database_Index_Component
+                              (Object_Name, Base);
+         Lock_Procedure : constant String :=
+                            (if Update
+                             then Base.Ada_Name & "_Cache.U_Lock"
+                             else Base.Ada_Name & "_Cache.S_Lock");
       begin
          Target.Append
            (New_Procedure_Call_Statement
-              (Base.Ada_Name & "_Cache.S_Lock",
+              (Lock_Procedure,
                Syn.Expressions.New_Function_Call_Expression
                  ("Marlowe.Database_Index", Index_Variable)));
       end Lock_Base;
@@ -108,9 +113,11 @@ package body Kit.Generate.Fetch is
       Table.Iterate (Get_Base'Access,
                      Inclusive   => True,
                      Table_First => True);
-      Table.Iterate (Unlock_Base'Access,
-                     Inclusive   => True,
-                     Table_First => True);
+      if not Update then
+         Table.Iterate (Unlock_Base'Access,
+                        Inclusive   => True,
+                        Table_First => True);
+      end if;
    end Fetch_From_Index;
 
 end Kit.Generate.Fetch;

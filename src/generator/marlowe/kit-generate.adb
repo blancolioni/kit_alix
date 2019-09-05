@@ -206,6 +206,7 @@ package body Kit.Generate is
       use Syn, Syn.Declarations;
       pragma Unreferenced (Db);
       Record_Interface : Syn.Interface_Type_Definition;
+      Update_Interface : Syn.Interface_Type_Definition;
    begin
       Record_Interface.Set_Limited;
       Top.Append (New_Full_Type_Declaration
@@ -236,16 +237,6 @@ package body Kit.Generate is
               ("Field", Named_Subtype ("String")),
             Named_Subtype ("String")));
 
-      Top.Append
-        (New_Abstract_Procedure
-           ("Set",
-            New_Inout_Argument
-              ("Item", Named_Subtype ("Record_Interface")),
-            New_Formal_Argument
-              ("Field", Named_Subtype ("String")),
-            New_Formal_Argument
-              ("Value", Named_Subtype ("String"))));
-
       Top.Add_Separator;
 
       Top.Append
@@ -257,6 +248,22 @@ package body Kit.Generate is
             Result_Type =>
               Named_Subtype ("String")));
 
+      Top.Add_Separator;
+
+      Update_Interface.Set_Limited;
+      Top.Append (New_Full_Type_Declaration
+                  ("Record_Update_Interface", Update_Interface));
+      Top.Add_Separator;
+
+      Top.Append
+        (New_Abstract_Procedure
+           ("Set",
+            New_Inout_Argument
+              ("Item", Named_Subtype ("Record_Update_Interface")),
+            New_Formal_Argument
+              ("Field", Named_Subtype ("String")),
+            New_Formal_Argument
+              ("Value", Named_Subtype ("String"))));
       Top.Add_Separator;
 
    end Create_Record_Interface;

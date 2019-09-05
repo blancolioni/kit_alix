@@ -1431,6 +1431,42 @@ package body Kit.Schema.Tables is
       return Item.Ada_Name & "_Type";
    end Type_Name;
 
+   --------------------------------
+   -- Update_Implementation_Name --
+   --------------------------------
+
+   function Update_Implementation_Name
+     (Item : Root_Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Update_Implementation";
+   end Update_Implementation_Name;
+
+   ---------------------------
+   -- Update_Interface_Name --
+   ---------------------------
+
+   function Update_Interface_Name
+     (Item : Root_Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Update_Interface";
+   end Update_Interface_Name;
+
+   ----------------------
+   -- Update_Type_Name --
+   ----------------------
+
+   function Update_Type_Name
+     (Item : Root_Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Update";
+   end Update_Type_Name;
+
    ----------------------
    -- With_Map_Package --
    ----------------------

@@ -39,11 +39,23 @@ package Kit.Schema.Tables is
      (Item : Root_Table_Type)
       return String;
 
+   function Update_Interface_Name
+     (Item : Root_Table_Type)
+      return String;
+
    function Type_Name
      (Item : Root_Table_Type)
       return String;
 
+   function Update_Type_Name
+     (Item : Root_Table_Type)
+      return String;
+
    function Implementation_Name
+     (Item : Root_Table_Type)
+      return String;
+
+   function Update_Implementation_Name
      (Item : Root_Table_Type)
       return String;
 

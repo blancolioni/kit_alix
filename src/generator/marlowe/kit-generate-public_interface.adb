@@ -128,7 +128,7 @@ package body Kit.Generate.Public_Interface is
                        New_Inout_Argument
                          ("Item",
                           Syn.Named_Subtype
-                            (Table.Ada_Name & "_Implementation"));
+                            (Table.Update_Implementation_Name));
 
       procedure Create_Delete;
       procedure Create_Initialize;
@@ -160,22 +160,11 @@ package body Kit.Generate.Public_Interface is
                         ("Delete",
                          New_Inout_Argument ("Item",
                            Syn.Named_Subtype
-                             (Table.Ada_Name & "_Implementation")),
+                             (Table.Update_Implementation_Name)),
                          Delete_Block);
          begin
             Delete.Set_Overriding;
             Top.Append_To_Body (Delete);
-
-            if Table.Ada_Name = "Kit_Root_Record" then
-               Top.Append
-                 (New_Abstract_Procedure
-                    (Name => "Delete",
-                     Argument =>
-                       New_Inout_Argument
-                         ("Item",
-                          Syn.Named_Subtype
-                            (Table.Ada_Name & "_Interface"))));
-            end if;
          end;
 
       end Create_Delete;
@@ -703,7 +692,7 @@ package body Kit.Generate.Public_Interface is
                      ("Set_" & Field.Ada_Name,
                       New_Inout_Argument ("Item",
                         Syn.Named_Subtype
-                          (Table.Interface_Name)));
+                          (Table.Update_Interface_Name)));
       begin
          Store.Add_Formal_Argument
            (New_Formal_Argument ("Value",
@@ -721,7 +710,7 @@ package body Kit.Generate.Public_Interface is
                            ("Set_" & Field.Ada_Name,
                             New_Inout_Argument ("Item",
                               Syn.Named_Subtype
-                                (Table.Interface_Name)));
+                                (Table.Update_Interface_Name)));
             begin
                Store.Add_Formal_Argument
                  (New_Formal_Argument ("Value",
@@ -1049,7 +1038,7 @@ package body Kit.Generate.Public_Interface is
                      ("Set_" & Field.Ada_Name,
                       New_Inout_Argument ("Item",
                         Syn.Named_Subtype
-                          (Table.Ada_Name & "_Implementation")),
+                          (Table.Update_Implementation_Name)),
                       Store_Block);
       begin
          Store.Add_Formal_Argument
@@ -1073,7 +1062,7 @@ package body Kit.Generate.Public_Interface is
                             ("Set_" & Field.Ada_Name,
                              New_Inout_Argument ("Item",
                                Syn.Named_Subtype
-                                 (Table.Ada_Name & "_Implementation")),
+                                 (Table.Update_Implementation_Name)),
                              Syn.Blocks.Create_Block
                                (New_Procedure_Call_Statement
                                   ("Item.Set_" & Field.Ada_Name,
@@ -1270,7 +1259,7 @@ package body Kit.Generate.Public_Interface is
          Store.Add_Formal_Argument
            ("Item",
             Inout_Argument,
-            Table.Ada_Name & "_Implementation");
+            Table.Update_Implementation_Name);
          Store.Add_Formal_Argument
            ("Field",
             "String");
@@ -1674,7 +1663,7 @@ package body Kit.Generate.Public_Interface is
             Fetch_Found : Sequence_Of_Statements;
             Not_Found   : Sequence_Of_Statements;
          begin
-            Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
+            Fetch.Fetch_From_Index (Table, "Item", False, Fetch_Found);
             Not_Found.Append ("Item.M_Index := 0");
             Next_Block.Add_Statement
               (If_Statement
@@ -1721,20 +1710,25 @@ package body Kit.Generate.Public_Interface is
 --                                     & Table.Ada_Name & "_Database_Record";
       Cache_Package          : constant String :=
                                  Table.Ada_Name & "_Cache";
-      Implementation_Type    : constant String :=
-                                 Table.Ada_Name & "_Implementation";
+      Implementation_Type    : constant String := Table.Implementation_Name;
+      Update_Type            : constant String :=
+                                 Table.Update_Implementation_Name;
 
       Withed_Tables : Kit.String_Maps.String_Map;
 
       Table_Package : Syn.Declarations.Package_Type'Class :=
-        Top.New_Child_Package (Table.Ada_Name);
-      Table_Interface : Syn.Interface_Type_Definition;
+                        Top.New_Child_Package (Table.Ada_Name);
+
+      Table_Interface        : Syn.Interface_Type_Definition;
+      Table_Update_Interface : Syn.Interface_Type_Definition;
 
       procedure Add_Field_Type_With
         (Base  : Kit.Schema.Tables.Table_Type;
          Field : Kit.Schema.Fields.Field_Type);
+
       procedure Add_Base_With (It : Kit.Schema.Tables.Table_Type);
       procedure Add_Base (It : Kit.Schema.Tables.Table_Type);
+      procedure Add_Update_Base (It : Kit.Schema.Tables.Table_Type);
 
       procedure Add_Fetch (Base  : Kit.Schema.Tables.Table_Type;
                            Field : Kit.Schema.Fields.Field_Type);
@@ -1750,6 +1744,8 @@ package body Kit.Generate.Public_Interface is
       procedure Add_Create_Function;
 
       procedure Create_Implementation_Type;
+
+      procedure Create_Update_Type;
 
       procedure Create_Selection_Type;
 
@@ -2065,16 +2061,16 @@ package body Kit.Generate.Public_Interface is
 
             Block.Append
               (New_Return_Statement
-                 ("Result", Implementation_Type, Sequence));
+                 ("Result", Update_Type, Sequence));
             Table_Package.Append
-              (New_Function ("Create", Table.Type_Name,
+              (New_Function ("Create", Table.Update_Type_Name,
                Block));
          end;
 
          Create_Ref_Block.Add_Declaration
            (New_Object_Declaration
               ("Result",
-               Table.Type_Name,
+               Table.Update_Type_Name,
                Object ("Create")));
 
          Table.Iterate_All (Initialise_Field'Access);
@@ -2228,6 +2224,17 @@ package body Kit.Generate.Public_Interface is
          end if;
       end Add_Store;
 
+      ---------------------
+      -- Add_Update_Base --
+      ---------------------
+
+      procedure Add_Update_Base (It : Kit.Schema.Tables.Table_Type) is
+      begin
+         Table_Update_Interface.Add_Parent
+           (Db.Ada_Name & "." & It.Ada_Name & "." &
+              It.Update_Interface_Name);
+      end Add_Update_Base;
+
       --------------------------------
       -- Create_Implementation_Type --
       --------------------------------
@@ -2256,7 +2263,7 @@ package body Kit.Generate.Public_Interface is
       begin
          Record_Defn.Set_Limited;
          Record_Defn.Add_Parent ("Ada.Finalization.Limited_Controlled");
-         Record_Defn.Add_Parent (Table.Ada_Name & "_Interface");
+         Record_Defn.Add_Parent (Table.Interface_Name);
          Record_Defn.Add_Component ("Finished", "Boolean");
          Record_Defn.Add_Component ("Forward", "Boolean");
          Record_Defn.Add_Component ("Read_Only", "Boolean");
@@ -2287,7 +2294,6 @@ package body Kit.Generate.Public_Interface is
                  (Access_To  => Implementation_Type,
                   Access_All => True)));
 
-         Create_Control_Procedures (Db, Table, Table_Package);
          Create_Search_Procedures (Db, Table, Table_Package);
 
       end Create_Implementation_Type;
@@ -2839,6 +2845,23 @@ package body Kit.Generate.Public_Interface is
 
       end Create_Selection_Type;
 
+      ------------------------
+      -- Create_Update_Type --
+      ------------------------
+
+      procedure Create_Update_Type is
+         Update_Defn : Syn.Types.Record_Type_Definition;
+      begin
+         Update_Defn.Set_Limited;
+         Update_Defn.Add_Parent (Implementation_Type);
+         Update_Defn.Add_Parent (Table.Update_Interface_Name);
+         Update_Defn.Add_Parent ("Record_Update_Interface");
+         Table_Package.Append_To_Body
+           (New_Full_Type_Declaration
+              (Table.Update_Implementation_Name, Update_Defn));
+
+      end Create_Update_Type;
+
    begin
 
       Table_Package.With_Package ("Ada.Containers.Doubly_Linked_Lists",
@@ -2967,7 +2990,33 @@ package body Kit.Generate.Public_Interface is
                      Table_First => False);
 
       Table.Iterate_All (Add_Fetch'Access);
-      Table.Iterate_All (Add_Store'Access);
+
+      Table_Update_Interface.Set_Limited;
+      Table_Update_Interface.Add_Parent (Table.Interface_Name);
+      Table.Iterate (Add_Update_Base'Access, Inclusive => False);
+
+      Table_Package.Append
+        (New_Full_Type_Declaration
+           (Table.Update_Interface_Name,
+            Table_Update_Interface));
+      Table_Package.Append
+        (New_Separator);
+
+      Table_Package.Append
+        (New_Subtype_Declaration
+           (Table.Update_Type_Name,
+            Syn.Class_Wide_Subtype
+              (Table.Update_Interface_Name)));
+
+      if Table.Ada_Name = "Kit_Root_Record" then
+         Table_Package.Append
+           (New_Abstract_Procedure
+              (Name     => "Delete",
+               Argument =>
+                 New_Inout_Argument
+                   ("Item",
+                    Syn.Named_Subtype (Table.Update_Interface_Name))));
+      end if;
 
       Add_Create_Function;
 
@@ -2977,7 +3026,6 @@ package body Kit.Generate.Public_Interface is
 
       Create_Identity_Function (Table, Table_Package);
       Create_Generic_Get (Table, Table_Package);
-      Create_Generic_Set (Table, Table_Package);
 
       Table.Scan_Keys (Create_Key_Get'Access,
                        Include_Base_Keys => True);
@@ -2995,6 +3043,14 @@ package body Kit.Generate.Public_Interface is
       Public_Get.Create_Iterator (Table, Table_Package);
 
       Create_Notification_Handles (Db, Table, Table_Package);
+
+      Create_Update_Type;
+
+      Create_Control_Procedures (Db, Table, Table_Package);
+
+      Create_Generic_Set (Table, Table_Package);
+
+      Table.Iterate_All (Add_Store'Access);
 
       return Table_Package;
    end Generate_Public_Interface;
