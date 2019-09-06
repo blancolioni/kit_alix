@@ -1483,8 +1483,9 @@ package body Kit.Schema.Types is
       if Value_Type.Fixed then
          return Syn.Object (Target_Name);
       else
-         return Syn.Object
-           (Target_Name & ".Text (1 .. " & Target_Name & ".Length)");
+         return Syn.Expressions.New_Function_Call_Expression
+           (Target_Name & ".Text",
+            "1 .. " & Target_Name & ".Length");
       end if;
    end Return_Value;
 
