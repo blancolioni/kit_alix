@@ -79,6 +79,9 @@ package Kit.Schema.Tables is
    function Has_Display_Field
      (Item : not null access Root_Table_Type)
       return Boolean;
+   function Has_Writable_Field
+     (Item : not null access Root_Table_Type)
+      return Boolean;
    function Has_Inherited_Table (Item : Root_Table_Type) return Boolean;
 
    function With_Vector_Package (Item : Root_Table_Type) return Boolean;

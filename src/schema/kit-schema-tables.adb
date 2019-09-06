@@ -656,6 +656,40 @@ package body Kit.Schema.Tables is
       return Item.Has_Text_Type;
    end Has_Text_Type;
 
+   ------------------------
+   -- Has_Writable_Field --
+   ------------------------
+
+   function Has_Writable_Field
+     (Item : not null access Root_Table_Type)
+      return Boolean
+   is
+      Has_Writable : Boolean := False;
+
+      procedure Check_Field
+        (Table : Table_Type;
+         Field : Kit.Schema.Fields.Field_Type);
+
+      -----------------
+      -- Check_Field --
+      -----------------
+
+      procedure Check_Field
+        (Table : Table_Type;
+         Field : Kit.Schema.Fields.Field_Type)
+      is
+         pragma Unreferenced (Table);
+      begin
+         if Field.Writeable then
+            Has_Writable := True;
+         end if;
+      end Check_Field;
+
+   begin
+      Item.Iterate_All (Check_Field'Access, True);
+      return Has_Writable;
+   end Has_Writable_Field;
+
    -------------------------
    -- Implementation_Name --
    -------------------------
