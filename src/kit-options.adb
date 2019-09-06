@@ -6,7 +6,7 @@ package body Kit.Options is
 
    function Generate_Deadlock_Detection return Boolean is
    begin
-      return True;
+      return False;
    end Generate_Deadlock_Detection;
 
    --------------------
