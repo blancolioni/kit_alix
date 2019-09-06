@@ -160,9 +160,8 @@ package body Kit.Generate is
       Lock_Context.Add_Component ("S_Locked", "Boolean", "False");
       Lock_Context.Add_Component ("X_Locked", "Boolean", "False");
       Lock_Record :=
-        Syn.Declarations.New_Full_Type_Declaration
+        Syn.Declarations.New_Private_Type_Declaration
           ("Lock_Context_Record", Definition => Lock_Context);
-      Lock_Record.Set_Private_Spec;
       Top.Append (Lock_Record);
       Lock_Access :=
         Syn.Declarations.New_Full_Type_Declaration
