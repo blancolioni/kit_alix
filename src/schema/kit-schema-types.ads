@@ -10,6 +10,8 @@ package Kit.Schema.Types is
      abstract new Kit.Names.Root_Named_Object with private;
 
    function Return_Subtype (Item : Root_Kit_Type) return String is abstract;
+   function Return_Handle_Subtype (Item : Root_Kit_Type'Class) return String;
+
    function Record_Subtype (Item : Root_Kit_Type) return String;
    function Unconstrained_Record_Subtype (Item : Root_Kit_Type) return String;
    function Argument_Subtype (Item : Root_Kit_Type) return String;
@@ -181,5 +183,10 @@ private
 
    function Is_Fixed_String (Item : Root_Kit_Type) return Boolean
    is (False);
+
+   function Return_Handle_Subtype (Item : Root_Kit_Type'Class) return String
+   is (if Item.Is_Table_Reference
+       then Item.Ada_Name & "." & Item.Ada_Name & "_Class"
+       else Item.Return_Subtype);
 
 end Kit.Schema.Types;

@@ -8,6 +8,7 @@ with Kit.Schema.Types;
 
 with Kit.Generate.Database_Package;
 with Kit.Generate.Get_From_Cache;
+with Kit.Generate.Handles;
 with Kit.Generate.Marlowe_Keys_Package;
 with Kit.Generate.Public_Interface;
 with Kit.Generate.Private_Interface;
@@ -478,12 +479,17 @@ package body Kit.Generate is
    is
       Top_Package : Syn.Declarations.Package_Type :=
         Syn.Declarations.New_Package_Type (Db.Database_Package_Name);
+      Handles     : constant Syn.Declarations.Package_Type :=
+        Syn.Declarations.New_Package_Type (Db.Handle_Package_Name);
 
       Project : Syn.Projects.Project;
 
       function Get_Record_Literal_Name (Index : Positive) return String;
 
       procedure Get_From_Cache
+        (Table : Kit.Schema.Tables.Table_Type);
+
+      procedure Handle_Interface
         (Table : Kit.Schema.Tables.Table_Type);
 
       procedure Public_Interface
@@ -516,6 +522,22 @@ package body Kit.Generate is
       begin
          return "R_" & Db.Element (Index).Ada_Name;
       end Get_Record_Literal_Name;
+
+      ----------------------
+      -- Handle_Interface --
+      ----------------------
+
+      procedure Handle_Interface
+        (Table : Kit.Schema.Tables.Table_Type)
+      is
+      begin
+         Project.Add_Package
+           (Syn.Declarations.New_Package_Type
+              (Db.Handle_Package_Name));
+         Project.Add_Package
+           (Kit.Generate.Handles.Generate_Handle_Package
+              (Db, Table, Handles));
+      end Handle_Interface;
 
       -----------------------
       -- Private_Interface --
@@ -612,6 +634,7 @@ package body Kit.Generate is
 
       Db.Iterate (Table_Database_Package'Access);
       Db.Iterate (Get_From_Cache'Access);
+      Db.Iterate (Handle_Interface'Access);
       Db.Iterate (Public_Interface'Access);
       Db.Iterate (Private_Interface'Access);
       return Project;

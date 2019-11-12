@@ -1,0 +1,17 @@
+with "marlowe";
+
+project Company_Test is
+
+   for Source_Dirs use (".", "generated", "..\src");
+   for Main use ("company_driver.adb");
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-gnatwa", "-g", "-gnatyaAbCefhicBklnM78oOprsStux", "-gnato", "-gnata");
+   end Compiler;
+
+   package Builder is
+      for Default_Switches ("ada") use ("-s", "-g", "-k", "-j3", "-gnata", "-gnatf");
+   end Builder;
+
+end Company_Test;
+
