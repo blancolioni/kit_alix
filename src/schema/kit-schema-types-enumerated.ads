@@ -38,6 +38,11 @@ private
       Object      : Syn.Expression'Class)
       return Syn.Expression'Class;
 
+   overriding function Has_Custom_Type
+     (Item : Enumerated_Type)
+      return Boolean
+   is (Item.User_Defined);
+
    overriding
    function Default_Value (Item : Enumerated_Type)
                            return Syn.Expression'Class;
@@ -63,5 +68,10 @@ private
      new Enumerated_Type with null record;
 
    overriding function Size (Item : Record_Type_Enumeration) return Natural;
+
+   overriding function Has_Custom_Type
+     (Item : Record_Type_Enumeration)
+      return Boolean
+   is (True);
 
 end Kit.Schema.Types.Enumerated;

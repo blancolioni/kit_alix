@@ -6,6 +6,8 @@ with Syn.Types;
 with Kit.Schema.Fields;
 with Kit.Schema.Types;
 
+with Kit.String_Maps;
+
 package body Kit.Generate.Handles is
 
    procedure Create_Handle_Type
@@ -42,8 +44,14 @@ package body Kit.Generate.Handles is
           (Name          => "Handle",
            Argument_Type => Syn.Named_Subtype (Handle_Name));
 
+      Withed_Tables : Kit.String_Maps.String_Map;
+
       procedure Add_Base
         (Base : Kit.Schema.Tables.Table_Type);
+
+      procedure Add_Field_Type_With
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Field : Kit.Schema.Fields.Field_Type);
 
       procedure Create_Abstract_Property
         (Field : Kit.Schema.Fields.Field_Type);
@@ -53,6 +61,8 @@ package body Kit.Generate.Handles is
          Field : Kit.Schema.Fields.Field_Type);
 
       procedure Create_Get_Functions;
+
+      procedure Create_Reference_Functions;
 
       function Return_Type_Name
         (Field : Kit.Schema.Fields.Field_Type)
@@ -66,9 +76,53 @@ package body Kit.Generate.Handles is
         (Base : Kit.Schema.Tables.Table_Type)
       is
       begin
+         if not Withed_Tables.Contains (Base.Ada_Name) then
+            Target.With_Package
+              (Db.Handle_Package_Name & "." & Base.Package_Name);
+            Withed_Tables.Insert (Base.Ada_Name);
+         end if;
+
          Interface_Definition.Add_Parent
            (Name => Base.Package_Name & "." & Base.Ada_Name & "_Interface");
       end Add_Base;
+
+      -------------------------
+      -- Add_Field_Type_With --
+      -------------------------
+
+      procedure Add_Field_Type_With
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Field : Kit.Schema.Fields.Field_Type)
+      is
+      begin
+         if Field.Get_Field_Type.Is_Table_Reference then
+            declare
+               Table_Name : constant String :=
+                 Field.Get_Field_Type.Referenced_Table_Name;
+            begin
+               if not Withed_Tables.Contains (Table_Name)
+                 and then Table_Name /= Table.Ada_Name
+               then
+                  Target.With_Package
+                    (Db.Handle_Package_Name & "." & Table_Name,
+                     Body_With => Base.Standard_Name /= Table.Standard_Name);
+                  Withed_Tables.Insert (Table_Name);
+               end if;
+            end;
+         elsif Field.Get_Field_Type.Is_External_Type then
+            declare
+               Type_Package : constant String :=
+                 Field.Get_Field_Type
+                   .External_Type_Package_Name;
+            begin
+               if not Withed_Tables.Contains (Type_Package) then
+                  Target.With_Package
+                    (Type_Package);
+                  Withed_Tables.Insert (Type_Package);
+               end if;
+            end;
+         end if;
+      end Add_Field_Type_With;
 
       ------------------------------
       -- Create_Abstract_Property --
@@ -181,6 +235,32 @@ package body Kit.Generate.Handles is
          end if;
       end Create_Property;
 
+      procedure Create_Reference_Functions is
+         Block : Syn.Blocks.Block_Type;
+      begin
+         Block.Append
+           (Syn.Statements.New_Return_Statement
+              (Syn.Object ("Handle.Reference")));
+
+         declare
+            Fn : constant Syn.Declarations.Subprogram_Declaration'Class :=
+              Syn.Declarations.New_Function
+                (Name        => "Reference",
+                 Argument    =>
+                   Syn.Declarations.New_Formal_Argument
+                     ("Handle",
+                      Syn.Named_Subtype
+                        (Table.Ada_Name & "_Handle")),
+                 Result_Type =>
+                   Db.Database_Package_Name
+                 & "." & Table.Ada_Name & "_Reference",
+                 Block       => Block);
+         begin
+            Target.Append (Fn);
+         end;
+
+      end Create_Reference_Functions;
+
       ----------------------
       -- Return_Type_Name --
       ----------------------
@@ -196,6 +276,9 @@ package body Kit.Generate.Handles is
             then Db.Handle_Package_Name
             & "." & Return_Type.Ada_Name
             & "." & Return_Type.Ada_Name & "_Class"
+            elsif Return_Type.Has_Custom_Type
+            then Db.Database_Package_Name
+            & "." & Return_Type.Ada_Name
             else Return_Type.Return_Handle_Subtype);
       begin
          return Return_Name;
@@ -205,6 +288,9 @@ package body Kit.Generate.Handles is
       Table.Iterate
         (Process     => Add_Base'Access,
          Inclusive   => False);
+
+      Table.Iterate_All (Add_Field_Type_With'Access,
+                         Table_First => True);
 
       Target.With_Package
         (Db.Database_Package_Name & "." & Table.Ada_Name,
@@ -245,6 +331,7 @@ package body Kit.Generate.Handles is
       end;
 
       Create_Get_Functions;
+      Create_Reference_Functions;
 
       Table.Iterate_All (Create_Property'Access);
 
@@ -264,24 +351,10 @@ package body Kit.Generate.Handles is
         Top.New_Child_Package
           (Table.Ada_Name);
 
-      procedure With_Base (Base : Kit.Schema.Tables.Table_Type);
-
-      ---------------
-      -- With_Base --
-      ---------------
-
-      procedure With_Base (Base : Kit.Schema.Tables.Table_Type) is
-      begin
-         Handle_Package.With_Package
-           (Db.Handle_Package_Name & "." & Base.Package_Name);
-      end With_Base;
-
    begin
 
       Handle_Package.With_Package
         (Db.Database_Package_Name);
-
-      Table.Iterate (With_Base'Access, False);
 
       Create_Handle_Type (Db, Table, Handle_Package);
 

@@ -988,6 +988,16 @@ package body Kit.Schema.Types is
         (Ada.Strings.Unbounded.To_Unbounded_String (Name));
    end Get_Type;
 
+   ---------------------
+   -- Has_Custom_Type --
+   ---------------------
+
+   function Has_Custom_Type (Item : Root_Kit_Type) return Boolean is
+      pragma Unreferenced (Item);
+   begin
+      return False;
+   end Has_Custom_Type;
+
    -----------------------
    -- Has_Default_Value --
    -----------------------

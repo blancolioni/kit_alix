@@ -37,6 +37,8 @@ package Kit.Schema.Types is
    function Is_Fixed_String (Item : Root_Kit_Type) return Boolean;
    function Is_Table_Reference (Item : Root_Kit_Type) return Boolean;
 
+   function Has_Custom_Type (Item : Root_Kit_Type) return Boolean;
+
    function Key_OK (Item : Root_Kit_Type) return Boolean
    is (True);
 
