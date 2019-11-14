@@ -94,6 +94,7 @@ package body Kit.Generate.Handles is
         (Base  : Kit.Schema.Tables.Table_Type;
          Field : Kit.Schema.Fields.Field_Type)
       is
+         pragma Unreferenced (Base);
       begin
          if Field.Get_Field_Type.Is_Table_Reference then
             declare
@@ -104,8 +105,7 @@ package body Kit.Generate.Handles is
                  and then Table_Name /= Table.Ada_Name
                then
                   Target.With_Package
-                    (Db.Handle_Package_Name & "." & Table_Name,
-                     Body_With => Base.Standard_Name /= Table.Standard_Name);
+                    (Db.Handle_Package_Name & "." & Table_Name);
                   Withed_Tables.Insert (Table_Name);
                end if;
             end;
