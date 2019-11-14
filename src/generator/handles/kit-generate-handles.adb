@@ -359,7 +359,8 @@ package body Kit.Generate.Handles is
       --------------------------------
 
       procedure Create_Reference_Functions is
-         Block : Syn.Blocks.Block_Type;
+         Block             : Syn.Blocks.Block_Type;
+         Has_Element_Block : Syn.Blocks.Block_Type;
       begin
          Block.Append
            (Syn.Statements.New_Return_Statement
@@ -395,6 +396,35 @@ package body Kit.Generate.Handles is
                    Db.Database_Package_Name
                  & "." & Table.Ada_Name & "_Reference",
                  Block       => Block);
+         begin
+            Fn.Set_Overriding;
+            Target.Append (Fn);
+         end;
+
+         Has_Element_Block.Add_Declaration
+           (Syn.Declarations.Use_Type
+              (Db.Database_Package_Name & "."
+               & Table.Ada_Name & "_Reference"));
+
+         Has_Element_Block.Append
+           (Syn.Statements.New_Return_Statement
+              (Syn.Expressions.Operator
+                   ("/=", Syn.Object ("Handle.Reference"),
+                    Syn.Object (Db.Database_Package_Name
+                      & ".Null_" & Table.Ada_Name
+                      & "_Reference"))));
+
+         declare
+            Fn : Syn.Declarations.Subprogram_Declaration'Class :=
+              Syn.Declarations.New_Function
+                (Name        => "Has_Element",
+                 Argument    =>
+                   Syn.Declarations.New_Formal_Argument
+                     ("Handle",
+                      Syn.Named_Subtype
+                        (Table.Ada_Name & "_Handle")),
+                 Result_Type => "Boolean",
+                 Block       => Has_Element_Block);
          begin
             Fn.Set_Overriding;
             Target.Append (Fn);
@@ -536,6 +566,7 @@ package body Kit.Generate.Handles is
       Table.Iterate_All (Add_Field_Type_With'Access,
                          Table_First => True);
 
+      Interface_Definition.Add_Parent ("Handle_Interface");
       Table.Iterate
         (Process     => Add_Base_Db'Access,
          Inclusive   => False);

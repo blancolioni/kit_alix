@@ -530,10 +530,46 @@ package body Kit.Generate is
       procedure Handle_Interface
         (Table : Kit.Schema.Tables.Table_Type)
       is
+         function Top_Level_Handle_Package
+           return Syn.Declarations.Package_Type;
+
+         ------------------------------
+         -- Top_Level_Handle_Package --
+         ------------------------------
+
+         function Top_Level_Handle_Package
+           return Syn.Declarations.Package_Type
+         is
+            use Syn, Syn.Declarations;
+         begin
+            return Handle : Package_Type :=
+              New_Package_Type (Db.Handle_Package_Name)
+            do
+               declare
+                  Interface_Name : constant String := "Handle_Interface";
+                  Interface_Definition : Interface_Type_Definition;
+                  Interface_Argument   : constant Formal_Argument'Class :=
+                    New_Formal_Argument
+                      (Name          => "Handle",
+                       Argument_Type => Syn.Named_Subtype (Interface_Name));
+               begin
+
+                  Handle.Append
+                    (New_Full_Type_Declaration
+                       (Identifier => Interface_Name,
+                        Definition => Interface_Definition));
+
+                  Handle.Append
+                    (New_Abstract_Function
+                       ("Has_Element",
+                        Interface_Argument,
+                        Named_Subtype ("Boolean")));
+               end;
+            end return;
+         end Top_Level_Handle_Package;
+
       begin
-         Project.Add_Package
-           (Syn.Declarations.New_Package_Type
-              (Db.Handle_Package_Name));
+         Project.Add_Package (Top_Level_Handle_Package);
          Project.Add_Package
            (Kit.Generate.Handles.Generate_Handle_Package
               (Db, Table, Handles));
