@@ -56,6 +56,9 @@ package body Kit.Generate.Handles is
       procedure Create_Abstract_Property
         (Field : Kit.Schema.Fields.Field_Type);
 
+      procedure Create_Abstract_Base_Property
+        (Base : Kit.Schema.Tables.Table_Type);
+
       procedure Create_Property
         (Base  : Kit.Schema.Tables.Table_Type;
          Field : Kit.Schema.Fields.Field_Type);
@@ -63,6 +66,9 @@ package body Kit.Generate.Handles is
       procedure Create_Get_Functions;
 
       procedure Create_Reference_Functions;
+
+      procedure Create_Base_Conversion
+        (Base : Kit.Schema.Tables.Table_Type);
 
       function Return_Type_Name
         (Field : Kit.Schema.Fields.Field_Type)
@@ -124,6 +130,26 @@ package body Kit.Generate.Handles is
          end if;
       end Add_Field_Type_With;
 
+      -----------------------------------
+      -- Create_Abstract_Base_Property --
+      -----------------------------------
+
+      procedure Create_Abstract_Base_Property
+        (Base : Kit.Schema.Tables.Table_Type)
+      is
+      begin
+         if Base.Ada_Name = Table.Ada_Name then
+            Target.Append
+              (Syn.Declarations.New_Abstract_Function
+                 (Name        => "Reference_" & Base.Ada_Name,
+                  Argument    => Interface_Argument,
+                  Result_Type =>
+                    Syn.Named_Subtype
+                      (Db.Database_Package_Name
+                       & "." & Base.Ada_Name & "_Reference")));
+         end if;
+      end Create_Abstract_Base_Property;
+
       ------------------------------
       -- Create_Abstract_Property --
       ------------------------------
@@ -141,6 +167,54 @@ package body Kit.Generate.Handles is
                     Syn.Named_Subtype (Return_Type_Name (Field))));
          end if;
       end Create_Abstract_Property;
+
+      ----------------------------
+      -- Create_Base_Conversion --
+      ----------------------------
+
+      procedure Create_Base_Conversion
+        (Base : Kit.Schema.Tables.Table_Type)
+      is
+         Block       : Syn.Blocks.Block_Type;
+         Base_Handle : constant String :=
+           Db.Handle_Package_Name
+           & "." & Base.Ada_Name
+           & "." & Base.Ada_Name & "_Handle";
+      begin
+
+         Block.Add_Declaration
+           (Syn.Declarations.New_Constant_Declaration
+              ("Rec",
+               Db.Database_Package_Name & "."
+               & Table.Ada_Name & "."
+               & Table.Ada_Name & "_Type",
+               Syn.Expressions.New_Function_Call_Expression
+                 (Db.Database_Package_Name
+                  & "."
+                  & Table.Ada_Name
+                  & "."
+                  & "Get",
+                  "Handle.Reference")));
+
+         Block.Append
+           (Syn.Statements.New_Return_Statement
+              (Syn.Expressions.New_Function_Call_Expression
+                   (Db.Handle_Package_Name
+                    & "." & Base.Ada_Name
+                    & ".Get",
+                    Syn.Object ("Rec.Get_" & Base.Ada_Name & "_Reference"))));
+
+         declare
+            Fn : constant Syn.Declarations.Subprogram_Declaration'Class :=
+              Syn.Declarations.New_Function
+                (Name        => Base.Ada_Name & "_Handle",
+                 Argument    => Handle_Argument,
+                 Result_Type => Base_Handle,
+                 Block       => Block);
+         begin
+            Target.Append (Fn);
+         end;
+      end Create_Base_Conversion;
 
       --------------------------
       -- Create_Get_Functions --
@@ -188,25 +262,40 @@ package body Kit.Generate.Handles is
       is
          pragma Unreferenced (Base);
          Block : Syn.Blocks.Block_Type;
+         Function_Name : constant String :=
+           (if Field.Base_Reference
+            then "Reference_" & Field.Ada_Name
+            else Field.Ada_Name);
+
          Return_Type : constant Kit.Schema.Types.Kit_Type :=
            Field.Get_Field_Type;
+         Return_Name : constant String :=
+           (if Field.Base_Reference
+            then Db.Database_Package_Name & "."
+            & Field.Ada_Name & "_Reference"
+            else Return_Type_Name (Field));
       begin
 
-         if not Field.Base_Reference then
-            Block.Add_Declaration
-              (Syn.Declarations.New_Constant_Declaration
-                 ("Rec",
-                  Db.Database_Package_Name & "."
-                  & Table.Ada_Name & "."
-                  & Table.Ada_Name & "_Type",
-                  Syn.Expressions.New_Function_Call_Expression
-                    (Db.Database_Package_Name
-                     & "."
-                     & Table.Ada_Name
-                     & "."
-                     & "Get",
-                     "Handle.Reference")));
+         Block.Add_Declaration
+           (Syn.Declarations.New_Constant_Declaration
+              ("Rec",
+               Db.Database_Package_Name & "."
+               & Table.Ada_Name & "."
+               & Table.Ada_Name & "_Type",
+               Syn.Expressions.New_Function_Call_Expression
+                 (Db.Database_Package_Name
+                  & "."
+                  & Table.Ada_Name
+                  & "."
+                  & "Get",
+                  "Handle.Reference")));
 
+         if Field.Base_Reference then
+            Block.Append
+              (Syn.Statements.New_Return_Statement
+                 (Syn.Object
+                      ("Rec.Get_" & Field.Ada_Name & "_Reference")));
+         else
             if Return_Type.Is_Table_Reference then
                Block.Append
                  (Syn.Statements.New_Return_Statement
@@ -220,20 +309,24 @@ package body Kit.Generate.Handles is
                  (Syn.Statements.New_Return_Statement
                     (Syn.Object ("Rec." & Field.Ada_Name)));
             end if;
-
-            declare
-               Fn : Syn.Declarations.Subprogram_Declaration'Class :=
-                 Syn.Declarations.New_Function
-                   (Name        => Field.Ada_Name,
-                    Argument    => Handle_Argument,
-                    Result_Type => Return_Type_Name (Field),
-                    Block       => Block);
-            begin
-               Fn.Set_Overriding;
-               Target.Append (Fn);
-            end;
          end if;
+
+         declare
+            Fn : Syn.Declarations.Subprogram_Declaration'Class :=
+              Syn.Declarations.New_Function
+                (Name        => Function_Name,
+                 Argument    => Handle_Argument,
+                 Result_Type => Return_Name,
+                 Block       => Block);
+         begin
+            Fn.Set_Overriding;
+            Target.Append (Fn);
+         end;
       end Create_Property;
+
+      --------------------------------
+      -- Create_Reference_Functions --
+      --------------------------------
 
       procedure Create_Reference_Functions is
          Block : Syn.Blocks.Block_Type;
@@ -256,6 +349,24 @@ package body Kit.Generate.Handles is
                  & "." & Table.Ada_Name & "_Reference",
                  Block       => Block);
          begin
+            Target.Append (Fn);
+         end;
+
+         declare
+            Fn : Syn.Declarations.Subprogram_Declaration'Class :=
+              Syn.Declarations.New_Function
+                (Name        => "Reference_" & Table.Ada_Name,
+                 Argument    =>
+                   Syn.Declarations.New_Formal_Argument
+                     ("Handle",
+                      Syn.Named_Subtype
+                        (Table.Ada_Name & "_Handle")),
+                 Result_Type =>
+                   Db.Database_Package_Name
+                 & "." & Table.Ada_Name & "_Reference",
+                 Block       => Block);
+         begin
+            Fn.Set_Overriding;
             Target.Append (Fn);
          end;
 
@@ -310,6 +421,7 @@ package body Kit.Generate.Handles is
 
       Target.Append (Syn.Declarations.New_Separator);
 
+      Table.Iterate (Create_Abstract_Base_Property'Access, Inclusive => True);
       Table.Iterate (Create_Abstract_Property'Access);
 
       Handle_Definition.Set_Visible_Derivation;
@@ -332,6 +444,9 @@ package body Kit.Generate.Handles is
 
       Create_Get_Functions;
       Create_Reference_Functions;
+
+      Table.Iterate (Process     => Create_Base_Conversion'Access,
+                     Inclusive   => False);
 
       Table.Iterate_All (Create_Property'Access);
 
