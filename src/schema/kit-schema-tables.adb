@@ -1211,6 +1211,17 @@ package body Kit.Schema.Tables is
       Table.Scan_Keys (Call_Process'Access);
    end Scan_Keys;
 
+   ------------------
+   -- Set_Abstract --
+   ------------------
+
+   procedure Set_Abstract
+     (Table : in out Root_Table_Type'Class)
+   is
+   begin
+      Table.Is_Abstract := True;
+   end Set_Abstract;
+
    ----------------
    -- To_Storage --
    ----------------

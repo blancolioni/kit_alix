@@ -37,7 +37,7 @@ package body Kit.Parser is
    function At_Declaration return Boolean;
 
    procedure Parse_Record (Db : Kit.Schema.Databases.Database_Type)
-     with Pre => Tok = Tok_Record;
+     with Pre => Tok = Tok_Record or else Tok = Tok_Abstract;
 
    procedure Parse_Type_Declaration
      (Db : Kit.Schema.Databases.Database_Type)
@@ -74,6 +74,7 @@ package body Kit.Parser is
    function At_Declaration return Boolean is
    begin
       return Tok = Tok_Record
+        or else Tok = Tok_Abstract
         or else Tok = Tok_Type
         or else Tok = Tok_For;
    end At_Declaration;
@@ -405,7 +406,17 @@ package body Kit.Parser is
    procedure Parse_Record
      (Db : Kit.Schema.Databases.Database_Type)
    is
+      Is_Abstract : Boolean := False;
    begin
+
+      if Tok = Tok_Abstract then
+         Scan;
+         Is_Abstract := True;
+         if Tok /= Tok_Record then
+            Error ("only record declarations can be abstract");
+         end if;
+      end if;
+
       Scan;   --  Tok_Record
 
       if Tok /= Tok_Identifier then
@@ -418,6 +429,9 @@ package body Kit.Parser is
                             Kit.Schema.Tables.Create_Table
                               (Record_Name);
          begin
+            if Is_Abstract then
+               Table.Set_Abstract;
+            end if;
             if Db.Contains (Record_Name) then
                Error (Record_Name & ": already defined");
             else
@@ -965,8 +979,13 @@ package body Kit.Parser is
          end loop;
 
          while At_Declaration loop
-            if Tok = Tok_Record then
+            if Tok = Tok_Record
+              or else (Tok = Tok_Abstract and then Next_Tok = Tok_Record)
+            then
                Parse_Record (Db);
+            elsif Tok = Tok_Abstract then
+               Error ("only record declarations can be abstract");
+               Skip_To (Tok_Record, Tok_End);
             elsif Tok = Tok_Type then
                Parse_Type_Declaration (Db);
             elsif Tok = Tok_For then

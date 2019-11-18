@@ -2884,8 +2884,11 @@ package body Kit.Generate.Public_Interface is
                                      Body_With => True);
       end if;
 
-      Table_Package.With_Package ("Kit.Cache",
-                                  Body_With => True);
+      if not Table.Is_Abstract then
+         Table_Package.With_Package
+           ("Kit.Cache",
+            Body_With => True);
+      end if;
 
       Table_Package.With_Package
         ("Kit.Notifier", Body_With => True);
@@ -3019,7 +3022,9 @@ package body Kit.Generate.Public_Interface is
                     Syn.Named_Subtype (Table.Update_Interface_Name))));
       end if;
 
-      Add_Create_Function;
+      if not Table.Is_Abstract then
+         Add_Create_Function;
+      end if;
 
       Create_Selection_Type;
 
