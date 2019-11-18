@@ -278,6 +278,11 @@ package body Kit.Schema.Types is
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Syn.Statement'Class;
 
+   overriding function To_Storage_Array
+     (Item   : String_Type;
+      Object : Syn.Expression'Class)
+      return Syn.Expression'Class;
+
    overriding
    function Haskell_Type_Name (Item : String_Type) return String;
 
@@ -2103,21 +2108,20 @@ package body Kit.Schema.Types is
    -- To_Storage_Array --
    ----------------------
 
---     overriding
---     function To_Storage_Array
---       (Item        : String_Type;
---        Object_Name : String)
---        return Syn.Expression'Class
---     is
---        use Syn.Expressions;
---     begin
---        return New_Function_Call_Expression
---          ("Kit.Runtime.To_Storage",
---           Object_Name,
---           Ada.Strings.Fixed.Trim
---             (Natural'Image (Item.Length),
---              Ada.Strings.Left));
---     end To_Storage_Array;
+   overriding function To_Storage_Array
+     (Item   : String_Type;
+      Object : Syn.Expression'Class)
+      return Syn.Expression'Class
+   is
+   begin
+      if Item.Fixed then
+         return Syn.Expressions.New_Function_Call_Expression
+           ("Marlowe.Key_Storage.Fixed_String_To_Storage",
+            Object, Syn.Literal (Item.Length));
+      else
+         return To_Storage_Array (Root_Kit_Type (Item), Object);
+      end if;
+   end To_Storage_Array;
 
    ----------------------------------
    -- Unconstrained_Record_Subtype --
