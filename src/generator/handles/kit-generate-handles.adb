@@ -71,6 +71,8 @@ package body Kit.Generate.Handles is
       procedure Create_Reference_Functions;
       procedure Create_Update_Functions;
 
+      procedure Create_New_Record_Function;
+
       procedure Create_Base_Conversion
         (Base : Kit.Schema.Tables.Table_Type);
 
@@ -281,6 +283,113 @@ package body Kit.Generate.Handles is
          end;
 
       end Create_Get_Functions;
+
+      procedure Create_New_Record_Function is
+
+         Block : Syn.Blocks.Block_Type;
+
+         Call : Syn.Expressions.Function_Call_Expression :=
+           Syn.Expressions.New_Function_Call_Expression
+             (Db.Database_Package_Name
+              & "." & Table.Ada_Name & ".Create");
+
+         procedure Add_Actual_Argument
+           (Base     : Kit.Schema.Tables.Table_Type;
+            Field    : Kit.Schema.Fields.Field_Type);
+
+         procedure Add_Create_Arguments
+           (Sub : in out Syn.Declarations.Subprogram_Declaration'Class);
+
+         -------------------------
+         -- Add_Actual_Argument --
+         -------------------------
+
+         procedure Add_Actual_Argument
+           (Base     : Kit.Schema.Tables.Table_Type;
+            Field    : Kit.Schema.Fields.Field_Type)
+         is
+            pragma Unreferenced (Base);
+            Argument_Type : constant Kit.Schema.Types.Kit_Type :=
+              Field.Get_Field_Type;
+
+            Argument_Value : constant String :=
+              (if Argument_Type.Is_Table_Reference
+               then Field.Ada_Name
+               & ".Reference_" & Argument_Type.Ada_Name
+               else Field.Ada_Name);
+         begin
+            if Field.Created then
+               Call.Add_Actual_Argument
+                 (Syn.Object (Argument_Value));
+            end if;
+         end Add_Actual_Argument;
+
+         --------------------------
+         -- Add_Create_Arguments --
+         --------------------------
+
+         procedure Add_Create_Arguments
+           (Sub : in out Syn.Declarations.Subprogram_Declaration'Class)
+         is
+            procedure Add_Formal_Argument
+              (Base     : Kit.Schema.Tables.Table_Type;
+               Field    : Kit.Schema.Fields.Field_Type);
+
+            -------------------------
+            -- Add_Formal_Argument --
+            -------------------------
+
+            procedure Add_Formal_Argument
+              (Base     : Kit.Schema.Tables.Table_Type;
+               Field    : Kit.Schema.Fields.Field_Type)
+            is
+               pragma Unreferenced (Base);
+               Argument_Type : constant Kit.Schema.Types.Kit_Type :=
+                 Field.Get_Field_Type;
+
+               Argument_Type_Name : constant String :=
+                 (if Argument_Type.Is_Table_Reference
+                  then Db.Handle_Package_Name
+                  & "." & Argument_Type.Ada_Name
+                  & "." & Argument_Type.Ada_Name & "_Class"
+                  elsif Argument_Type.Has_Custom_Type
+                  then Db.Database_Package_Name
+                  & "." & Argument_Type.Ada_Name
+                  else Argument_Type.Argument_Subtype);
+            begin
+               if Field.Created then
+                  Sub.Add_Formal_Argument
+                    (Field.Ada_Name,
+                     Argument_Type_Name);
+               end if;
+            end Add_Formal_Argument;
+
+         begin
+            Table.Iterate_All (Add_Formal_Argument'Access);
+         end Add_Create_Arguments;
+
+      begin
+         Table.Iterate_All (Add_Actual_Argument'Access);
+
+         Block.Append
+           (Syn.Statements.New_Return_Statement
+              (Syn.Expressions.New_Function_Call_Expression
+                   ("Get",
+                    Call)));
+
+         declare
+            Create : Syn.Declarations.Subprogram_Declaration'Class :=
+              Syn.Declarations.New_Function
+                ("Create",
+                 Syn.Named_Subtype
+                   (Table.Ada_Name & "_Handle"),
+                 Block);
+         begin
+            Add_Create_Arguments (Create);
+            Target.Append (Create);
+         end;
+
+      end Create_New_Record_Function;
 
       ---------------------
       -- Create_Property --
@@ -593,6 +702,8 @@ package body Kit.Generate.Handles is
 
       Table.Iterate (Create_Abstract_Property'Access);
 
+      Target.Append (Syn.Declarations.New_Separator);
+
       Handle_Definition.Set_Visible_Derivation;
       Handle_Definition.Add_Parent (Interface_Name);
 
@@ -611,17 +722,27 @@ package body Kit.Generate.Handles is
          Target.Append (Handle_Type);
       end;
 
+      Target.Append (Syn.Declarations.New_Separator);
       Create_Get_Functions;
+
+      Target.Append (Syn.Declarations.New_Separator);
       Create_Reference_Functions;
 
       if Table.Has_Writable_Field then
+         Target.Append (Syn.Declarations.New_Separator);
          Create_Update_Functions;
       end if;
 
+      Target.Append (Syn.Declarations.New_Separator);
       Table.Iterate (Process     => Create_Base_Conversion'Access,
                      Inclusive   => False);
 
+      Target.Append (Syn.Declarations.New_Separator);
       Table.Iterate_All (Create_Property'Access);
+
+      if not Table.Is_Abstract then
+         Create_New_Record_Function;
+      end if;
 
    end Create_Handle_Type;
 
