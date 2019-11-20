@@ -57,6 +57,12 @@ package body Kit.Schema.Types is
    overriding
    function Haskell_Type_Name (Item : Integer_Type) return String;
 
+   overriding function Has_Operator
+     (Item     : Integer_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Operator in Ordering_Operator);
+
    type Long_Integer_Type is new Root_Kit_Type with
       record
          Low, High : Integer_64;
@@ -94,6 +100,12 @@ package body Kit.Schema.Types is
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Syn.Statement'Class;
 
+   overriding function Has_Operator
+     (Item     : Long_Integer_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Operator in Ordering_Operator);
+
    type Float_Type is new Root_Kit_Type with
       record
          Long : Boolean;
@@ -119,6 +131,12 @@ package body Kit.Schema.Types is
      (Item        : Float_Type;
       Object      : Syn.Expression'Class)
       return Syn.Expression'Class;
+
+   overriding function Has_Operator
+     (Item     : Float_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Operator in Ordering_Operator);
 
    type Boolean_Type is new Root_Kit_Type with null record;
 
@@ -418,6 +436,12 @@ package body Kit.Schema.Types is
    overriding function Internal_Database_Name
      (Item : External_Type) return String
    is (Item.Local_Type.Internal_Database_Name);
+
+   overriding function Has_Operator
+     (Item     : External_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Item.Local_Type.Has_Operator (Operator));
 
    -----------------------------
    -- Argument_Handle_Subtype --

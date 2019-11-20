@@ -10,6 +10,10 @@ package Kit.Schema.Types is
      (Is_True, Is_False,
       EQ, NE, LE, GT, LT, GE);
 
+   subtype Boolean_Operator is Kit_Operator range Is_True .. Is_False;
+   subtype Equality_Operator is Kit_Operator range EQ .. NE;
+   subtype Ordering_Operator is Kit_Operator range EQ .. GE;
+
    type Root_Kit_Type is
      abstract new Kit.Names.Root_Named_Object with private;
 
