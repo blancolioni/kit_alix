@@ -71,6 +71,7 @@ package body Kit.Generate.Handles is
       procedure Create_Reference_Functions;
       procedure Create_Update_Functions;
 
+      procedure Create_Null_Handle_Function;
       procedure Create_New_Record_Function;
 
       procedure Create_Base_Conversion
@@ -284,6 +285,10 @@ package body Kit.Generate.Handles is
 
       end Create_Get_Functions;
 
+      --------------------------------
+      -- Create_New_Record_Function --
+      --------------------------------
+
       procedure Create_New_Record_Function is
 
          Block      : Syn.Blocks.Block_Type;
@@ -450,6 +455,34 @@ package body Kit.Generate.Handles is
          end;
 
       end Create_New_Record_Function;
+
+      ---------------------------------
+      -- Create_Null_Handle_Function --
+      ---------------------------------
+
+      procedure Create_Null_Handle_Function is
+
+         Block      : Syn.Blocks.Block_Type;
+
+      begin
+         Block.Append
+           (Syn.Statements.New_Return_Statement
+              (Syn.Expressions.New_Function_Call_Expression
+                   ("Get",
+                    Db.Database_Package_Name
+                    & "."
+                    & "Null_" & Table.Ada_Name & "_Reference")));
+
+         Target.Append
+           (Syn.Declarations.New_Function
+              ("Empty_Handle",
+               Syn.Named_Subtype
+                 (Table.Ada_Name & "_Handle"),
+               Block));
+
+         Target.Add_Separator;
+
+      end Create_Null_Handle_Function;
 
       ---------------------
       -- Create_Property --
@@ -658,6 +691,10 @@ package body Kit.Generate.Handles is
             procedure Create_Base_Update_Function
               (Base : Kit.Schema.Tables.Table_Type);
 
+            ---------------------------------
+            -- Create_Base_Update_Function --
+            ---------------------------------
+
             procedure Create_Base_Update_Function
               (Base : Kit.Schema.Tables.Table_Type)
             is
@@ -799,6 +836,8 @@ package body Kit.Generate.Handles is
 
       Target.Append (Syn.Declarations.New_Separator);
       Table.Iterate_All (Create_Property'Access);
+
+      Create_Null_Handle_Function;
 
       if not Table.Is_Abstract then
          Create_New_Record_Function;
