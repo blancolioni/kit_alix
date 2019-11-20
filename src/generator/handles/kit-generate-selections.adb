@@ -33,11 +33,11 @@ package body Kit.Generate.Selections is
         procedure (Field : Kit.Schema.Fields.Field_Type;
                    Value_Name : String));
 
---     function Constraint_Check
---       (Operator         : Kit.Schema.Types.Kit_Operator;
---        Field_Value      : String;
---        Constraint_Value : String)
---        return Syn.Expression'Class;
+   function Constraint_Check
+     (Operator         : Kit.Schema.Types.Kit_Operator;
+      Field_Value      : String;
+      Constraint_Value : String)
+      return Syn.Expression'Class;
 
    function Operator_Function
      (Operator : Kit.Schema.Types.Kit_Operator)
@@ -76,11 +76,20 @@ package body Kit.Generate.Selections is
    procedure Create_Constraint_Field_List
      (Table_Package : in out Syn.Declarations.Package_Type'Class);
 
+   procedure Create_Constraint_Check
+     (Db            : Kit.Schema.Databases.Database_Type;
+      Table         : Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class);
+
    procedure Create_Field_Singleton_Types
      (Table         : Kit.Schema.Tables.Table_Type;
       Table_Package : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Key_Condition_Functions
+     (Table         : Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class);
+
+   procedure Create_Condition_Merge_Functions
      (Table         : Kit.Schema.Tables.Table_Type;
       Table_Package : in out Syn.Declarations.Package_Type'Class);
 
@@ -216,6 +225,44 @@ package body Kit.Generate.Selections is
 
    end Condition_Operator_Function;
 
+   ----------------------
+   -- Constraint_Check --
+   ----------------------
+
+   function Constraint_Check
+     (Operator         : Kit.Schema.Types.Kit_Operator;
+      Field_Value      : String;
+      Constraint_Value : String)
+      return Syn.Expression'Class
+   is
+      use all type Kit.Schema.Types.Kit_Operator;
+
+      function Op (Op_Name : String) return Syn.Expression'Class
+      is (Syn.Expressions.Operator
+          (Op_Name,
+           Syn.Object (Field_Value), Syn.Object (Constraint_Value)));
+
+   begin
+      case Operator is
+         when Is_False =>
+            return Syn.Object (Field_Value);
+         when Is_True =>
+            return Syn.Expressions.Operator ("not", Syn.Object (Field_Value));
+         when EQ =>
+            return Op ("/=");
+         when NE =>
+            return Op ("=");
+         when LE =>
+            return Op (">");
+         when GE =>
+            return Op ("<");
+         when LT =>
+            return Op (">=");
+         when GT =>
+            return Op ("<=");
+      end case;
+   end Constraint_Check;
+
    -------------------------
    -- Constraint_Operator --
    -------------------------
@@ -240,11 +287,392 @@ package body Kit.Generate.Selections is
          when GE =>
             return "Op_GE";
          when LT =>
-            return "Op_LE";
+            return "Op_LT";
          when GT =>
-            return "Op_GE";
+            return "Op_GT";
       end case;
    end Constraint_Operator;
+
+   --------------------------------------
+   -- Create_Condition_Merge_Functions --
+   --------------------------------------
+
+   procedure Create_Condition_Merge_Functions
+     (Table         : Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class)
+   is
+      Block     : Syn.Blocks.Block_Type;
+      Ret_Seq   : Syn.Statements.Sequence_Of_Statements;
+
+      function Better_Key_Function return Syn.Declaration'Class;
+      function To_Constraint_Function return Syn.Declaration'Class;
+
+      function Copy_Constraints
+        (From : String)
+         return Syn.Statement'Class;
+
+      function Copy_Main
+        (Choice, Other : String)
+         return Syn.Statements.Sequence_Of_Statements;
+
+      -------------------------
+      -- Better_Key_Function --
+      -------------------------
+
+      function Better_Key_Function return Syn.Declaration'Class is
+         Block : Syn.Blocks.Block_Type;
+      begin
+
+         Block.Add_Declaration
+           (Syn.Declarations.New_Constant_Declaration
+              ("Left_Key", "Selection_Key",
+               Syn.Object ("Left.Main_Key.Element")));
+
+         Block.Add_Declaration
+           (Syn.Declarations.New_Constant_Declaration
+              ("Right_Key", "Selection_Key",
+               Syn.Object ("Right.Main_Key.Element")));
+
+         Block.Append
+           (Syn.Statements.New_Return_Statement
+              (Syn.Expressions.Operator
+                   ("or else",
+                    Syn.Expressions.Operator
+                      ("or else",
+                       Syn.Expressions.Operator
+                         ("=",
+                          Syn.Object ("Right_Key.Key_Type"),
+                          Syn.Object ("K_No_Selection_Key")),
+                       Syn.Expressions.Operator
+                         ("not",
+                          Syn.Object ("Right_Key.Has_Value"))),
+                    Syn.Expressions.Operator
+                      ("and then",
+                       Syn.Object ("Left_Key.Has_Value"),
+                       Syn.Expressions.Operator
+                         (">",
+                          Syn.Object ("Left_Key.Key_Type"),
+                          Syn.Object ("Right_Key.Key_Type"))))));
+
+         return Syn.Declarations.New_Function
+           ("Better_Key",
+            Argument_1  =>
+              Syn.Declarations.New_Formal_Argument
+                ("Left", Syn.Named_Subtype ("Selection_Condition")),
+            Argument_2  =>
+              Syn.Declarations.New_Formal_Argument
+                ("Right", Syn.Named_Subtype ("Selection_Condition")),
+            Result_Type => "Boolean",
+            Block       => Block);
+      end Better_Key_Function;
+
+      ----------------------
+      -- Copy_Constraints --
+      ----------------------
+
+      function Copy_Constraints
+        (From : String)
+         return Syn.Statement'Class
+      is
+      begin
+         return Syn.Statements.Iterate
+           ("Constraint", From & ".Constraints",
+            Syn.Statements.New_Procedure_Call_Statement
+              ("Result.Constraints.Append",
+               Syn.Object ("Constraint")));
+      end Copy_Constraints;
+
+      ---------------
+      -- Copy_Main --
+      ---------------
+
+      function Copy_Main
+        (Choice, Other : String)
+         return Syn.Statements.Sequence_Of_Statements
+      is
+      begin
+         return Seq : Syn.Statements.Sequence_Of_Statements do
+            Seq.Append
+              (Syn.Statements.New_Assignment_Statement
+                 ("Result.Main_Key", Syn.Object (Choice & ".Main_Key")));
+            Seq.Append
+              (Syn.Statements.New_Assignment_Statement
+                 ("Result.Constraints",
+                  Syn.Expressions.New_Function_Call_Expression
+                    ("To_Constraints",
+                     Syn.Object (Other & ".Main_Key.Element"))));
+         end return;
+      end Copy_Main;
+
+      ----------------------------
+      -- To_Constraint_Function --
+      ----------------------------
+
+      function To_Constraint_Function return Syn.Declaration'Class is
+
+         Case_Statement : Syn.Statements.Case_Statement_Record'Class :=
+           Syn.Statements.Case_Statement ("Key.Key_Type");
+
+         procedure Add_Case
+           (Base : Kit.Schema.Tables.Table_Type;
+            Key  : Kit.Schema.Keys.Key_Type);
+
+         --------------
+         -- Add_Case --
+         --------------
+
+         procedure Add_Case
+           (Base : Kit.Schema.Tables.Table_Type;
+            Key  : Kit.Schema.Keys.Key_Type)
+         is
+            pragma Unreferenced (Base);
+            Block : Syn.Blocks.Block_Type;
+
+            procedure Add_Field_Constraint
+              (Field     : Kit.Schema.Fields.Field_Type;
+               Key_Field : String);
+
+            --------------------------
+            -- Add_Field_Constraint --
+            --------------------------
+
+            procedure Add_Field_Constraint
+              (Field     : Kit.Schema.Fields.Field_Type;
+               Key_Field : String)
+            is
+               Constraint : constant String :=
+                 Field.Ada_Name & "_Constraint";
+            begin
+               Block.Add_Declaration
+                 (Syn.Declarations.New_Object_Declaration
+                    (Constraint,
+                     Syn.Named_Subtype
+                       ("Selection_Constraint ("
+                        & "C_" & Field.Ada_Name & ")")));
+               Block.Add_Statement
+                 (Syn.Statements.New_Assignment_Statement
+                    (Constraint & ".Operator",
+                     Syn.Object ("Op_EQ")));
+               Block.Add_Statement
+                 (Syn.Statements.New_Assignment_Statement
+                    (Constraint & "." & Field.Ada_Name & "_Value",
+                     Syn.Object ("Key." & Key_Field)));
+               Block.Add_Statement
+                 (Syn.Statements.New_Procedure_Call_Statement
+                    ("List.Append",
+                     Syn.Object (Constraint)));
+            end Add_Field_Constraint;
+
+         begin
+            if Ignore_Key (Key) then
+               return;
+            end if;
+
+            Scan_Key_Fields (Key, Add_Field_Constraint'Access);
+
+            Case_Statement.Add_Case_Option
+              ("K_" & Key.Ada_Name,
+               Syn.Statements.Declare_Statement (Block));
+
+         end Add_Case;
+
+         Ret_Seq : Syn.Statements.Sequence_Of_Statements;
+         Block   : Syn.Blocks.Block_Type;
+      begin
+
+         Case_Statement.Add_Case_Option
+           ("K_No_Selection_Key",
+            Syn.Statements.New_Null_Statement);
+
+         Table.Scan_Keys (Add_Case'Access);
+
+         Ret_Seq.Append
+           (Syn.Statements.If_Statement
+              (Syn.Object ("Key.Has_Value"),
+               Case_Statement));
+
+         Block.Append
+           (Syn.Statements.New_Return_Statement
+              ("List",
+               "Selection_Constraint_Lists.List",
+               Ret_Seq));
+
+         return Syn.Declarations.New_Function
+           ("To_Constraints",
+            Argument  =>
+              Syn.Declarations.New_Formal_Argument
+                ("Key", Syn.Named_Subtype ("Selection_Key")),
+            Result_Type => "Selection_Constraint_Lists.List",
+            Block       => Block);
+      end To_Constraint_Function;
+
+   begin
+      Block.Add_Declaration
+        (Syn.Declarations.New_Constant_Declaration
+           ("Choose_Left_Key", "Boolean",
+            Syn.Expressions.New_Function_Call_Expression
+              ("Better_Key", Syn.Object ("Left"), Syn.Object ("Right"))));
+
+      Ret_Seq.Append
+        (Syn.Statements.If_Statement
+           (Condition  => Syn.Object ("Choose_Left_Key"),
+            True_Part  => Copy_Main ("Left", "Right"),
+            False_Part => Copy_Main ("Right", "Left")));
+
+      Ret_Seq.Append (Copy_Constraints ("Left"));
+      Ret_Seq.Append (Copy_Constraints ("Right"));
+
+      Block.Append
+        (Syn.Statements.New_Return_Statement
+           ("Result", "Selection_Condition", Ret_Seq));
+
+      Table_Package.Append_To_Body (Better_Key_Function);
+      Table_Package.Append_To_Body (To_Constraint_Function);
+
+      Table_Package.Append
+        (Syn.Declarations.New_Function
+           (Name        => """and""",
+            Argument_1  =>
+              Syn.Declarations.New_Formal_Argument
+                ("Left", Syn.Named_Subtype ("Selection_Condition")),
+            Argument_2  =>
+              Syn.Declarations.New_Formal_Argument
+                ("Right", Syn.Named_Subtype ("Selection_Condition")),
+            Result_Type => "Selection_Condition",
+            Block       => Block));
+      Table_Package.Add_Separator;
+   end Create_Condition_Merge_Functions;
+
+   -----------------------------
+   -- Create_Constraint_Check --
+   -----------------------------
+
+   procedure Create_Constraint_Check
+     (Db            : Kit.Schema.Databases.Database_Type;
+      Table         : Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class)
+   is
+
+      function Field_Case return Syn.Statement'Class;
+
+      function Field_Case return Syn.Statement'Class is
+
+         Result : Syn.Statements.Case_Statement_Record'Class :=
+           Syn.Statements.Case_Statement ("Constraint.Field");
+
+         procedure Add_Case
+           (Base  : Kit.Schema.Tables.Table_Type;
+            Field : Kit.Schema.Fields.Field_Type);
+
+         --------------
+         -- Add_Case --
+         --------------
+
+         procedure Add_Case
+           (Base  : Kit.Schema.Tables.Table_Type;
+            Field : Kit.Schema.Fields.Field_Type)
+         is
+            pragma Unreferenced (Base);
+            Block : Syn.Blocks.Block_Type;
+         begin
+            if Field.Get_Field_Type.Is_Table_Reference
+              or else Field.Get_Field_Type.Has_Custom_Type
+            then
+               Block.Add_Declaration
+                 (Syn.Declarations.Use_Package (Db.Database_Package_Name));
+            elsif Field.Get_Field_Type.Is_External_Type then
+               Block.Add_Declaration
+                 (Syn.Declarations.Use_Package
+                    (Field.Get_Field_Type.External_Type_Package_Name));
+            end if;
+
+            Block.Add_Declaration
+              (Syn.Declarations.New_Constant_Declaration
+                 ("Value", Field.Get_Field_Type.Argument_Subtype,
+                  Syn.Object
+                    ("Item."
+                     & (if Field.Base_Reference
+                       then "Get_" & Field.Ada_Name & "_Reference"
+                       else Field.Ada_Name))));
+            Block.Add_Declaration
+              (Syn.Declarations.New_Constant_Declaration
+                 ("Compare", Field.Get_Field_Type.Argument_Subtype,
+                  Field.Get_Field_Type.Return_Value
+                    ("Constraint." & Field.Ada_Name & "_Value")));
+
+            declare
+               Operator_Case : Syn.Statements.Case_Statement_Record'Class :=
+                 Syn.Statements.Case_Statement ("Constraint.Operator");
+
+               procedure Add_Operator_Case
+                 (Op : Kit.Schema.Types.Kit_Operator);
+
+               procedure Add_Operator_Case
+                 (Op : Kit.Schema.Types.Kit_Operator)
+               is
+               begin
+                  Operator_Case.Add_Case_Option
+                    (Constraint_Operator (Op),
+                     Syn.Statements.If_Statement
+                       (Constraint_Check (Op, "Value", "Compare"),
+                        Syn.Statements.New_Return_Statement
+                          (Syn.Object ("False"))));
+               end Add_Operator_Case;
+
+            begin
+               for Op in Kit.Schema.Types.Kit_Operator loop
+                  if not Field.Get_Field_Type.Has_Operator (Op) then
+                     Operator_Case.Add_Case_Option
+                       (Constraint_Operator (Op),
+                        Syn.Statements.Raise_Statement
+                          ("Program_Error",
+                           "bad operator: "
+                           & Constraint_Operator (Op)
+                           & "/"
+                           & Field.Ada_Name));
+                  else
+                     Add_Operator_Case (Op);
+                  end if;
+               end loop;
+               Block.Append (Operator_Case);
+            end;
+
+            Result.Add_Case_Option
+              ("C_" & Field.Ada_Name,
+               Syn.Statements.Declare_Statement (Block));
+         end Add_Case;
+
+      begin
+         Table.Iterate_All (Add_Case'Access);
+         return Result;
+      end Field_Case;
+
+      Block : Syn.Blocks.Block_Type;
+   begin
+      Block.Append
+        (Syn.Statements.Iterate
+           ("Constraint", "Constraints", Field_Case));
+
+      Block.Append
+        (Syn.Statements.New_Return_Statement (Syn.Object ("True")));
+
+      Table_Package.Append_To_Body
+        (Syn.Declarations.New_Function
+           (Name        => "Check_Constraints",
+            Argument_1  =>
+              Syn.Declarations.New_Formal_Argument
+                ("Constraints",
+                 Syn.Named_Subtype ("Selection_Constraint_Lists.List")),
+            Argument_2  =>
+              Syn.Declarations.New_Formal_Argument
+                ("Item",
+                 Syn.Named_Subtype
+                   (Db.Database_Package_Name
+                    & "." & Table.Ada_Name
+                    & "." & Table.Ada_Name & "_Type")),
+            Result_Type => "Boolean",
+            Block       => Block));
+   end Create_Constraint_Check;
 
    -----------------------------------------
    -- Create_Constraint_Field_Enumeration --
@@ -745,14 +1173,19 @@ package body Kit.Generate.Selections is
       Block     : Syn.Blocks.Block_Type;
    begin
       Seq_Loop.Append
-        (Syn.Statements.New_Procedure_Call_Statement
-           (Procedure_Name => "Result.Data_Source.Append",
-            Argument       =>
-              Syn.Expressions.New_Function_Call_Expression
-                (Procedure_Name => "Get",
-                 Argument       =>
-                   Syn.Object
-                     ("Item.Get_" & Table.Ada_Name & "_Reference"))));
+        (Syn.Statements.If_Statement
+           (Syn.Expressions.New_Function_Call_Expression
+                ("Check_Constraints",
+                 Syn.Object ("Condition.Constraints"),
+                 Syn.Object ("Item")),
+            Syn.Statements.New_Procedure_Call_Statement
+              (Procedure_Name => "Result.Data_Source.Append",
+               Argument       =>
+                 Syn.Expressions.New_Function_Call_Expression
+                   (Procedure_Name => "Get",
+                    Argument       =>
+                      Syn.Object
+                        ("Item.Get_" & Table.Ada_Name & "_Reference")))));
 
       Seq_Ret.Append
         (Syn.Statements.Iterate
@@ -1430,11 +1863,15 @@ package body Kit.Generate.Selections is
       Create_Constraint_Field_Type (Table, Selections_Package);
       Create_Constraint_Field_List (Selections_Package);
 
+      Create_Constraint_Check (Db, Table, Selections_Package);
+
       Create_Select_All_Function (Db, Table, Selections_Package);
 
       Create_Selection_Condition_Type (Table, Selections_Package);
 
       Create_Key_Condition_Functions (Table, Selections_Package);
+
+      Create_Condition_Merge_Functions (Table, Selections_Package);
 
       Create_Field_Singleton_Types (Table, Selections_Package);
 
