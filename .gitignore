@@ -31,3 +31,4 @@ tests/src-master
 *.db-wal
 *.cgpr
 *.bexch
+kit.gpr
