@@ -140,8 +140,11 @@ package body Kit.Schema.Types is
    type Table_Reference_Type_Record is
      new Root_Kit_Type with null record;
 
-   overriding
-   function Return_Subtype
+   overriding function Return_Subtype
+     (Item : Table_Reference_Type_Record)
+      return String;
+
+   overriding function Argument_Handle_Subtype
      (Item : Table_Reference_Type_Record)
       return String;
 
@@ -415,6 +418,30 @@ package body Kit.Schema.Types is
    overriding function Internal_Database_Name
      (Item : External_Type) return String
    is (Item.Local_Type.Internal_Database_Name);
+
+   -----------------------------
+   -- Argument_Handle_Subtype --
+   -----------------------------
+
+   function Argument_Handle_Subtype
+     (Item           : Root_Kit_Type)
+      return String
+   is
+   begin
+      return Root_Kit_Type'Class (Item).Argument_Subtype;
+   end Argument_Handle_Subtype;
+
+   -----------------------------
+   -- Argument_Handle_Subtype --
+   -----------------------------
+
+   overriding function Argument_Handle_Subtype
+     (Item           : Table_Reference_Type_Record)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Class";
+   end Argument_Handle_Subtype;
 
    ----------------------
    -- Argument_Subtype --
@@ -1027,6 +1054,20 @@ package body Kit.Schema.Types is
    begin
       return False;
    end Has_Default_Value;
+
+   ------------------
+   -- Has_Operator --
+   ------------------
+
+   function Has_Operator
+     (Item     : Root_Kit_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Operator in EQ | NE;
+   end Has_Operator;
 
    -----------------------
    -- Haskell_Type_Name --

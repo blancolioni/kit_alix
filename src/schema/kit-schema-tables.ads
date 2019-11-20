@@ -47,6 +47,10 @@ package Kit.Schema.Tables is
      (Item : Root_Table_Type)
       return String;
 
+   function Handle_Name
+     (Item : Root_Table_Type)
+      return String;
+
    function Update_Type_Name
      (Item : Root_Table_Type)
       return String;
@@ -344,5 +348,10 @@ private
 
    function Is_Abstract (Item : Root_Table_Type) return Boolean
    is (Item.Is_Abstract);
+
+   function Handle_Name
+     (Item : Root_Table_Type)
+      return String
+   is (Item.Ada_Name & "_Handle");
 
 end Kit.Schema.Tables;

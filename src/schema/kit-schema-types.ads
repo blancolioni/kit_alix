@@ -6,6 +6,10 @@ with Kit.Names;
 
 package Kit.Schema.Types is
 
+   type Kit_Operator is
+     (Is_True, Is_False,
+      EQ, NE, LE, GT, LT, GE);
+
    type Root_Kit_Type is
      abstract new Kit.Names.Root_Named_Object with private;
 
@@ -15,6 +19,11 @@ package Kit.Schema.Types is
    function Record_Subtype (Item : Root_Kit_Type) return String;
    function Unconstrained_Record_Subtype (Item : Root_Kit_Type) return String;
    function Argument_Subtype (Item : Root_Kit_Type) return String;
+
+   function Argument_Handle_Subtype
+     (Item : Root_Kit_Type)
+      return String;
+
    function Convert_To_String (Item   : Root_Kit_Type;
                                Object_Name : String)
                                return Syn.Expression'Class;
@@ -26,6 +35,11 @@ package Kit.Schema.Types is
    function Default_Value (Item : Root_Kit_Type)
                            return Syn.Expression'Class
                            is abstract;
+
+   function Has_Operator
+     (Item     : Root_Kit_Type;
+      Operator : Kit_Operator)
+      return Boolean;
 
    function Haskell_Type_Name (Item : Root_Kit_Type) return String;
    function Internal_Database_Name (Item : Root_Kit_Type) return String

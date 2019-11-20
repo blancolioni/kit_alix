@@ -12,6 +12,7 @@ with Kit.Generate.Handles;
 with Kit.Generate.Marlowe_Keys_Package;
 with Kit.Generate.Public_Interface;
 with Kit.Generate.Private_Interface;
+with Kit.Generate.Selections;
 with Kit.Generate.Table_Name_Map;
 
 package body Kit.Generate is
@@ -552,6 +553,7 @@ package body Kit.Generate is
                     New_Formal_Argument
                       (Name          => "Handle",
                        Argument_Type => Syn.Named_Subtype (Interface_Name));
+                  Operator_Enum        : Syn.Enumeration_Type_Definition;
                begin
 
                   Handle.Append
@@ -564,15 +566,42 @@ package body Kit.Generate is
                        ("Has_Element",
                         Interface_Argument,
                         Named_Subtype ("Boolean")));
+
+                  Operator_Enum.New_Literal ("Op_None");
+                  Operator_Enum.New_Literal ("Op_Not");
+                  Operator_Enum.New_Literal ("Op_EQ");
+                  Operator_Enum.New_Literal ("Op_NE");
+                  Operator_Enum.New_Literal ("Op_LE");
+                  Operator_Enum.New_Literal ("Op_GT");
+                  Operator_Enum.New_Literal ("Op_LT");
+                  Operator_Enum.New_Literal ("Op_GE");
+
+                  declare
+                     Operator_Type : Syn.Declarations.Type_Declaration'Class :=
+                       Syn.Declarations.New_Full_Type_Declaration
+                         ("Constraint_Operator", Operator_Enum);
+                  begin
+                     Operator_Type.Set_Private_Spec;
+                     Handle.Append (Operator_Type);
+                  end;
+
                end;
             end return;
          end Top_Level_Handle_Package;
 
       begin
          Project.Add_Package (Top_Level_Handle_Package);
-         Project.Add_Package
-           (Kit.Generate.Handles.Generate_Handle_Package
-              (Db, Table, Handles));
+
+         declare
+            Table_Handles : constant Syn.Declarations.Package_Type'Class :=
+              Kit.Generate.Handles.Generate_Handle_Package
+                (Db, Table, Handles);
+         begin
+            Project.Add_Package (Table_Handles);
+            Project.Add_Package
+              (Kit.Generate.Selections.Generate_Selection_Package
+                 (Db, Table, Table_Handles));
+         end;
       end Handle_Interface;
 
       -----------------------
