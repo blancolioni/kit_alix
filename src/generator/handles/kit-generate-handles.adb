@@ -286,7 +286,8 @@ package body Kit.Generate.Handles is
 
       procedure Create_New_Record_Function is
 
-         Block : Syn.Blocks.Block_Type;
+         Block      : Syn.Blocks.Block_Type;
+         Proc_Block : Syn.Blocks.Block_Type;
 
          Call : Syn.Expressions.Function_Call_Expression :=
            Syn.Expressions.New_Function_Call_Expression
@@ -299,6 +300,9 @@ package body Kit.Generate.Handles is
 
          procedure Add_Create_Arguments
            (Sub : in out Syn.Declarations.Subprogram_Declaration'Class);
+
+         function Call_Create_Function
+           return Syn.Expression'Class;
 
          -------------------------
          -- Add_Actual_Argument --
@@ -368,6 +372,41 @@ package body Kit.Generate.Handles is
             Table.Iterate_All (Add_Formal_Argument'Access);
          end Add_Create_Arguments;
 
+         --------------------------
+         -- Call_Create_Function --
+         --------------------------
+
+         function Call_Create_Function
+           return Syn.Expression'Class
+         is
+            Call : Syn.Expressions.Function_Call_Expression'Class :=
+              Syn.Expressions.New_Function_Call_Expression ("Create");
+
+            procedure Add_Actual_Argument
+              (Base     : Kit.Schema.Tables.Table_Type;
+               Field    : Kit.Schema.Fields.Field_Type);
+
+            -------------------------
+            -- Add_Actual_Argument --
+            -------------------------
+
+            procedure Add_Actual_Argument
+              (Base     : Kit.Schema.Tables.Table_Type;
+               Field    : Kit.Schema.Fields.Field_Type)
+            is
+               pragma Unreferenced (Base);
+            begin
+               if Field.Created then
+                  Call.Add_Actual_Argument
+                    (Syn.Object (Field.Ada_Name));
+               end if;
+            end Add_Actual_Argument;
+
+         begin
+            Table.Iterate_All (Add_Actual_Argument'Access);
+            return Call;
+         end Call_Create_Function;
+
       begin
          Table.Iterate_All (Add_Actual_Argument'Access);
 
@@ -384,6 +423,27 @@ package body Kit.Generate.Handles is
                  Syn.Named_Subtype
                    (Table.Ada_Name & "_Handle"),
                  Block);
+         begin
+            Add_Create_Arguments (Create);
+            Target.Append (Create);
+         end;
+
+         Proc_Block.Add_Declaration
+           (Syn.Declarations.New_Constant_Declaration
+              ("Handle", Table.Handle_Name,
+               Call_Create_Function));
+
+         Proc_Block.Add_Declaration
+           (Syn.Declarations.New_Pragma
+              ("Unreferenced", "Handle"));
+         Proc_Block.Add_Statement
+           (Syn.Statements.New_Null_Statement);
+
+         declare
+            Create : Syn.Declarations.Subprogram_Declaration'Class :=
+              Syn.Declarations.New_Procedure
+                ("Create",
+                 Proc_Block);
          begin
             Add_Create_Arguments (Create);
             Target.Append (Create);
