@@ -63,7 +63,7 @@ package body Kit.Generate.Handles is
 
          procedure Create_Get_Cache_Reference;
          procedure Create_Load_Cached_Record;
---           procedure Create_Invalidate_Reference;
+         procedure Create_Invalidate_Reference;
 
          --------------------------------
          -- Create_Get_Cache_Reference --
@@ -149,6 +149,41 @@ package body Kit.Generate.Handles is
                   Block       => Block));
          end Create_Get_Cache_Reference;
 
+         ---------------------------------
+         -- Create_Invalidate_Reference --
+         ---------------------------------
+
+         procedure Create_Invalidate_Reference is
+            Block : Syn.Blocks.Block_Type;
+         begin
+            Block.Add_Declaration
+              (Syn.Declarations.Use_Package
+                 (Reference_Map_Package_Name & ".Maps"));
+            Block.Add_Declaration
+              (Syn.Declarations.New_Constant_Declaration
+                 ("Position", "Cursor",
+                  Syn.Expressions.New_Function_Call_Expression
+                    ("Cache.Find", Syn.Object ("Reference"))));
+
+            Block.Append
+              (Syn.Statements.If_Statement
+                 (Syn.Expressions.New_Function_Call_Expression
+                      ("Has_Element", Syn.Object ("Position")),
+                  Syn.Statements.New_Assignment_Statement
+                    ("Cache (Position).Kit_Valid", Syn.Object ("False"))));
+
+            Target.Append_To_Body
+              (Syn.Declarations.New_Procedure
+                 (Name        => "Invalidate",
+                  Argument    =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Reference",
+                       Syn.Named_Subtype
+                         (Db.Database_Package_Name
+                          & "." & Table.Reference_Type_Name)),
+                  Block       => Block));
+         end Create_Invalidate_Reference;
+
          -------------------------------
          -- Create_Load_Cached_Record --
          -------------------------------
@@ -224,7 +259,10 @@ package body Kit.Generate.Handles is
       begin
          Create_Get_Cache_Reference;
          Create_Load_Cached_Record;
---           Create_Invalidate_Reference;
+
+         if Table.Has_Writable_Field then
+            Create_Invalidate_Reference;
+         end if;
       end Create_Cache_Functions;
 
       -----------------------
@@ -923,6 +961,10 @@ package body Kit.Generate.Handles is
       procedure Create_Update_Functions is
          Block : Syn.Blocks.Block_Type;
       begin
+         Block.Append
+           (Syn.Statements.New_Procedure_Call_Statement
+              ("Invalidate",
+               Syn.Object ("Handle.Reference")));
          Block.Append
            (Syn.Statements.New_Return_Statement
               (Syn.Expressions.New_Function_Call_Expression
