@@ -93,6 +93,10 @@ package body Kit.Generate.Selections is
      (Table         : Kit.Schema.Tables.Table_Type;
       Table_Package : in out Syn.Declarations.Package_Type'Class);
 
+   procedure Create_First_Where_Function
+     (Table         : Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class);
+
    procedure Create_Selection_Condition_Type
      (Table         : Kit.Schema.Tables.Table_Type;
       Table_Package : in out Syn.Declarations.Package_Type'Class);
@@ -858,6 +862,56 @@ package body Kit.Generate.Selections is
       Table.Iterate_All
         (Process     => Add_Singleton_Type'Access);
    end Create_Field_Singleton_Types;
+
+   ---------------------------------
+   -- Create_First_Where_Function --
+   ---------------------------------
+
+   procedure Create_First_Where_Function
+     (Table         : Kit.Schema.Tables.Table_Type;
+      Table_Package : in out Syn.Declarations.Package_Type'Class)
+   is
+      Seq_Loop  : Syn.Statements.Sequence_Of_Statements;
+      Block     : Syn.Blocks.Block_Type;
+   begin
+      Seq_Loop.Append
+        (Syn.Statements.If_Statement
+           (Syn.Expressions.New_Function_Call_Expression
+                ("Check_Constraints",
+                 Syn.Object ("Condition.Constraints"),
+                 Syn.Object ("Item")),
+            Syn.Statements.New_Return_Statement
+              (Syn.Expressions.New_Function_Call_Expression
+                   (Procedure_Name => "Get",
+                    Argument       =>
+                      Syn.Object
+                        ("Item.Get_" & Table.Ada_Name & "_Reference")))));
+
+      Block.Append
+        (Syn.Statements.Iterate
+           (Loop_Variable  => "Item",
+            Container_Name =>
+              "Create_Selection ("
+            & "Condition.Main_Key.Element"
+            & ")",
+            Iterate_Body   => Seq_Loop));
+
+      Block.Append
+        (Syn.Statements.New_Return_Statement
+           (Syn.Object ("Empty_Handle")));
+
+      Table_Package.Append
+        (Syn.Declarations.New_Function
+           (Name        => "First_Where",
+            Argument    =>
+              Syn.Declarations.New_Formal_Argument
+                ("Condition",
+                 Syn.Named_Subtype ("Selection_Condition'Class")),
+            Result_Type => Table.Handle_Name,
+            Block       => Block));
+      Table_Package.Add_Separator;
+
+   end Create_First_Where_Function;
 
    ---------------------
    -- Create_Iterator --
@@ -1786,6 +1840,7 @@ package body Kit.Generate.Selections is
 
       Create_Selection_Function (Db, Table, Selections_Package);
 
+      Create_First_Where_Function (Table, Selections_Package);
       Create_Select_Where_Function (Table, Selections_Package);
 
       return Selections_Package;
