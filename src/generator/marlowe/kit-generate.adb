@@ -8,9 +8,11 @@ with Kit.Schema.Types;
 
 with Kit.Generate.Database_Package;
 with Kit.Generate.Get_From_Cache;
+with Kit.Generate.Handles;
 with Kit.Generate.Marlowe_Keys_Package;
 with Kit.Generate.Public_Interface;
 with Kit.Generate.Private_Interface;
+with Kit.Generate.Selections;
 with Kit.Generate.Table_Name_Map;
 
 package body Kit.Generate is
@@ -160,9 +162,8 @@ package body Kit.Generate is
       Lock_Context.Add_Component ("S_Locked", "Boolean", "False");
       Lock_Context.Add_Component ("X_Locked", "Boolean", "False");
       Lock_Record :=
-        Syn.Declarations.New_Full_Type_Declaration
+        Syn.Declarations.New_Private_Type_Declaration
           ("Lock_Context_Record", Definition => Lock_Context);
-      Lock_Record.Set_Private_Spec;
       Top.Append (Lock_Record);
       Lock_Access :=
         Syn.Declarations.New_Full_Type_Declaration
@@ -206,6 +207,7 @@ package body Kit.Generate is
       use Syn, Syn.Declarations;
       pragma Unreferenced (Db);
       Record_Interface : Syn.Interface_Type_Definition;
+      Update_Interface : Syn.Interface_Type_Definition;
    begin
       Record_Interface.Set_Limited;
       Top.Append (New_Full_Type_Declaration
@@ -236,16 +238,6 @@ package body Kit.Generate is
               ("Field", Named_Subtype ("String")),
             Named_Subtype ("String")));
 
-      Top.Append
-        (New_Abstract_Procedure
-           ("Set",
-            New_Inout_Argument
-              ("Item", Named_Subtype ("Record_Interface")),
-            New_Formal_Argument
-              ("Field", Named_Subtype ("String")),
-            New_Formal_Argument
-              ("Value", Named_Subtype ("String"))));
-
       Top.Add_Separator;
 
       Top.Append
@@ -257,6 +249,22 @@ package body Kit.Generate is
             Result_Type =>
               Named_Subtype ("String")));
 
+      Top.Add_Separator;
+
+      Update_Interface.Set_Limited;
+      Top.Append (New_Full_Type_Declaration
+                  ("Record_Update_Interface", Update_Interface));
+      Top.Add_Separator;
+
+      Top.Append
+        (New_Abstract_Procedure
+           ("Set",
+            New_Inout_Argument
+              ("Item", Named_Subtype ("Record_Update_Interface")),
+            New_Formal_Argument
+              ("Field", Named_Subtype ("String")),
+            New_Formal_Argument
+              ("Value", Named_Subtype ("String"))));
       Top.Add_Separator;
 
    end Create_Record_Interface;
@@ -471,13 +479,18 @@ package body Kit.Generate is
       return Syn.Projects.Project
    is
       Top_Package : Syn.Declarations.Package_Type :=
-        Syn.Declarations.New_Package_Type (Db.Name);
+        Syn.Declarations.New_Package_Type (Db.Database_Package_Name);
+      Handles     : constant Syn.Declarations.Package_Type :=
+        Syn.Declarations.New_Package_Type (Db.Handle_Package_Name);
 
       Project : Syn.Projects.Project;
 
       function Get_Record_Literal_Name (Index : Positive) return String;
 
       procedure Get_From_Cache
+        (Table : Kit.Schema.Tables.Table_Type);
+
+      procedure Handle_Interface
         (Table : Kit.Schema.Tables.Table_Type);
 
       procedure Public_Interface
@@ -510,6 +523,86 @@ package body Kit.Generate is
       begin
          return "R_" & Db.Element (Index).Ada_Name;
       end Get_Record_Literal_Name;
+
+      ----------------------
+      -- Handle_Interface --
+      ----------------------
+
+      procedure Handle_Interface
+        (Table : Kit.Schema.Tables.Table_Type)
+      is
+         function Top_Level_Handle_Package
+           return Syn.Declarations.Package_Type;
+
+         ------------------------------
+         -- Top_Level_Handle_Package --
+         ------------------------------
+
+         function Top_Level_Handle_Package
+           return Syn.Declarations.Package_Type
+         is
+            use Syn, Syn.Declarations;
+         begin
+            return Handle : Package_Type :=
+              New_Package_Type (Db.Handle_Package_Name)
+            do
+               declare
+                  Interface_Name : constant String := "Handle_Interface";
+                  Interface_Definition : Interface_Type_Definition;
+                  Interface_Argument   : constant Formal_Argument'Class :=
+                    New_Formal_Argument
+                      (Name          => "Handle",
+                       Argument_Type => Syn.Named_Subtype (Interface_Name));
+                  Operator_Enum        : Syn.Enumeration_Type_Definition;
+               begin
+
+                  Handle.Append
+                    (New_Full_Type_Declaration
+                       (Identifier => Interface_Name,
+                        Definition => Interface_Definition));
+
+                  Handle.Append
+                    (New_Abstract_Function
+                       ("Has_Element",
+                        Interface_Argument,
+                        Named_Subtype ("Boolean")));
+
+                  Operator_Enum.New_Literal ("Op_None");
+                  Operator_Enum.New_Literal ("Op_Not");
+                  Operator_Enum.New_Literal ("Op_EQ");
+                  Operator_Enum.New_Literal ("Op_NE");
+                  Operator_Enum.New_Literal ("Op_LE");
+                  Operator_Enum.New_Literal ("Op_GT");
+                  Operator_Enum.New_Literal ("Op_LT");
+                  Operator_Enum.New_Literal ("Op_GE");
+
+                  declare
+                     Operator_Type : Syn.Declarations.Type_Declaration'Class :=
+                       Syn.Declarations.New_Full_Type_Declaration
+                         ("Constraint_Operator", Operator_Enum);
+                  begin
+                     Operator_Type.Set_Private_Spec;
+                     Handle.Append (Operator_Type);
+                  end;
+
+               end;
+            end return;
+         end Top_Level_Handle_Package;
+
+      begin
+         Project.Add_Package (Top_Level_Handle_Package);
+
+         declare
+            Table_Handles : constant Syn.Declarations.Package_Type'Class :=
+              Kit.Generate.Handles.Generate_Handle_Package
+                (Db, Table, Handles);
+         begin
+            Project.Add_Package (Table_Handles);
+            Project.Add_Package
+              (Kit.Generate.Selections.Generate_Selection_Package
+                 (Db, Table, Table_Handles));
+         end;
+      end Handle_Interface;
 
       -----------------------
       -- Private_Interface --
@@ -606,6 +699,7 @@ package body Kit.Generate is
 
       Db.Iterate (Table_Database_Package'Access);
       Db.Iterate (Get_From_Cache'Access);
+      Db.Iterate (Handle_Interface'Access);
       Db.Iterate (Public_Interface'Access);
       Db.Iterate (Private_Interface'Access);
       return Project;

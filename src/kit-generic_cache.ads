@@ -23,7 +23,12 @@ package Kit.Generic_Cache is
 
    function Get
      (Index       : Marlowe.Database_Index;
-      Lock_Result : Boolean := True)
+      Lock_Result : Boolean := False)
       return Cache_Access;
+
+   procedure S_Lock (Index : Marlowe.Database_Index);
+   procedure U_Lock (Index : Marlowe.Database_Index);
+   procedure X_Lock (Index : Marlowe.Database_Index);
+   procedure Unlock (Index : Marlowe.Database_Index);
 
 end Kit.Generic_Cache;

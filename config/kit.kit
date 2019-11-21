@@ -1,12 +1,8 @@
 package Kit.Db is
 
-   record Kit_Root_Record is
+   abstract record Kit_Root_Record is
       key Top_Record : Record_Type is Readable;
    end Kit_Root_Record;
-
---     record Kit_Named_Item is
---        key Name : String (64);
---     end Kit_Named_Item;
 
    record Kit_Record is
       unique key Name : String (64);

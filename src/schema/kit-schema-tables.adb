@@ -210,7 +210,7 @@ package body Kit.Schema.Tables is
       return String
    is
    begin
-      return ".Local.T" & Table.Index_Image & "_Data";
+      return ".T" & Table.Index_Image & "_Data";
    end Base_Component_Name;
 
    ----------------
@@ -245,7 +245,7 @@ package body Kit.Schema.Tables is
       pragma Unreferenced (Table);
    begin
       return Object_Name & Base.Base_Component_Name
-        & ".Db." & Field.Ada_Name;
+        & "." & Field.Ada_Name;
    end Base_Field_Name;
 
    ----------------
@@ -414,10 +414,10 @@ package body Kit.Schema.Tables is
    is
    begin
       if Table.Ada_Name = Base.Ada_Name then
-         return Object_Name & ".Local.M_Index";
+         return Object_Name & ".M_Index";
       else
          return Object_Name
-           & Table.Base_Component_Name & ".Db"
+           & Table.Base_Component_Name
            & Base.Base_Index_Name;
       end if;
    end Database_Index_Component;
@@ -436,7 +436,7 @@ package body Kit.Schema.Tables is
       pragma Unreferenced (Table);
    begin
       return Object_Name
-        & Base_1.Base_Component_Name & ".Db"
+        & Base_1.Base_Component_Name & "."
         & Base_2.Base_Index_Name;
    end Database_Index_Component;
 
@@ -655,6 +655,40 @@ package body Kit.Schema.Tables is
    begin
       return Item.Has_Text_Type;
    end Has_Text_Type;
+
+   ------------------------
+   -- Has_Writable_Field --
+   ------------------------
+
+   function Has_Writable_Field
+     (Item : not null access Root_Table_Type)
+      return Boolean
+   is
+      Has_Writable : Boolean := False;
+
+      procedure Check_Field
+        (Table : Table_Type;
+         Field : Kit.Schema.Fields.Field_Type);
+
+      -----------------
+      -- Check_Field --
+      -----------------
+
+      procedure Check_Field
+        (Table : Table_Type;
+         Field : Kit.Schema.Fields.Field_Type)
+      is
+         pragma Unreferenced (Table);
+      begin
+         if Field.Writeable then
+            Has_Writable := True;
+         end if;
+      end Check_Field;
+
+   begin
+      Item.Iterate_All (Check_Field'Access, True);
+      return Has_Writable;
+   end Has_Writable_Field;
 
    -------------------------
    -- Implementation_Name --
@@ -1177,6 +1211,17 @@ package body Kit.Schema.Tables is
       Table.Scan_Keys (Call_Process'Access);
    end Scan_Keys;
 
+   ------------------
+   -- Set_Abstract --
+   ------------------
+
+   procedure Set_Abstract
+     (Table : in out Root_Table_Type'Class)
+   is
+   begin
+      Table.Is_Abstract := True;
+   end Set_Abstract;
+
    ----------------
    -- To_Storage --
    ----------------
@@ -1366,7 +1411,7 @@ package body Kit.Schema.Tables is
                                and then Object_Component /= ""
                                and then Object_Component
                                  (Object_Component'Last) /= '_'
-                               then "Local.T" & Table.Index_Image & "_Data.Db."
+                               then "T" & Table.Index_Image & "_Data."
                                else "")
                             & Key.Field (1).Ada_Name;
             Key_Part : constant Expression'Class :=
@@ -1430,6 +1475,42 @@ package body Kit.Schema.Tables is
    begin
       return Item.Ada_Name & "_Type";
    end Type_Name;
+
+   --------------------------------
+   -- Update_Implementation_Name --
+   --------------------------------
+
+   function Update_Implementation_Name
+     (Item : Root_Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Update_Implementation";
+   end Update_Implementation_Name;
+
+   ---------------------------
+   -- Update_Interface_Name --
+   ---------------------------
+
+   function Update_Interface_Name
+     (Item : Root_Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Update_Interface";
+   end Update_Interface_Name;
+
+   ----------------------
+   -- Update_Type_Name --
+   ----------------------
+
+   function Update_Type_Name
+     (Item : Root_Table_Type)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Update";
+   end Update_Type_Name;
 
    ----------------------
    -- With_Map_Package --

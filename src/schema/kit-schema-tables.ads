@@ -39,7 +39,19 @@ package Kit.Schema.Tables is
      (Item : Root_Table_Type)
       return String;
 
+   function Update_Interface_Name
+     (Item : Root_Table_Type)
+      return String;
+
    function Type_Name
+     (Item : Root_Table_Type)
+      return String;
+
+   function Handle_Name
+     (Item : Root_Table_Type)
+      return String;
+
+   function Update_Type_Name
      (Item : Root_Table_Type)
       return String;
 
@@ -47,9 +59,17 @@ package Kit.Schema.Tables is
      (Item : Root_Table_Type)
       return String;
 
+   function Update_Implementation_Name
+     (Item : Root_Table_Type)
+      return String;
+
    function Length
      (Item : Root_Table_Type)
       return System.Storage_Elements.Storage_Count;
+
+   function Is_Abstract
+     (Item : Root_Table_Type)
+      return Boolean;
 
    function Reference_Type_Name (Item : Root_Table_Type) return String;
 
@@ -65,6 +85,9 @@ package Kit.Schema.Tables is
    function Has_Local_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Compound_Key_Field (Item : Root_Table_Type) return Boolean;
    function Has_Display_Field
+     (Item : not null access Root_Table_Type)
+      return Boolean;
+   function Has_Writable_Field
      (Item : not null access Root_Table_Type)
       return Boolean;
    function Has_Inherited_Table (Item : Root_Table_Type) return Boolean;
@@ -169,6 +192,9 @@ package Kit.Schema.Tables is
         procedure (Item : Table_Type);
       Inclusive : Boolean;
       Table_First : Boolean := False);
+
+   procedure Set_Abstract
+     (Table : in out Root_Table_Type'Class);
 
    procedure Append
      (Table     : in out Root_Table_Type;
@@ -294,6 +320,7 @@ private
          Fields                 : Field_Vectors.Vector;
          Keys                   : Key_Vectors.Vector;
          Magic                  : Natural;
+         Is_Abstract            : Boolean := False;
          Has_String_Type        : Boolean := False;
          Has_Text_Type          : Boolean := False;
          Has_Local_Key_Field    : Boolean := False;
@@ -318,5 +345,13 @@ private
 
    function Has_Inherited_Table (Item : Root_Table_Type) return Boolean
    is (not Item.Bases.Is_Empty);
+
+   function Is_Abstract (Item : Root_Table_Type) return Boolean
+   is (Item.Is_Abstract);
+
+   function Handle_Name
+     (Item : Root_Table_Type)
+      return String
+   is (Item.Ada_Name & "_Handle");
 
 end Kit.Schema.Tables;

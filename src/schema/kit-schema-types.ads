@@ -6,13 +6,28 @@ with Kit.Names;
 
 package Kit.Schema.Types is
 
+   type Kit_Operator is
+     (Is_True, Is_False,
+      EQ, NE, LE, GT, LT, GE);
+
+   subtype Boolean_Operator is Kit_Operator range Is_True .. Is_False;
+   subtype Equality_Operator is Kit_Operator range EQ .. NE;
+   subtype Ordering_Operator is Kit_Operator range EQ .. GE;
+
    type Root_Kit_Type is
      abstract new Kit.Names.Root_Named_Object with private;
 
    function Return_Subtype (Item : Root_Kit_Type) return String is abstract;
+   function Return_Handle_Subtype (Item : Root_Kit_Type'Class) return String;
+
    function Record_Subtype (Item : Root_Kit_Type) return String;
    function Unconstrained_Record_Subtype (Item : Root_Kit_Type) return String;
    function Argument_Subtype (Item : Root_Kit_Type) return String;
+
+   function Argument_Handle_Subtype
+     (Item : Root_Kit_Type)
+      return String;
+
    function Convert_To_String (Item   : Root_Kit_Type;
                                Object_Name : String)
                                return Syn.Expression'Class;
@@ -25,6 +40,11 @@ package Kit.Schema.Types is
                            return Syn.Expression'Class
                            is abstract;
 
+   function Has_Operator
+     (Item     : Root_Kit_Type;
+      Operator : Kit_Operator)
+      return Boolean;
+
    function Haskell_Type_Name (Item : Root_Kit_Type) return String;
    function Internal_Database_Name (Item : Root_Kit_Type) return String
    is (Item.Standard_Name);
@@ -34,6 +54,8 @@ package Kit.Schema.Types is
    function Is_Bounded_String (Item : Root_Kit_Type) return Boolean;
    function Is_Fixed_String (Item : Root_Kit_Type) return Boolean;
    function Is_Table_Reference (Item : Root_Kit_Type) return Boolean;
+
+   function Has_Custom_Type (Item : Root_Kit_Type) return Boolean;
 
    function Key_OK (Item : Root_Kit_Type) return Boolean
    is (True);
@@ -181,5 +203,10 @@ private
 
    function Is_Fixed_String (Item : Root_Kit_Type) return Boolean
    is (False);
+
+   function Return_Handle_Subtype (Item : Root_Kit_Type'Class) return String
+   is (if Item.Is_Table_Reference
+       then Item.Ada_Name & "." & Item.Ada_Name & "_Class"
+       else Item.Return_Subtype);
 
 end Kit.Schema.Types;

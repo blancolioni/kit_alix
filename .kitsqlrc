@@ -1,0 +1,2 @@
+database = ../malmo/malmo.db.marlowe
+#sql-script = ./tests/test.sql

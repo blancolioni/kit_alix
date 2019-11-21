@@ -15,7 +15,7 @@ package body Kit.Generic_Cache is
 
    function Get
      (Index       : Marlowe.Database_Index;
-      Lock_Result : Boolean := True)
+      Lock_Result : Boolean := False)
       return Cache_Access
    is
       use type Kit.Cache.Cache_Entry;
@@ -79,6 +79,33 @@ package body Kit.Generic_Cache is
 
    end Get;
 
+   ------------
+   -- S_Lock --
+   ------------
+
+   procedure S_Lock (Index : Marlowe.Database_Index) is
+   begin
+      Get (Index).S_Lock;
+   end S_Lock;
+
+   ------------
+   -- U_Lock --
+   ------------
+
+   procedure U_Lock (Index : Marlowe.Database_Index) is
+   begin
+      Get (Index).U_Lock;
+   end U_Lock;
+
+   ------------
+   -- Unlock --
+   ------------
+
+   procedure Unlock (Index : Marlowe.Database_Index) is
+   begin
+      Get (Index).Unlock;
+   end Unlock;
+
    -----------
    -- Write --
    -----------
@@ -90,5 +117,14 @@ package body Kit.Generic_Cache is
    begin
       Write (Index, Item.Db);
    end Write;
+
+   ------------
+   -- X_Lock --
+   ------------
+
+   procedure X_Lock (Index : Marlowe.Database_Index) is
+   begin
+      Get (Index).X_Lock;
+   end X_Lock;
 
 end Kit.Generic_Cache;

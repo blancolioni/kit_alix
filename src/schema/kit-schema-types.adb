@@ -57,6 +57,12 @@ package body Kit.Schema.Types is
    overriding
    function Haskell_Type_Name (Item : Integer_Type) return String;
 
+   overriding function Has_Operator
+     (Item     : Integer_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Operator in Ordering_Operator);
+
    type Long_Integer_Type is new Root_Kit_Type with
       record
          Low, High : Integer_64;
@@ -94,6 +100,12 @@ package body Kit.Schema.Types is
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Syn.Statement'Class;
 
+   overriding function Has_Operator
+     (Item     : Long_Integer_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Operator in Ordering_Operator);
+
    type Float_Type is new Root_Kit_Type with
       record
          Long : Boolean;
@@ -120,6 +132,12 @@ package body Kit.Schema.Types is
       Object      : Syn.Expression'Class)
       return Syn.Expression'Class;
 
+   overriding function Has_Operator
+     (Item     : Float_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Operator in Ordering_Operator);
+
    type Boolean_Type is new Root_Kit_Type with null record;
 
    overriding
@@ -140,8 +158,11 @@ package body Kit.Schema.Types is
    type Table_Reference_Type_Record is
      new Root_Kit_Type with null record;
 
-   overriding
-   function Return_Subtype
+   overriding function Return_Subtype
+     (Item : Table_Reference_Type_Record)
+      return String;
+
+   overriding function Argument_Handle_Subtype
      (Item : Table_Reference_Type_Record)
       return String;
 
@@ -278,6 +299,11 @@ package body Kit.Schema.Types is
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Syn.Statement'Class;
 
+   overriding function To_Storage_Array
+     (Item   : String_Type;
+      Object : Syn.Expression'Class)
+      return Syn.Expression'Class;
+
    overriding
    function Haskell_Type_Name (Item : String_Type) return String;
 
@@ -410,6 +436,36 @@ package body Kit.Schema.Types is
    overriding function Internal_Database_Name
      (Item : External_Type) return String
    is (Item.Local_Type.Internal_Database_Name);
+
+   overriding function Has_Operator
+     (Item     : External_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is (Item.Local_Type.Has_Operator (Operator));
+
+   -----------------------------
+   -- Argument_Handle_Subtype --
+   -----------------------------
+
+   function Argument_Handle_Subtype
+     (Item           : Root_Kit_Type)
+      return String
+   is
+   begin
+      return Root_Kit_Type'Class (Item).Argument_Subtype;
+   end Argument_Handle_Subtype;
+
+   -----------------------------
+   -- Argument_Handle_Subtype --
+   -----------------------------
+
+   overriding function Argument_Handle_Subtype
+     (Item           : Table_Reference_Type_Record)
+      return String
+   is
+   begin
+      return Item.Ada_Name & "_Class";
+   end Argument_Handle_Subtype;
 
    ----------------------
    -- Argument_Subtype --
@@ -988,6 +1044,16 @@ package body Kit.Schema.Types is
         (Ada.Strings.Unbounded.To_Unbounded_String (Name));
    end Get_Type;
 
+   ---------------------
+   -- Has_Custom_Type --
+   ---------------------
+
+   function Has_Custom_Type (Item : Root_Kit_Type) return Boolean is
+      pragma Unreferenced (Item);
+   begin
+      return False;
+   end Has_Custom_Type;
+
    -----------------------
    -- Has_Default_Value --
    -----------------------
@@ -1012,6 +1078,20 @@ package body Kit.Schema.Types is
    begin
       return False;
    end Has_Default_Value;
+
+   ------------------
+   -- Has_Operator --
+   ------------------
+
+   function Has_Operator
+     (Item     : Root_Kit_Type;
+      Operator : Kit_Operator)
+      return Boolean
+   is
+      pragma Unreferenced (Item);
+   begin
+      return Operator in EQ | NE;
+   end Has_Operator;
 
    -----------------------
    -- Haskell_Type_Name --
@@ -1483,8 +1563,9 @@ package body Kit.Schema.Types is
       if Value_Type.Fixed then
          return Syn.Object (Target_Name);
       else
-         return Syn.Object
-           (Target_Name & ".Text (1 .. " & Target_Name & ".Length)");
+         return Syn.Expressions.New_Function_Call_Expression
+           (Target_Name & ".Text",
+            "1 .. " & Target_Name & ".Length");
       end if;
    end Return_Value;
 
@@ -2092,21 +2173,20 @@ package body Kit.Schema.Types is
    -- To_Storage_Array --
    ----------------------
 
---     overriding
---     function To_Storage_Array
---       (Item        : String_Type;
---        Object_Name : String)
---        return Syn.Expression'Class
---     is
---        use Syn.Expressions;
---     begin
---        return New_Function_Call_Expression
---          ("Kit.Runtime.To_Storage",
---           Object_Name,
---           Ada.Strings.Fixed.Trim
---             (Natural'Image (Item.Length),
---              Ada.Strings.Left));
---     end To_Storage_Array;
+   overriding function To_Storage_Array
+     (Item   : String_Type;
+      Object : Syn.Expression'Class)
+      return Syn.Expression'Class
+   is
+   begin
+      if Item.Fixed then
+         return Syn.Expressions.New_Function_Call_Expression
+           ("Marlowe.Key_Storage.Fixed_String_To_Storage",
+            Object, Syn.Literal (Item.Length));
+      else
+         return To_Storage_Array (Root_Kit_Type (Item), Object);
+      end if;
+   end To_Storage_Array;
 
    ----------------------------------
    -- Unconstrained_Record_Subtype --

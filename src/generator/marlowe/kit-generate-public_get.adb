@@ -271,7 +271,7 @@ package body Kit.Generate.Public_Get is
 
       Block.Append
         (New_Assignment_Statement
-           ("Element.Local.M_Index",
+           ("Element.M_Index",
             New_Function_Call_Expression
               (Table.Reference_Type_Name, "Index")));
 
@@ -280,11 +280,12 @@ package body Kit.Generate.Public_Get is
       begin
          Fetch.Fetch_From_Index (Table       => Table,
                                  Object_Name => "Element",
+                                 Update      => False,
                                  Target      => Exists_Sequence);
          Block.Append
            (If_Statement
               (Operator
-                   ("/=", Object ("Element.Local.M_Index"),
+                   ("/=", Object ("Element.M_Index"),
                     Object
                       ("Null_" & Table.Ada_Name & "_Reference")),
                Exists_Sequence));
@@ -293,7 +294,6 @@ package body Kit.Generate.Public_Get is
       Set_Field (Block, "Finished", False);
       Set_Field (Block, "Using_Key_Value", False);
       Set_Field (Block, "Scanning", False);
-      Set_Field (Block, "Link.S_Locked", True);
 
       Block.Append
         (New_Procedure_Call_Statement
@@ -437,8 +437,6 @@ package body Kit.Generate.Public_Get is
               ("List_Of_Marks.Element",
                Object ("Position.Current_Mark"))));
 
-      Next_Block.Add_Statement ("Item.Local.Unlock");
-
       Next_Block.Add_Statement
         (New_Procedure_Call_Statement
            ("Mark.Next"));
@@ -452,7 +450,7 @@ package body Kit.Generate.Public_Get is
         (If_Statement
            (Object ("Got_Valid_Index"),
             New_Assignment_Statement
-              ("Item.Local.M_Index",
+              ("Item.M_Index",
                New_Function_Call_Expression
                  (Table.Reference_Type_Name,
                   New_Function_Call_Expression
@@ -467,10 +465,8 @@ package body Kit.Generate.Public_Get is
          Fetch_Found : Sequence_Of_Statements;
          Not_Found   : Sequence_Of_Statements;
       begin
-         Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
-         Fetch_Found.Append
-           ("Item.Link.S_Locked := True");
-         Not_Found.Append ("Item.Local.M_Index := 0");
+         Fetch.Fetch_From_Index (Table, "Item", False, Fetch_Found);
+         Not_Found.Append ("Item.M_Index := 0");
          Next_Block.Add_Statement
            (If_Statement
               (Object ("Got_Valid_Index"),
@@ -954,24 +950,23 @@ package body Kit.Generate.Public_Get is
 
                Return_Sequence.Append
                  (New_Assignment_Statement
-                    (Target => "Result.Local.M_Index",
+                    (Target => "Result.M_Index",
                      Value  =>
                        New_Function_Call_Expression
                          (Table.Reference_Type_Name, "Db_Index")));
 
                Fetch.Fetch_From_Index (Table       => Table,
                                        Object_Name => "Result",
+                                       Update      => False,
                                        Target      => Valid_Sequence);
 
                Set_Field (Valid_Sequence, "Finished", False);
                Set_Field (Valid_Sequence, "Using_Key_Value", False);
                Set_Field (Valid_Sequence, "Scanning", False);
-               Set_Field (Valid_Sequence, "Link.S_Locked", True);
 
                Set_Field (Invalid_Sequence, "Finished", True);
                Set_Field (Invalid_Sequence, "Using_Key_Value", False);
                Set_Field (Invalid_Sequence, "Scanning", False);
-               Set_Field (Invalid_Sequence, "Link.S_Locked", False);
 
                Return_Sequence.Append
                  (If_Statement
@@ -1035,9 +1030,12 @@ package body Kit.Generate.Public_Get is
       use Syn;
       use Syn.Expressions, Syn.Statements;
 
+      Empty_Sequence   : Sequence_Of_Statements;
       Return_Sequence  : Sequence_Of_Statements;
 
-      function Function_Name return String;
+      function Function_Name
+        (For_Update : Boolean)
+         return String;
 
       procedure Set_Field
         (Seq        : in out Sequence_Of_Statements;
@@ -1048,9 +1046,16 @@ package body Kit.Generate.Public_Get is
       -- Function_Name --
       -------------------
 
-      function Function_Name return String is
+      function Function_Name
+        (For_Update : Boolean)
+         return String
+      is
       begin
-         return "Get";
+         if For_Update then
+            return "Get_Update";
+         else
+            return "Get";
+         end if;
       end Function_Name;
 
       ---------------
@@ -1071,66 +1076,75 @@ package body Kit.Generate.Public_Get is
 
    begin
 
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
-
---        Return_Sequence.Append
---          (New_Assignment_Statement
---             ("Result.Mark",
---              Object ("null")));
-
-      Return_Sequence.Append
-        (New_Assignment_Statement
-           ("Result.Local.M_Index", Object ("Ref")));
-
-      declare
-         Exists_Sequence : Sequence_Of_Statements;
-      begin
-         Fetch.Fetch_From_Index (Table       => Table,
-                                 Object_Name => "Result",
-                                 Target      => Exists_Sequence);
+      for Update in Boolean loop
+         Return_Sequence := Empty_Sequence;
          Return_Sequence.Append
-           (If_Statement
-              (Operator
-                   ("/=", Object ("Result.Local.M_Index"),
-                    Object
-                      ("Null_" & Table.Ada_Name & "_Reference")),
-               Exists_Sequence));
-      end;
+           (New_Procedure_Call_Statement
+              (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
 
-      Set_Field (Return_Sequence, "Finished", False);
-      Set_Field (Return_Sequence, "Using_Key_Value", False);
-      Set_Field (Return_Sequence, "Scanning", False);
-      Set_Field (Return_Sequence, "Link.S_Locked", True);
-
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
-
-      declare
-         use Syn.Declarations;
-         Block                  : Syn.Blocks.Block_Type;
-      begin
-         Block.Append
-           (Syn.Statements.New_Return_Statement
-              ("Result", Table.Implementation_Name, Return_Sequence));
+         Return_Sequence.Append
+           (New_Assignment_Statement
+              ("Result.M_Index", Object ("Ref")));
 
          declare
-            Fn : Subprogram_Declaration'Class :=
-                   New_Function
-                     (Function_Name, Table.Type_Name,
-                      Block);
+            Exists_Sequence : Sequence_Of_Statements;
          begin
-            Fn.Add_Formal_Argument
-              (New_Formal_Argument
-                 ("Ref",
-                  Named_Subtype
-                    (Table.Ada_Name & "_Reference")));
-            Table_Package.Append (Fn);
+            Fetch.Fetch_From_Index (Table       => Table,
+                                    Object_Name => "Result",
+                                    Update      => Update,
+                                    Target      => Exists_Sequence);
+            Return_Sequence.Append
+              (If_Statement
+                 (Operator
+                      ("/=", Object ("Result.M_Index"),
+                       Object
+                         ("Null_" & Table.Ada_Name & "_Reference")),
+                  Exists_Sequence));
          end;
 
-      end;
+         Set_Field (Return_Sequence, "Finished", False);
+         Set_Field (Return_Sequence, "Using_Key_Value", False);
+         Set_Field (Return_Sequence, "Scanning", False);
+
+         if Update then
+            Set_Field (Return_Sequence, "Read_Only", Value => False);
+         end if;
+
+         Return_Sequence.Append
+           (New_Procedure_Call_Statement
+              (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
+
+         declare
+            use Syn.Declarations;
+            Result_Name : constant String :=
+                            (if Update
+                             then Table.Update_Implementation_Name
+                             else Table.Implementation_Name);
+            Return_Name : constant String :=
+                            (if Update
+                             then Table.Update_Type_Name
+                             else Table.Type_Name);
+            Block       : Syn.Blocks.Block_Type;
+         begin
+            Block.Append
+              (Syn.Statements.New_Return_Statement
+                 ("Result", Result_Name, Return_Sequence));
+
+            declare
+               Fn : Subprogram_Declaration'Class :=
+                      New_Function
+                        (Function_Name (Update), Return_Name, Block);
+            begin
+               Fn.Add_Formal_Argument
+                 (New_Formal_Argument
+                    ("Ref",
+                     Named_Subtype
+                       (Table.Ada_Name & "_Reference")));
+               Table_Package.Append (Fn);
+            end;
+
+         end;
+      end loop;
 
       Table_Package.Append (Syn.Declarations.New_Separator);
    end Create_Reference_Get_Function;

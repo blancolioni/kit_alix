@@ -9,6 +9,7 @@ with Kit.Schema.Types;
 
 with Kit.Generate.Fetch;
 with Kit.Generate.Public_Get;
+with Kit.Generate.Updates;
 
 with Kit.Options;
 with Kit.String_Maps;
@@ -22,11 +23,6 @@ package body Kit.Generate.Public_Interface is
 
    procedure Create_Field_Constants
      (Table : in Kit.Schema.Tables.Table_Type;
-      Top   : in out Syn.Declarations.Package_Type'Class);
-
-   procedure Create_Locking_Procedures
-     (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type;
       Top   : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Overrides
@@ -70,6 +66,51 @@ package body Kit.Generate.Public_Interface is
       Request_Object    : String;
       Index_Object      : String);
 
+   function Apply_To_Record_Indices
+     (Table  : Kit.Schema.Tables.Table_Type;
+      Object : String;
+      Fn     : not null access
+        function (Base          : Kit.Schema.Tables.Table_Type;
+                  Argument_Name : String)
+      return Syn.Statement'Class)
+      return Syn.Statements.Sequence_Of_Statements;
+
+   -----------------------------
+   -- Apply_To_Record_Indices --
+   -----------------------------
+
+   function Apply_To_Record_Indices
+     (Table  : Kit.Schema.Tables.Table_Type;
+      Object : String;
+      Fn     : not null access
+        function (Base          : Kit.Schema.Tables.Table_Type;
+                  Argument_Name : String)
+      return Syn.Statement'Class)
+      return Syn.Statements.Sequence_Of_Statements
+   is
+      Seq : Syn.Statements.Sequence_Of_Statements;
+
+      procedure Apply (Base : Kit.Schema.Tables.Table_Type);
+
+      -----------
+      -- Apply --
+      -----------
+
+      procedure Apply (Base : Kit.Schema.Tables.Table_Type) is
+         Field : constant String :=
+           (if Base.Ada_Name = Table.Ada_Name
+            then ".M_Index"
+            else Table.Base_Component_Name & "." & Base.Ada_Name);
+      begin
+         Seq.Append
+           (Fn (Base, Object & Field));
+      end Apply;
+
+   begin
+      Table.Iterate (Apply'Access, True);
+      return Seq;
+   end Apply_To_Record_Indices;
+
    -------------------------------
    -- Create_Control_Procedures --
    -------------------------------
@@ -88,7 +129,7 @@ package body Kit.Generate.Public_Interface is
                        New_Inout_Argument
                          ("Item",
                           Syn.Named_Subtype
-                            (Table.Ada_Name & "_Implementation"));
+                            (Table.Update_Implementation_Name));
 
       procedure Create_Delete;
       procedure Create_Initialize;
@@ -108,10 +149,6 @@ package body Kit.Generate.Public_Interface is
 
          Delete_Block.Add_Statement
            (New_Procedure_Call_Statement
-              ("Item.X_Lock"));
-
-         Delete_Block.Add_Statement
-           (New_Procedure_Call_Statement
               ("Item.Deleted := True"));
 
          Delete_Block.Add_Statement
@@ -124,22 +161,11 @@ package body Kit.Generate.Public_Interface is
                         ("Delete",
                          New_Inout_Argument ("Item",
                            Syn.Named_Subtype
-                             (Table.Ada_Name & "_Implementation")),
+                             (Table.Update_Implementation_Name)),
                          Delete_Block);
          begin
             Delete.Set_Overriding;
             Top.Append_To_Body (Delete);
-
-            if Table.Ada_Name = "Kit_Root_Record" then
-               Top.Append
-                 (New_Abstract_Procedure
-                    (Name => "Delete",
-                     Argument =>
-                       New_Inout_Argument
-                         ("Item",
-                          Syn.Named_Subtype
-                            (Table.Ada_Name & "_Interface"))));
-            end if;
          end;
 
       end Create_Delete;
@@ -295,7 +321,7 @@ package body Kit.Generate.Public_Interface is
             Delete_Key_Statements.Append
               (New_Assignment_Statement
                  (Target =>
-                      "Item.Local.T" & Base.Index_Image & "_Data.Db.Deleted",
+                      "Item.T" & Base.Index_Image & "_Data.Deleted",
                   Value  => Object ("True")));
          end Set_Db_Deleted;
 
@@ -307,7 +333,7 @@ package body Kit.Generate.Public_Interface is
 
          Finalize_Block.Add_Statement
            (If_Statement
-              (Operator ("=", Object ("Item.Local.M_Index"), Literal (0)),
+              (Operator ("=", Object ("Item.M_Index"), Literal (0)),
                New_Return_Statement));
 
          Insert_Keys.Append
@@ -323,8 +349,8 @@ package body Kit.Generate.Public_Interface is
                      Literal
                        ("Finalize " & Table.Ada_Name & ":"),
                      New_Function_Call_Expression
-                       ("Marlowe.Database_Index'Image",
-                        Object ("Item.Local.M_Index")))));
+                       ("To_String",
+                        Object ("Item.M_Index")))));
          end if;
 
          Key_Operation ("Delete", Delete_Key_Statements);
@@ -351,20 +377,23 @@ package body Kit.Generate.Public_Interface is
             Inclusive => True);
 
          declare
-            X_Locked       : constant Expression'Class :=
-                               Object ("Item.Link.X_Locked");
+            Read_Only      : constant Expression'Class :=
+                               Object ("Item.Read_Only");
             Created        : constant Expression'Class :=
-                               Object ("Item.Created");
-            X_And_Not_C    : constant Expression'Class :=
-                               Operator ("and then not", X_Locked, Created);
-            X_And_Not_C_D  : constant Expression'Class :=
-                               Operator ("and then not", X_And_Not_C,
-                                         Object ("Item.Deleted"));
-            If_X_And_Not_C_D : constant Statement'Class :=
-                                 If_Statement (X_And_Not_C_D,
-                                               Notify_Change_Statements);
+              Object ("Item.Created");
+            Deleted        : constant Expression'Class :=
+              Object ("Item.Deleted");
+            Notify         : constant Expression'Class :=
+              Operator
+                ("not",
+                 Operator
+                   ("or else",
+                    Operator
+                      ("or else", Read_Only, Created), Deleted));
+            Send_Notify : constant Statement'Class :=
+              If_Statement (Notify, Notify_Change_Statements);
          begin
-            Finalize_Block.Add_Statement (If_X_And_Not_C_D);
+            Finalize_Block.Add_Statement (Send_Notify);
          end;
 
          Key_Operation ("Insert", Insert_Keys);
@@ -377,55 +406,108 @@ package body Kit.Generate.Public_Interface is
            (Notify_Create'Access, Inclusive => True);
 
          declare
-            X_Locked : constant Expression'Class :=
-                         Object ("Item.Link.X_Locked");
-            Created  : constant Expression'Class :=
-                         Object ("Item.Created");
-            X_L_And_C : constant Expression'Class :=
-                          Operator ("and then", X_Locked, Created);
-            If_X_And_C : constant Statement'Class :=
-                           If_Statement (X_L_And_C, Insert_Keys);
+            Read_Write  : constant Expression'Class :=
+              Operator ("not", Object ("Item.Read_Only"));
+            Created     : constant Expression'Class :=
+              Object ("Item.Created");
+            RW_And_C    : constant Expression'Class :=
+              Operator ("and then", Read_Write, Created);
+            If_RW_And_C : constant Statement'Class :=
+              If_Statement (RW_And_C, Insert_Keys);
          begin
-            Finalize_Block.Add_Statement (If_X_And_C);
+            Finalize_Block.Add_Statement (If_RW_And_C);
          end;
 
          declare
-            S_Locked : constant Expression'Class :=
-                         Object ("Item.Link.S_Locked");
-            X_Locked : constant Expression'Class :=
-                         Object ("Item.Link.X_Locked");
-            S_And_X  : constant Expression'Class :=
-                         Operator ("or else", S_Locked, X_Locked);
-            Same_Context  : constant Expression'Class :=
-                              Operator ("not", Object ("Item.Subclassed"));
-            Do_Unlock     : constant Expression'Class :=
-                              Long_Operator ("and then",
-                                             S_And_X, Same_Context);
-            Unlock        : constant Statement'Class :=
-                              New_Procedure_Call_Statement
-                                ("Item.Local.Unlock");
+
+            function Save_Record
+              (Base          : Kit.Schema.Tables.Table_Type;
+               Argument_Name : String)
+               return Syn.Statement'Class;
+
+            -----------------
+            -- Save_Record --
+            -----------------
+
+            function Save_Record
+              (Base          : Kit.Schema.Tables.Table_Type;
+               Argument_Name : String)
+               return Syn.Statement'Class
+            is
+               T_Access : constant String :=
+                            "T" & Base.Index_Image & "_Access";
+               Block    : Syn.Blocks.Block_Type;
+            begin
+               Block.Add_Declaration
+                 (New_Constant_Declaration
+                    (T_Access,
+                     Base.Ada_Name & "_Cache.Cache_Access",
+                     New_Function_Call_Expression
+                       (Base.Ada_Name & "_Cache.Get",
+                        New_Function_Call_Expression
+                          ("Marlowe.Database_Index",
+                           Argument_Name))));
+               Block.Add_Statement
+                 (New_Assignment_Statement
+                    (T_Access & ".Db",
+                     Object ("Item.T" & Base.Index_Image & "_Data")));
+
+               return Declare_Statement (Block);
+            end Save_Record;
+
+            Read_Write : constant Expression'Class :=
+                           Operator ("not", Object ("Item.Read_Only"));
+
+            Save          : constant Syn.Statements.Sequence_Of_Statements :=
+                              Apply_To_Record_Indices
+                                (Table, "Item", Save_Record'Access);
             If_Do_Unlock  : constant Statement'Class :=
-                              If_Statement (Do_Unlock, Unlock);
+                              If_Statement (Read_Write, Save);
+         begin
+            Finalize_Block.Add_Statement (If_Do_Unlock);
+         end;
+
+         declare
+
+            function Unlock_Table
+              (Base          : Kit.Schema.Tables.Table_Type;
+               Argument_Name : String)
+               return Syn.Statement'Class;
+
+            ------------------
+            -- Unlock_Table --
+            ------------------
+
+            function Unlock_Table
+              (Base          : Kit.Schema.Tables.Table_Type;
+               Argument_Name : String)
+               return Syn.Statement'Class
+            is
+            begin
+               return New_Procedure_Call_Statement
+                 (Base.Ada_Name & "_Cache.Unlock",
+                  New_Function_Call_Expression
+                    ("Marlowe.Database_Index",
+                     Argument_Name));
+            end Unlock_Table;
+
+            Read_Write : constant Expression'Class :=
+              Operator ("not", Object ("Item.Read_Only"));
+
+            Unlock        : constant Syn.Statements.Sequence_Of_Statements :=
+              Apply_To_Record_Indices (Table, "Item", Unlock_Table'Access);
+            If_Do_Unlock  : constant Statement'Class :=
+                              If_Statement (Read_Write, Unlock);
          begin
             Finalize_Block.Add_Statement (If_Do_Unlock);
          end;
 
          Finalize_Block.Add_Statement
            (New_Assignment_Statement
-              ("Item.Local.M_Index", Literal (0)));
+              ("Item.M_Index", Literal (0)));
          Finalize_Block.Add_Statement
            (New_Assignment_Statement
               ("Item.Created", Object ("False")));
-         Finalize_Block.Add_Statement
-           (New_Assignment_Statement
-              ("Item.Local", Object ("null")));
-         Finalize_Block.Add_Statement
-           (New_Assignment_Statement
-              ("Item.Link", Object ("null")));
-
---           Finalize_Block.Add_Statement
---             (New_Procedure_Call_Statement
---                ("Free", Object ("Item.Mark")));
 
          if Kit.Options.Generate_Debug then
             Finalize_Block.Add_Statement
@@ -469,36 +551,18 @@ package body Kit.Generate.Public_Interface is
          end Set_Field;
 
       begin
-         Initialize_Block.Add_Statement
-           (Syn.Statements.New_Procedure_Call_Statement
-              ("Memory_Mutex.Lock"));
-         Initialize_Block.Add_Statement
-           (Syn.Statements.New_Assignment_Statement
-              ("Item.Local",
-               Syn.Expressions.New_Allocation_Expression
-                 ("Local_Lock_Context_Record")));
-         Initialize_Block.Add_Statement
-           (Syn.Statements.New_Procedure_Call_Statement
-              ("Memory_Mutex.Unlock"));
-
-         Initialize_Block.Add_Statement
-           (Syn.Statements.New_Assignment_Statement
-              ("Item.Link",
-               Syn.Object
-                 ("Lock_Context (Item.Local)")));
 
          Set_Field ("Finished", "True");
          Set_Field ("Forward", "True");
+         Set_Field ("Read_Only", "True");
          Set_Field ("Created", "False");
          Set_Field ("Deleted", "False");
          Set_Field ("Scanning", "False");
          Set_Field ("Has_Finish", "False");
-         Set_Field ("Subclassed", "False");
          Set_Field ("Using_Key", "False");
 
-         Set_Field ("Local.M_Index", "0");
-         Set_Field ("Local.X_Locked", "False");
-         Set_Field ("Local.S_Locked", "False");
+         Set_Field ("M_Index", "0");
+         Set_Field ("Read_Only", "True");
 
          declare
             Initialize : Subprogram_Declaration'Class :=
@@ -627,9 +691,9 @@ package body Kit.Generate.Public_Interface is
          Store : Subprogram_Declaration'Class :=
                    New_Abstract_Procedure
                      ("Set_" & Field.Ada_Name,
-                      New_In_Argument ("Item",
+                      New_Inout_Argument ("Item",
                         Syn.Named_Subtype
-                          (Table.Interface_Name)));
+                          (Table.Update_Interface_Name)));
       begin
          Store.Add_Formal_Argument
            (New_Formal_Argument ("Value",
@@ -645,9 +709,9 @@ package body Kit.Generate.Public_Interface is
                Store : Subprogram_Declaration'Class :=
                          New_Abstract_Procedure
                            ("Set_" & Field.Ada_Name,
-                            New_In_Argument ("Item",
+                            New_Inout_Argument ("Item",
                               Syn.Named_Subtype
-                                (Table.Interface_Name)));
+                                (Table.Update_Interface_Name)));
             begin
                Store.Add_Formal_Argument
                  (New_Formal_Argument ("Value",
@@ -973,9 +1037,9 @@ package body Kit.Generate.Public_Interface is
          Store : Subprogram_Declaration'Class :=
                    New_Procedure
                      ("Set_" & Field.Ada_Name,
-                      New_In_Argument ("Item",
+                      New_Inout_Argument ("Item",
                         Syn.Named_Subtype
-                          (Table.Ada_Name & "_Implementation")),
+                          (Table.Update_Implementation_Name)),
                       Store_Block);
       begin
          Store.Add_Formal_Argument
@@ -997,9 +1061,9 @@ package body Kit.Generate.Public_Interface is
             Store     : Subprogram_Declaration'Class :=
                           New_Procedure
                             ("Set_" & Field.Ada_Name,
-                             New_In_Argument ("Item",
+                             New_Inout_Argument ("Item",
                                Syn.Named_Subtype
-                                 (Table.Ada_Name & "_Implementation")),
+                                 (Table.Update_Implementation_Name)),
                              Syn.Blocks.Create_Block
                                (New_Procedure_Call_Statement
                                   ("Item.Set_" & Field.Ada_Name,
@@ -1196,7 +1260,7 @@ package body Kit.Generate.Public_Interface is
          Store.Add_Formal_Argument
            ("Item",
             Inout_Argument,
-            Table.Ada_Name & "_Implementation");
+            Table.Update_Implementation_Name);
          Store.Add_Formal_Argument
            ("Field",
             "String");
@@ -1254,137 +1318,6 @@ package body Kit.Generate.Public_Interface is
       end;
 
    end Create_Identity_Function;
-
-   -------------------------------
-   -- Create_Locking_Procedures --
-   -------------------------------
-
-   procedure Create_Locking_Procedures
-     (Db    : in     Kit.Schema.Databases.Database_Type;
-      Table : in     Kit.Schema.Tables.Table_Type;
-      Top   : in out Syn.Declarations.Package_Type'Class)
-   is
-      pragma Unreferenced (Db);
-      use Syn.Declarations;
-      Argument     : constant Formal_Argument'Class :=
-                       New_Inout_Argument
-                         ("Item",
-                          Syn.Named_Subtype
-                            ("Local_Lock_Context_Record"));
-
-      Unlock_Block : Syn.Blocks.Block_Type;
-      S_Lock_Block : Syn.Blocks.Block_Type;
-      X_Lock_Block : Syn.Blocks.Block_Type;
-
-      procedure Add_Locker (Name     : String;
-                            Block    : Syn.Blocks.Block_Type);
-
-      procedure Unlock (T : Kit.Schema.Tables.Table_Type);
-      procedure S_Lock (T : Kit.Schema.Tables.Table_Type);
-      procedure X_Lock (T : Kit.Schema.Tables.Table_Type);
-
-      ----------------
-      -- Add_Locker --
-      ----------------
-
-      procedure Add_Locker (Name     : String;
-                            Block    : Syn.Blocks.Block_Type)
-      is
-         P : Subprogram_Declaration'Class :=
-               New_Procedure (Name, Argument, Block);
-      begin
-         P.Set_Overriding;
-         Top.Append_To_Body (P);
-      end Add_Locker;
-
-      ------------
-      -- S_Lock --
-      ------------
-
-      procedure S_Lock (T : Kit.Schema.Tables.Table_Type) is
-      begin
-         S_Lock_Block.Add_Statement
-           (Syn.Statements.New_Procedure_Call_Statement
-              ("Item.T" & T.Index_Image
-               & "_Data.S_Lock"));
-      end S_Lock;
-
-      ------------
-      -- Unlock --
-      ------------
-
-      procedure Unlock (T : Kit.Schema.Tables.Table_Type) is
-         Request_Object : constant String :=
-                            "Item.T" & T.Index_Image & "_Request";
-
-      begin
-         Unlock_Block.Add_Statement
-           (Syn.Statements.New_Procedure_Call_Statement
-              ("Item.T" & T.Index_Image
-               & "_Data.Unlock"));
-         if Kit.Options.Generate_Deadlock_Detection then
-            Unlock_Block.Add_Statement
-              (Syn.Statements.If_Statement
-                 (Syn.Expressions.Operator
-                      ("/=", Syn.Object (Request_Object),
-                       Syn.Object ("Kit_Locking.No_Request")),
-                  Syn.Statements.New_Procedure_Call_Statement
-                    ("Kit_Locking.Release_Lock",
-                     Syn.Object (Request_Object))));
-         end if;
-      end Unlock;
-
-      ------------
-      -- X_Lock --
-      ------------
-
-      procedure X_Lock (T : Kit.Schema.Tables.Table_Type) is
-      begin
-         Perform_X_Lock
-           (Sequence       => X_Lock_Block,
-            Table_Name     => T.Ada_Name,
-            Object_Name    => "Item.T" & T.Index_Image & "_Data",
-            Request_Object => "Item.T" & T.Index_Image & "_Request",
-            Index_Object   => "Item.M_Index");
-      end X_Lock;
-
-   begin
-
-      if Kit.Options.Generate_Deadlock_Detection then
-         Unlock_Block.Add_Declaration
-           (Syn.Declarations.Use_Type
-              ("Kit_Locking.Request_Id"));
-      end if;
-
-      --  Unlock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
-      Table.Iterate (Unlock'Access,
-                     Inclusive => True,
-                     Table_First => True);
-      --  Unlock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
-      Unlock_Block.Add_Statement ("Item.S_Locked := False");
-      Unlock_Block.Add_Statement ("Item.X_Locked := False");
-
-      Add_Locker ("Unlock", Unlock_Block);
-
-      --  S_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
-      Table.Iterate (S_Lock'Access,
-                     Inclusive => True,
-                     Table_First => True);
-      --  S_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
-      S_Lock_Block.Add_Statement ("Item.S_Locked := True");
-
-      Add_Locker ("S_Lock", S_Lock_Block);
-
-      --  X_Lock_Block.Add_Statement ("Kit.Cache.Lock_Cache");
-      Table.Iterate (X_Lock'Access,
-                     Inclusive => True,
-                     Table_First => True);
-      --  X_Lock_Block.Add_Statement ("Kit.Cache.Unlock_Cache");
-      X_Lock_Block.Add_Statement ("Item.X_Locked := True");
-
-      Add_Locker ("X_Lock", X_Lock_Block);
-
-   end Create_Locking_Procedures;
 
    ---------------------------------
    -- Create_Notification_Handles --
@@ -1603,38 +1536,35 @@ package body Kit.Generate.Public_Interface is
       Top   : in out Syn.Declarations.Package_Type'Class)
    is
       pragma Unreferenced (Db);
-      use Syn;
+      use Syn.Declarations;
       use Syn.Expressions;
       use Syn.Statements;
-      Locking_Sequence : Sequence_Of_Statements;
-      X_Lock_Block : Syn.Blocks.Block_Type;
+
+      function Lock
+        (Base          : Kit.Schema.Tables.Table_Type;
+         Argument_Name : String)
+         return Syn.Statement'Class
+      is (New_Procedure_Call_Statement
+          (Base.Ada_Name & "_Cache.X_Lock",
+           New_Function_Call_Expression
+             ("Marlowe.Database_Index",
+              Argument_Name)));
+
+      Locks : constant Syn.Statements.Sequence_Of_Statements :=
+        Apply_To_Record_Indices
+          (Table, "Item", Lock'Access);
+      X_Lock : Subprogram_Declaration'Class :=
+        New_Procedure
+          ("X_Lock",
+           Syn.Blocks.Create_Block
+             (Locks));
    begin
-      Locking_Sequence.Append
-        (New_Procedure_Call_Statement ("Item.Link.Unlock"));
-      Locking_Sequence.Append
-        (New_Procedure_Call_Statement ("Item.Link.X_Lock"));
-
-      X_Lock_Block.Add_Statement
-        (If_Statement
-           (Operator
-              ("not",
-               Object ("Item.Link.X_Locked")),
-            Locking_Sequence));
-
-      declare
-         use Syn.Declarations;
-         X_Lock : Subprogram_Declaration'Class :=
-                         New_Procedure
-                           ("X_Lock",
-                            X_Lock_Block);
-      begin
-         X_Lock.Add_Formal_Argument
-           ("Item",
-            In_Argument,
-            Table.Ada_Name & "_Implementation");
-         X_Lock.Set_Overriding;
-         Top.Append_To_Body (X_Lock);
-      end;
+      X_Lock.Add_Formal_Argument
+        ("Item",
+         In_Argument,
+         Table.Ada_Name & "_Implementation");
+      X_Lock.Set_Overriding;
+      Top.Append_To_Body (X_Lock);
    end Create_Overrides;
 
    ------------------------------
@@ -1666,7 +1596,7 @@ package body Kit.Generate.Public_Interface is
       begin
          Has_Element_Block.Add_Statement
            (Syn.Statements.New_Return_Statement
-              (Operator ("/=", Object ("Item.Local.M_Index"),
+              (Operator ("/=", Object ("Item.M_Index"),
                Object ("0"))));
 
          declare
@@ -1722,7 +1652,7 @@ package body Kit.Generate.Public_Interface is
            (If_Statement
               (Object ("Got_Valid_Index"),
                New_Assignment_Statement
-                 ("Item.Local.M_Index",
+                 ("Item.M_Index",
                   New_Function_Call_Expression
                     ("Marlowe.Key_Storage.To_Database_Index",
                      Object ("Item.Mark.Get_Key")))));
@@ -1734,8 +1664,8 @@ package body Kit.Generate.Public_Interface is
             Fetch_Found : Sequence_Of_Statements;
             Not_Found   : Sequence_Of_Statements;
          begin
-            Fetch.Fetch_From_Index (Table, "Item", Fetch_Found);
-            Not_Found.Append ("Item.Local.M_Index := 0");
+            Fetch.Fetch_From_Index (Table, "Item", False, Fetch_Found);
+            Not_Found.Append ("Item.M_Index := 0");
             Next_Block.Add_Statement
               (If_Statement
                  (Object ("Got_Valid_Index"),
@@ -1781,20 +1711,25 @@ package body Kit.Generate.Public_Interface is
 --                                     & Table.Ada_Name & "_Database_Record";
       Cache_Package          : constant String :=
                                  Table.Ada_Name & "_Cache";
-      Implementation_Type    : constant String :=
-                                 Table.Ada_Name & "_Implementation";
+      Implementation_Type    : constant String := Table.Implementation_Name;
+      Update_Type            : constant String :=
+                                 Table.Update_Implementation_Name;
 
       Withed_Tables : Kit.String_Maps.String_Map;
 
       Table_Package : Syn.Declarations.Package_Type'Class :=
-        Top.New_Child_Package (Table.Ada_Name);
-      Table_Interface : Syn.Interface_Type_Definition;
+                        Top.New_Child_Package (Table.Ada_Name);
+
+      Table_Interface        : Syn.Interface_Type_Definition;
+      Table_Update_Interface : Syn.Interface_Type_Definition;
 
       procedure Add_Field_Type_With
         (Base  : Kit.Schema.Tables.Table_Type;
          Field : Kit.Schema.Fields.Field_Type);
+
       procedure Add_Base_With (It : Kit.Schema.Tables.Table_Type);
       procedure Add_Base (It : Kit.Schema.Tables.Table_Type);
+      procedure Add_Update_Base (It : Kit.Schema.Tables.Table_Type);
 
       procedure Add_Fetch (Base  : Kit.Schema.Tables.Table_Type;
                            Field : Kit.Schema.Fields.Field_Type);
@@ -1810,6 +1745,8 @@ package body Kit.Generate.Public_Interface is
       procedure Add_Create_Function;
 
       procedure Create_Implementation_Type;
+
+      procedure Create_Update_Type;
 
       procedure Create_Selection_Type;
 
@@ -1861,6 +1798,9 @@ package body Kit.Generate.Public_Interface is
          procedure Database_Insert
            (Base : Kit.Schema.Tables.Table_Type);
 
+         procedure Copy_Record
+           (Base : Kit.Schema.Tables.Table_Type);
+
          procedure Set_Field (Field_Name : String;
                               Value      : String);
 
@@ -1870,6 +1810,11 @@ package body Kit.Generate.Public_Interface is
          procedure Initialise_Field
            (Base     : Kit.Schema.Tables.Table_Type;
             Field    : Kit.Schema.Fields.Field_Type);
+
+         function Local_Base
+           (Base : Kit.Schema.Tables.Table_Type)
+            return String
+         is ("T" & Base.Index_Image & "_Access");
 
          --------------------------
          -- Add_Create_Arguments --
@@ -1914,17 +1859,31 @@ package body Kit.Generate.Public_Interface is
          begin
             Sequence.Append
               (New_Assignment_Statement
-                 ("Result" & Base.Base_Component_Name,
+                 (Local_Base (Base),
                   New_Allocation_Expression
                     (Base.Ada_Name & "_Cache.Cache_Record")));
             if Base.Name = "kit_root_record" then
                Sequence.Append
                  (New_Assignment_Statement
-                    ("Result" & Base.Base_Component_Name
+                    (Local_Base (Base)
                      & ".Db.Top_Record",
                      Object ("R_" & Table.Ada_Name)));
             end if;
          end Allocate_Context;
+
+         -----------------
+         -- Copy_Record --
+         -----------------
+
+         procedure Copy_Record
+           (Base : Kit.Schema.Tables.Table_Type)
+         is
+         begin
+            Sequence.Append
+              (New_Assignment_Statement
+                 ("Result" & Base.Base_Component_Name,
+                  Object (Local_Base (Base) & ".Db")));
+         end Copy_Record;
 
          ---------------------
          -- Database_Insert --
@@ -1935,9 +1894,11 @@ package body Kit.Generate.Public_Interface is
          is
             use Syn.Expressions;
 
+            Base_Access : constant String := Local_Base (Base);
             Index_Field : constant String :=
-                            Table.Database_Index_Component
-                              ("Result", Base);
+              (if Base.Ada_Name = Table.Ada_Name
+               then "Result.M_Index"
+               else Local_Base (Table) & ".Db" & Base.Base_Index_Name);
 
             procedure Set_Base_Index
               (Meta_Base : Kit.Schema.Tables.Table_Type);
@@ -1949,15 +1910,14 @@ package body Kit.Generate.Public_Interface is
             procedure Set_Base_Index
               (Meta_Base : Kit.Schema.Tables.Table_Type)
             is
+               Target_Component : constant String :=
+                 Base_Access & ".Db" & Meta_Base.Base_Index_Name;
+               Source_Component : constant String :=
+                 Local_Base (Table) & ".Db" & Meta_Base.Base_Index_Name;
             begin
                Sequence.Append
                  (New_Assignment_Statement
-                    (Table.Database_Index_Component
-                       ("Result", Base, Meta_Base),
-                        Object
-                          (Table.Database_Index_Component
-                             ("Result",
-                              Meta_Base))));
+                    (Target_Component, Object (Source_Component)));
             end Set_Base_Index;
 
          begin
@@ -1972,12 +1932,12 @@ package body Kit.Generate.Public_Interface is
                        ("Marlowe_Keys.Handle.Insert_Record",
                         Literal (Integer (Base.Reference_Index))))));
             if Base.Ada_Name /= Table.Ada_Name then
-               Base.Iterate (Set_Base_Index'Access, Inclusive   => False);
+               Base.Iterate (Set_Base_Index'Access, Inclusive => False);
             end if;
 
             Sequence.Append
               (New_Procedure_Call_Statement
-                 ("Result" & Base.Base_Component_Name & ".Initialise",
+                 (Base_Access & ".Initialise",
                   Literal (Integer (Base.Reference_Index)),
                   New_Function_Call_Expression
                     ("Marlowe.Database_Index",
@@ -1987,8 +1947,7 @@ package body Kit.Generate.Public_Interface is
               (New_Procedure_Call_Statement
                  ("Kit.Cache.Insert",
                   New_Function_Call_Expression
-                    ("Kit.Cache.Cache_Entry",
-                     "Result" & Base.Base_Component_Name)));
+                    ("Kit.Cache.Cache_Entry", Base_Access)));
 
             Sequence.Append
               (New_Procedure_Call_Statement
@@ -1996,14 +1955,14 @@ package body Kit.Generate.Public_Interface is
                   New_Function_Call_Expression
                     ("Marlowe.Database_Index",
                      Object (Index_Field)),
-                  Object ("Result" & Base.Base_Component_Name & ".Db")));
+                  Object (Base_Access & ".Db")));
 
             Perform_X_Lock
               (Sequence       => Sequence,
                Table_Name     => Base.Ada_Name,
-               Object_Name    => "Result" & Base.Base_Component_Name,
+               Object_Name    => Base_Access,
                Request_Object =>
-                 "Result.Local.T" & Base.Index_Image & "_Request",
+                 "Result.T" & Base.Index_Image & "_Request",
                Index_Object   => Index_Field);
 
             Sequence.Append (Base.Ada_Name & "_Impl.File_Mutex.Unlock");
@@ -2048,11 +2007,10 @@ package body Kit.Generate.Public_Interface is
          Set_Field ("Created", "True");
          Set_Field ("Deleted", "False");
          Set_Field ("Scanning", "False");
-         Set_Field ("Link.X_Locked", "True");
-         Set_Field ("Link.S_Locked", "False");
+         Set_Field ("Read_Only", "False");
          Set_Field ("Using_Key", "False");
 
-         Set_Field ("Local.M_Index", "0");
+         Set_Field ("M_Index", "0");
 
          Sequence.Append
            (New_Procedure_Call_Statement ("Memory_Mutex.Lock"));
@@ -2068,23 +2026,52 @@ package body Kit.Generate.Public_Interface is
                         Inclusive => True,
                         Table_First => False);
 
-         Sequence.Append ("Result.Local.X_Locked := True");
+         Table.Iterate (Copy_Record'Access,
+                        Inclusive => True,
+                        Table_First => False);
+
+         Sequence.Append ("Result.Read_Only := False");
 
          declare
             Block : Syn.Blocks.Block_Type;
+
+            procedure Declare_Access
+              (Base : Kit.Schema.Tables.Table_Type);
+
+            --------------------
+            -- Declare_Access --
+            --------------------
+
+            procedure Declare_Access
+              (Base : Kit.Schema.Tables.Table_Type)
+            is
+            begin
+               Block.Add_Declaration
+                 (Declarations.New_Object_Declaration
+                    (Name        => Local_Base (Base),
+                     Object_Type =>
+                       Named_Subtype
+                         (Base.Ada_Name & "_Cache.Cache_Access")));
+            end Declare_Access;
+
          begin
+
+            Table.Iterate (Declare_Access'Access,
+                           Inclusive   => True,
+                           Table_First => False);
+
             Block.Append
               (New_Return_Statement
-                 ("Result", Implementation_Type, Sequence));
+                 ("Result", Update_Type, Sequence));
             Table_Package.Append
-              (New_Function ("Create", Table.Type_Name,
+              (New_Function ("Create", Table.Update_Type_Name,
                Block));
          end;
 
          Create_Ref_Block.Add_Declaration
            (New_Object_Declaration
               ("Result",
-               Table.Type_Name,
+               Table.Update_Type_Name,
                Object ("Create")));
 
          Table.Iterate_All (Initialise_Field'Access);
@@ -2238,6 +2225,17 @@ package body Kit.Generate.Public_Interface is
          end if;
       end Add_Store;
 
+      ---------------------
+      -- Add_Update_Base --
+      ---------------------
+
+      procedure Add_Update_Base (It : Kit.Schema.Tables.Table_Type) is
+      begin
+         Table_Update_Interface.Add_Parent
+           (Db.Ada_Name & "." & It.Ada_Name & "." &
+              It.Update_Interface_Name);
+      end Add_Update_Base;
+
       --------------------------------
       -- Create_Implementation_Type --
       --------------------------------
@@ -2245,7 +2243,6 @@ package body Kit.Generate.Public_Interface is
       procedure Create_Implementation_Type is
 
          Record_Defn : Syn.Types.Record_Type_Definition;
-         Context_Defn : Syn.Types.Record_Type_Definition;
 
          procedure Add_Base_Component
            (It : Kit.Schema.Tables.Table_Type);
@@ -2259,63 +2256,33 @@ package body Kit.Generate.Public_Interface is
          is
             Name : constant String := "T" & It.Index_Image;
          begin
-            Context_Defn.Add_Component
+            Record_Defn.Add_Component
               (Name & "_Data",
-               It.Ada_Name & "_Cache.Cache_Access");
-            if Kit.Options.Generate_Deadlock_Detection then
-               Context_Defn.Add_Component
-                 (Name & "_Request",
-                  "Kit_Locking.Request_Id",
-                  "Kit_Locking.No_Request");
-            end if;
-
+               It.Ada_Name & "_Impl." & It.Ada_Name & "_Database_Record");
          end Add_Base_Component;
 
       begin
-         Context_Defn.Add_Parent ("Lock_Context_Record");
---           Context_Defn.Add_Component ("Handle",
---                                       "Kit.Access_Control.Access_Handle");
-         Context_Defn.Add_Component
-           ("M_Index", Table.Reference_Type_Name);
-
-         Table.Iterate (Add_Base_Component'Access,
-                        Inclusive => True, Table_First => False);
-
-         Table_Package.Append_To_Body
-           (New_Full_Type_Declaration
-              ("Local_Lock_Context_Record", Context_Defn));
-
-         Create_Locking_Procedures (Db, Table, Table_Package);
-
-         Table_Package.Append_To_Body
-           (New_Full_Type_Declaration
-              ("Local_Lock_Context",
-               New_Access_Type
-                 ("Local_Lock_Context_Record'Class",
-                  Access_All => True)));
-
          Record_Defn.Set_Limited;
          Record_Defn.Add_Parent ("Ada.Finalization.Limited_Controlled");
-         Record_Defn.Add_Parent (Table.Ada_Name & "_Interface");
+         Record_Defn.Add_Parent (Table.Interface_Name);
          Record_Defn.Add_Component ("Finished", "Boolean");
          Record_Defn.Add_Component ("Forward", "Boolean");
+         Record_Defn.Add_Component ("Read_Only", "Boolean");
          Record_Defn.Add_Component ("Created", "Boolean");
          Record_Defn.Add_Component ("Deleted", "Boolean");
          Record_Defn.Add_Component ("Scanning", "Boolean");
          Record_Defn.Add_Component ("Has_Finish", "Boolean");
          Record_Defn.Add_Component ("Start_Closed", "Boolean");
          Record_Defn.Add_Component ("Finish_Closed", "Boolean");
-         Record_Defn.Add_Component ("Subclassed", "Boolean");
          Record_Defn.Add_Component ("Using_Key", "Boolean");
          Record_Defn.Add_Component ("Using_Key_Value", "Boolean");
-         --  Record_Defn.Add_Component ("Mark", "Mark_Access");
          Record_Defn.Add_Component ("Key_Ref",
                                     "Marlowe.Data_Stores.Key_Reference");
---         Record_Defn.Add_Component ("M_Index", Table.Reference_Type);
-         Record_Defn.Add_Component ("Local",
-                                    "Local_Lock_Context");
-         Record_Defn.Add_Component ("Link",
-                                    "Lock_Context");
+         Record_Defn.Add_Component
+           ("M_Index", Table.Reference_Type_Name);
+
+         Table.Iterate (Add_Base_Component'Access,
+                        Inclusive => True, Table_First => False);
 
          Table_Package.Append_To_Body
            (New_Full_Type_Declaration
@@ -2328,7 +2295,6 @@ package body Kit.Generate.Public_Interface is
                  (Access_To  => Implementation_Type,
                   Access_All => True)));
 
-         Create_Control_Procedures (Db, Table, Table_Package);
          Create_Search_Procedures (Db, Table, Table_Package);
 
       end Create_Implementation_Type;
@@ -2880,6 +2846,23 @@ package body Kit.Generate.Public_Interface is
 
       end Create_Selection_Type;
 
+      ------------------------
+      -- Create_Update_Type --
+      ------------------------
+
+      procedure Create_Update_Type is
+         Update_Defn : Syn.Types.Record_Type_Definition;
+      begin
+         Update_Defn.Set_Limited;
+         Update_Defn.Add_Parent (Implementation_Type);
+         Update_Defn.Add_Parent (Table.Update_Interface_Name);
+         Update_Defn.Add_Parent ("Record_Update_Interface");
+         Table_Package.Append_To_Body
+           (New_Full_Type_Declaration
+              (Table.Update_Implementation_Name, Update_Defn));
+
+      end Create_Update_Type;
+
    begin
 
       Table_Package.With_Package ("Ada.Containers.Doubly_Linked_Lists",
@@ -2901,15 +2884,18 @@ package body Kit.Generate.Public_Interface is
                                      Body_With => True);
       end if;
 
-      Table_Package.With_Package ("Kit.Cache",
-                                  Body_With => True);
+      if not Table.Is_Abstract then
+         Table_Package.With_Package
+           ("Kit.Cache",
+            Body_With => True);
+      end if;
 
       Table_Package.With_Package
         ("Kit.Notifier", Body_With => True);
 
       if Table.Has_String_Type then
          Table_Package.With_Package ("Kit.Strings",
-                                     Body_With => True);
+                                     Private_With => True);
       end if;
 
       if Table.Has_Text_Type then
@@ -3008,9 +2994,37 @@ package body Kit.Generate.Public_Interface is
                      Table_First => False);
 
       Table.Iterate_All (Add_Fetch'Access);
-      Table.Iterate_All (Add_Store'Access);
 
-      Add_Create_Function;
+      Table_Update_Interface.Set_Limited;
+      Table_Update_Interface.Add_Parent (Table.Interface_Name);
+      Table.Iterate (Add_Update_Base'Access, Inclusive => False);
+
+      Table_Package.Append
+        (New_Full_Type_Declaration
+           (Table.Update_Interface_Name,
+            Table_Update_Interface));
+      Table_Package.Append
+        (New_Separator);
+
+      Table_Package.Append
+        (New_Subtype_Declaration
+           (Table.Update_Type_Name,
+            Syn.Class_Wide_Subtype
+              (Table.Update_Interface_Name)));
+
+      if Table.Ada_Name = "Kit_Root_Record" then
+         Table_Package.Append
+           (New_Abstract_Procedure
+              (Name     => "Delete",
+               Argument =>
+                 New_Inout_Argument
+                   ("Item",
+                    Syn.Named_Subtype (Table.Update_Interface_Name))));
+      end if;
+
+      if not Table.Is_Abstract then
+         Add_Create_Function;
+      end if;
 
       Create_Selection_Type;
 
@@ -3018,7 +3032,6 @@ package body Kit.Generate.Public_Interface is
 
       Create_Identity_Function (Table, Table_Package);
       Create_Generic_Get (Table, Table_Package);
-      Create_Generic_Set (Table, Table_Package);
 
       Table.Scan_Keys (Create_Key_Get'Access,
                        Include_Base_Keys => True);
@@ -3036,6 +3049,19 @@ package body Kit.Generate.Public_Interface is
       Public_Get.Create_Iterator (Table, Table_Package);
 
       Create_Notification_Handles (Db, Table, Table_Package);
+
+      Create_Update_Type;
+
+      Create_Control_Procedures (Db, Table, Table_Package);
+
+      Create_Generic_Set (Table, Table_Package);
+
+      Table.Iterate_All (Add_Store'Access);
+
+      if Table.Has_Writable_Field then
+         Kit.Generate.Updates.Generate_Update_Subprograms
+           (Table, Table_Package);
+      end if;
 
       return Table_Package;
    end Generate_Public_Interface;

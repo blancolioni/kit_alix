@@ -3,6 +3,9 @@ with Company_Objects;
 
 package Company is
 
+for Company'Database_Package_Name use "Company";
+for company'Handle_Package_Name use "Company.Handles";
+
 record Inventory : Object;
 
 record Resource : Object;
