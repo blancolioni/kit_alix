@@ -1,5 +1,3 @@
-with Ada.Containers.Indefinite_Vectors;
-
 with Syn.Blocks;
 with Syn.Expressions;
 with Syn.Statements;
@@ -10,13 +8,6 @@ with Kit.Schema.Keys;
 with Kit.Schema.Types;
 
 package body Kit.Generate.Selections is
-
-   package String_Vectors is
-     new Ada.Containers.Indefinite_Vectors (Positive, String);
-
-   function Find_Field_Type_Table_References
-     (Table : Kit.Schema.Tables.Table_Type)
-      return String_Vectors.Vector;
 
    function Condition_Operator_Function
      (Operator : Kit.Schema.Types.Kit_Operator;
@@ -1732,43 +1723,6 @@ package body Kit.Generate.Selections is
 
    end Create_Selection_Type;
 
-   --------------------------------------
-   -- Find_Field_Type_Table_References --
-   --------------------------------------
-
-   function Find_Field_Type_Table_References
-     (Table : Kit.Schema.Tables.Table_Type)
-      return String_Vectors.Vector
-   is
-      Result : String_Vectors.Vector;
-
-      procedure Check_Type
-        (Base : Kit.Schema.Tables.Table_Type;
-         Field : Kit.Schema.Fields.Field_Type);
-
-      ----------------
-      -- Check_Type --
-      ----------------
-
-      procedure Check_Type
-        (Base  : Kit.Schema.Tables.Table_Type;
-         Field : Kit.Schema.Fields.Field_Type)
-      is
-         pragma Unreferenced (Base);
-      begin
-         if Field.Get_Field_Type.Is_Table_Reference
-           and then not Result.Contains (Field.Get_Field_Type.Ada_Name)
-         then
-            Result.Append (Field.Get_Field_Type.Ada_Name);
-         end if;
-      end Check_Type;
-
-   begin
-      Table.Iterate_All
-        (Check_Type'Access);
-      return Result;
-   end Find_Field_Type_Table_References;
-
    --------------------------------
    -- Generate_Selection_Package --
    --------------------------------
@@ -1781,9 +1735,6 @@ package body Kit.Generate.Selections is
    is
       Selections_Package : Syn.Declarations.Package_Type'Class :=
         Top.New_Child_Package ("Selections");
-
-      Referenced_Tables : constant String_Vectors.Vector :=
-        Find_Field_Type_Table_References (Table);
 
    begin
 
@@ -1800,8 +1751,8 @@ package body Kit.Generate.Selections is
          Private_With  => True);
 
       Selections_Package.With_Package
-        (Withed        => Db.Database_Package_Name,
-         Private_With  => True);
+        (Withed     => Db.Database_Package_Name,
+         Body_With  => True);
 
       if Table.Has_String_Type then
          Selections_Package.With_Package
@@ -1810,48 +1761,6 @@ package body Kit.Generate.Selections is
 
       Selections_Package.With_Package
         (Withed       => "Ada.Iterator_Interfaces");
-
-      declare
-         Record_Subtype : Syn.Declaration'Class :=
-           Syn.Declarations.New_Subtype_Declaration
-             (Identifier => "Record_Type",
-              Definition =>
-                Syn.Named_Subtype
-                  (Db.Database_Package_Name
-                   & ".Record_Type"));
-      begin
-         Record_Subtype.Set_Private_Spec;
-         Selections_Package.Append (Record_Subtype);
-      end;
-
-      for Name of Referenced_Tables loop
-         Selections_Package.With_Package
-           (Db.Handle_Package_Name & "." & Name);
-
-         Selections_Package.Append
-           (Syn.Declarations.New_Subtype_Declaration
-              (Identifier => Name & "_Class",
-               Definition =>
-                 Syn.Named_Subtype
-                   (Db.Handle_Package_Name
-                    & "." & Name & "." & Name & "_Class")));
-
-         declare
-            Reference_Subtype : Syn.Declaration'Class :=
-              Syn.Declarations.New_Subtype_Declaration
-                (Identifier => Name & "_Reference",
-                 Definition =>
-                   Syn.Named_Subtype
-                     (Db.Database_Package_Name
-                      & "." & Name & "_Reference"));
-         begin
-            Reference_Subtype.Set_Private_Spec;
-            Selections_Package.Append (Reference_Subtype);
-         end;
-
-      end loop;
-
-      Selections_Package.Add_Separator;
 
       Create_Iterator (Selections_Package);
       Create_Selection_Type (Table, Selections_Package);
