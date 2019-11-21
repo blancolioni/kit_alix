@@ -14,17 +14,6 @@ package body Kit.Cache is
 
    Max_Table_Index : constant := 256;
 
-   type Cache_Entry_Key is
-      record
-         Rec     : Marlowe.Table_Index;
-         Index   : Marlowe.Database_Index;
-      end record;
-
-   function Database_Index_Hash (Key : Cache_Entry_Key)
-                                 return Ada.Containers.Hash_Type;
-
-   pragma Unreferenced (Database_Index_Hash);
-
    function Database_Index_Hash
      (Index : Marlowe.Database_Index)
       return Ada.Containers.Hash_Type
@@ -33,8 +22,8 @@ package body Kit.Cache is
    package Cache_Map is
      new Ada.Containers.Hashed_Maps
        (Key_Type        => Marlowe.Database_Index,
-                                     Element_Type    => Cache_Entry,
-                                     Hash            => Database_Index_Hash,
+        Element_Type    => Cache_Entry,
+        Hash            => Database_Index_Hash,
         Equivalent_Keys => Marlowe."=");
 
    LRU : List_Of_Cache_Entries.List;
@@ -105,16 +94,24 @@ package body Kit.Cache is
    -- Database_Index_Hash --
    -------------------------
 
-   function Database_Index_Hash (Key : Cache_Entry_Key)
-                                 return Ada.Containers.Hash_Type
-   is
-      use type Marlowe.Database_Index;
-   begin
-      return Ada.Containers.Hash_Type
-        (((Key.Index * Marlowe.Database_Index (Max_Table_Index))
-          + Marlowe.Database_Index (Key.Rec))
-         mod Ada.Containers.Hash_Type'Modulus);
-   end Database_Index_Hash;
+--     function Database_Index_Hash
+--       (Index : Marlowe.Database_Index)
+--        return Ada.Containers.Hash_Type
+--     is
+--        type Word_64 is mod 2 ** 64;
+--        P : constant Word_64 := 16#5555555555555555#;
+--        C : constant Word_64 := 17316035218449499591;
+--        N : constant Word_64 := Word_64 (Index);
+--
+--        function Xor_Shift (X : Word_64) return Word_64
+--        is (X xor (X / 2 ** 32));
+--
+--        R : constant Word_64 :=
+--          C * Xor_Shift (P * Xor_Shift (N));
+--     begin
+--        return Ada.Containers.Hash_Type
+--          (R mod Ada.Containers.Hash_Type'Modulus);
+--     end Database_Index_Hash;
 
    ---------------------
    -- Get_Cache_Index --
