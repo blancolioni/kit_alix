@@ -62,6 +62,38 @@ package body Kit.Generate.Handles is
       procedure Create_Cache_Functions is
 
          procedure Create_Load_Cached_Record;
+         procedure Create_Get_Statistics;
+
+         procedure Create_Get_Statistics is
+            Block : Syn.Blocks.Block_Type;
+         begin
+            Block.Append
+              (Syn.Statements.New_Procedure_Call_Statement
+                 ("Cache.Get_Statistics",
+                  Syn.Object ("Size"),
+                  Syn.Object ("Hits"),
+                  Syn.Object ("Misses")));
+
+            Target.Append
+              (Syn.Declarations.New_Procedure
+                 (Name       => "Get_Cache_Statistics",
+                  Argument_1 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Size",
+                       Syn.Declarations.Out_Argument,
+                       Syn.Named_Subtype ("Natural")),
+                  Argument_2 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Hits",
+                       Syn.Declarations.Out_Argument,
+                       Syn.Named_Subtype ("Natural")),
+                  Argument_3 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Misses",
+                       Syn.Declarations.Out_Argument,
+                       Syn.Named_Subtype ("Natural")),
+                  Block      => Block));
+         end Create_Get_Statistics;
 
          -------------------------------
          -- Create_Load_Cached_Record --
@@ -134,6 +166,7 @@ package body Kit.Generate.Handles is
 
       begin
          Create_Load_Cached_Record;
+         Create_Get_Statistics;
       end Create_Cache_Functions;
 
       -----------------------
