@@ -26,6 +26,12 @@ package Kit.Protected_Maps is
      (Container : in out Map;
       Key       : Key_Type);
 
+   procedure Get_Statistics
+     (Container : Map;
+      Size      : out Natural;
+      Hits      : out Natural;
+      Misses    : out Natural);
+
 private
 
    type Element_Access is access Element_Type;
@@ -41,6 +47,14 @@ private
    package Lists is
      new Ada.Containers.Doubly_Linked_Lists (Element_Access);
 
+   type Cache_Statistics is
+      record
+         Size      : Natural;
+         Hits      : Natural;
+         Misses    : Natural;
+         Invalid   : Natural;
+      end record;
+
    protected type Protected_Map is
 
       procedure Get_Cached_Reference
@@ -49,10 +63,15 @@ private
 
       procedure Invalidate (Key : Key_Type);
 
+      function Get_Statistics return Cache_Statistics;
+
    private
 
-      Map  : Maps.Map;
-      Free : Lists.List;
+      Map           : Maps.Map;
+      Free          : Lists.List;
+      Hit_Count     : Natural := 0;
+      Miss_Count    : Natural := 0;
+      Invalid_Count : Natural := 0;
 
    end Protected_Map;
 

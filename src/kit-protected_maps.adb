@@ -16,6 +16,24 @@ package body Kit.Protected_Maps is
         (Element => Element);
    end Constant_Reference;
 
+   --------------------
+   -- Get_Statistics --
+   --------------------
+
+   procedure Get_Statistics
+     (Container : Map;
+      Size      : out Natural;
+      Hits      : out Natural;
+      Misses    : out Natural)
+   is
+      Result : constant Cache_Statistics :=
+        Container.Internal.Get_Statistics;
+   begin
+      Size := Result.Size;
+      Hits := Result.Hits;
+      Misses := Result.Misses;
+   end Get_Statistics;
+
    ----------------
    -- Invalidate --
    ----------------
@@ -45,7 +63,20 @@ package body Kit.Protected_Maps is
       begin
          if Maps.Has_Element (Position) then
             Result := Maps.Element (Position);
+--              declare
+--                 Item : Cached_Element renames Map (Position);
+--              begin
+--                 if Item.Valid then
+--                    Hit_Count := Hit_Count + 1;
+--                 else
+--                    Invalid_Count := Invalid_Count + 1;
+--                    Load (Key, Item.Element.all);
+--                    Item.Valid := True;
+--                 end if;
+--                 Result := Item.Element;
+--              end;
          else
+            Miss_Count := Miss_Count + 1;
             if Free.Is_Empty then
                Result := new Element_Type;
             else
@@ -53,9 +84,22 @@ package body Kit.Protected_Maps is
                Free.Delete_First;
             end if;
             Load (Key, Result.all);
-            Map.Insert (Key, Result);
+            Map.Insert (Key, Result); --  (True, Result));
          end if;
       end Get_Cached_Reference;
+
+      --------------------
+      -- Get_Statistics --
+      --------------------
+
+      function Get_Statistics return Cache_Statistics is
+      begin
+         return Cache_Statistics'
+           (Size   => Natural (Map.Length),
+            Hits   => Hit_Count,
+            Misses => Miss_Count,
+            Invalid => Invalid_Count);
+      end Get_Statistics;
 
       ----------------
       -- Invalidate --
@@ -65,8 +109,7 @@ package body Kit.Protected_Maps is
          Position : Maps.Cursor := Map.Find (Key);
       begin
          if Maps.Has_Element (Position) then
-            Free.Append (Maps.Element (Position));
-            Map.Delete (Position);
+            Map.Delete (Position); --  Map (Position).Valid := False;
          end if;
       end Invalidate;
 
