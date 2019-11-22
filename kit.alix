@@ -3,6 +3,7 @@ source_dir = src
 source_dir = src/generator
 source_dir = src/generator/handles
 source_dir = src/generator/marlowe
+source_dir = src/locking
 source_dir = src/parser
 source_dir = src/schema
 depend = { project = Partoe version = any }
