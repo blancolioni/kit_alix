@@ -61,128 +61,7 @@ package body Kit.Generate.Handles is
 
       procedure Create_Cache_Functions is
 
-         procedure Create_Get_Cache_Reference;
          procedure Create_Load_Cached_Record;
-         procedure Create_Invalidate_Reference;
-
-         --------------------------------
-         -- Create_Get_Cache_Reference --
-         --------------------------------
-
-         procedure Create_Get_Cache_Reference is
-            Block : Syn.Blocks.Block_Type;
-         begin
-            Block.Add_Declaration
-              (Syn.Declarations.Use_Package
-                 (Reference_Map_Package_Name & ".Maps"));
-            Block.Add_Declaration
-              (Syn.Declarations.New_Object_Declaration
-                 ("Position", "Cursor",
-                  Syn.Expressions.New_Function_Call_Expression
-                    ("Cache.Find", Syn.Object ("Reference"))));
-
-            declare
-               New_Element : Syn.Blocks.Block_Type;
-            begin
-               New_Element.Add_Declaration
-                 (Syn.Declarations.New_Object_Declaration
-                    ("New_Element", Cached_Handle_Name));
-               New_Element.Add_Declaration
-                 (Syn.Declarations.New_Object_Declaration
-                    ("Inserted", "Boolean"));
-               New_Element.Add_Statement
-                 (Syn.Statements.New_Procedure_Call_Statement
-                    ("Load",
-                     Syn.Object ("Reference"), Syn.Object ("New_Element")));
-               New_Element.Add_Statement
-                 (Syn.Statements.New_Procedure_Call_Statement
-                    ("Cache.Insert",
-                     Syn.Object ("Reference"), Syn.Object ("New_Element"),
-                     Syn.Object ("Position"),
-                     Syn.Object ("Inserted")));
-               New_Element.Append_Pragma ("Assert", "Inserted");
-
-               declare
-                  Check : Syn.Statements.If_Statement_Record'Class :=
-                    Syn.Statements.If_Statement
-                      (Syn.Expressions.Operator
-                         ("not",
-                          Syn.Expressions.New_Function_Call_Expression
-                            ("Has_Element", Syn.Object ("Position"))),
-                       Syn.Statements.Declare_Statement (New_Element));
-               begin
-                  Check.Add_Elsif
-                    (Condition       =>
-                       Syn.Expressions.Operator
-                         ("not",
-                          Syn.Expressions.Operator
-                            (".",
-                             Syn.Expressions.New_Function_Call_Expression
-                               ("Cache", Syn.Object ("Position")),
-                             Syn.Object ("Kit_Valid"))),
-                     Elsif_Statement =>
-                       Syn.Statements.New_Procedure_Call_Statement
-                         ("Cache.Update_Element",
-                          Syn.Object ("Position"),
-                          Syn.Object ("Load'Access")));
-                  Block.Append (Check);
-               end;
-            end;
-
-            Block.Append
-              (Syn.Statements.New_Return_Statement
-                 (Syn.Expressions.New_Function_Call_Expression
-                      ("Cache.Constant_Reference", Syn.Object ("Position"))));
-
-            Target.Append_To_Body
-              (Syn.Declarations.New_Function
-                 (Name        => "Get_Cached_Reference",
-                  Argument    =>
-                    Syn.Declarations.New_Formal_Argument
-                      ("Reference",
-                       Syn.Named_Subtype
-                         (Db.Database_Package_Name
-                          & "." & Table.Reference_Type_Name)),
-                  Result_Type =>
-                    Reference_Map_Package_Name
-                  & ".Maps.Constant_Reference_Type",
-                  Block       => Block));
-         end Create_Get_Cache_Reference;
-
-         ---------------------------------
-         -- Create_Invalidate_Reference --
-         ---------------------------------
-
-         procedure Create_Invalidate_Reference is
-            Block : Syn.Blocks.Block_Type;
-         begin
-            Block.Add_Declaration
-              (Syn.Declarations.Use_Package
-                 (Reference_Map_Package_Name & ".Maps"));
-            Block.Add_Declaration
-              (Syn.Declarations.New_Constant_Declaration
-                 ("Position", "Cursor",
-                  Syn.Expressions.New_Function_Call_Expression
-                    ("Cache.Find", Syn.Object ("Reference"))));
-
-            Block.Append
-              (Syn.Statements.If_Statement
-                 (Syn.Expressions.New_Function_Call_Expression
-                      ("Has_Element", Syn.Object ("Position")),
-                  Syn.Statements.New_Assignment_Statement
-                    ("Cache (Position).Kit_Valid", Syn.Object ("False"))));
-
-            Target.Append_To_Body
-              (Syn.Declarations.New_Procedure
-                 (Name        => "Invalidate",
-                  Argument    =>
-                    Syn.Declarations.New_Formal_Argument
-                      ("Reference",
-                       Syn.Named_Subtype
-                         (Db.Database_Package_Name
-                          & "." & Table.Reference_Type_Name)),
-                  Block       => Block));
-         end Create_Invalidate_Reference;
 
          -------------------------------
          -- Create_Load_Cached_Record --
@@ -235,9 +114,6 @@ package body Kit.Generate.Handles is
                      & "." & "Get",
                      Syn.Object ("Reference"))));
             Table.Iterate_All (Copy_Value'Access);
-            Block.Add_Statement
-              (Syn.Statements.New_Assignment_Statement
-                 ("Cached.Kit_Valid", Syn.Object ("True")));
 
             Target.Append_To_Body
               (Syn.Declarations.New_Procedure
@@ -257,12 +133,7 @@ package body Kit.Generate.Handles is
          end Create_Load_Cached_Record;
 
       begin
-         Create_Get_Cache_Reference;
          Create_Load_Cached_Record;
-
-         if Table.Has_Writable_Field then
-            Create_Invalidate_Reference;
-         end if;
       end Create_Cache_Functions;
 
       -----------------------
@@ -275,10 +146,19 @@ package body Kit.Generate.Handles is
              (Reference_Map_Package_Name);
       begin
          Map_Package.Set_Generic_Instantiation
+           ("Kit.Protected_Maps");
+         Map_Package.Add_Generic_Actual_Argument
            (Db.Database_Package_Name & "."
-            & Table.Ada_Name & "_Reference_Maps");
+              & Table.Reference_Type_Name);
          Map_Package.Add_Generic_Actual_Argument
            (Cached_Handle_Name);
+         Map_Package.Add_Generic_Actual_Argument
+           ("Load");
+         Map_Package.Add_Generic_Actual_Argument
+           (Db.Database_Package_Name
+            & "." & Table.Ada_Name & "_Hashes.Hash");
+         Map_Package.Add_Generic_Actual_Argument
+           ("Hera.Db.""=""");
          Target.Append_To_Body (Map_Package);
       end Create_Cached_Map;
 
@@ -315,8 +195,6 @@ package body Kit.Generate.Handles is
          end Add_Component;
 
       begin
-         Definition.Add_Component ("Kit_Valid", "Boolean", "False");
-
          Table.Iterate_All
            (Add_Component'Access);
 
@@ -328,13 +206,20 @@ package body Kit.Generate.Handles is
 
    begin
       Create_Cached_Record;
+      Create_Cache_Functions;
       Create_Cached_Map;
 
       Target.Append_To_Body
-        (Syn.Declarations.New_Object_Declaration
-           ("Cache", Reference_Map_Package_Name & ".Maps.Map"));
+        (Syn.Declarations.New_Subtype_Declaration
+           ("Constant_Reference_Type",
+            Syn.Named_Subtype
+              (Reference_Map_Package_Name
+               & "." & "Constant_Reference_Type")));
 
-      Create_Cache_Functions;
+      Target.Append_To_Body
+        (Syn.Declarations.New_Object_Declaration
+           ("Cache", Reference_Map_Package_Name & ".Map"));
+
    end Create_Handle_Cache;
 
    ------------------------
@@ -831,15 +716,11 @@ package body Kit.Generate.Handles is
       begin
 
          Block.Add_Declaration
-           (Syn.Declarations.Use_Package
-              ("Cached_Handle_Maps.Maps"));
-
-         Block.Add_Declaration
            (Syn.Declarations.New_Constant_Declaration
               ("Rec",
                "Constant_Reference_Type",
                Syn.Expressions.New_Function_Call_Expression
-                 ("Get_Cached_Reference",
+                 ("Cache.Constant_Reference",
                   Syn.Object ("Handle.Reference"))));
 
          declare
@@ -963,7 +844,7 @@ package body Kit.Generate.Handles is
       begin
          Block.Append
            (Syn.Statements.New_Procedure_Call_Statement
-              ("Invalidate",
+              ("Cache.Invalidate",
                Syn.Object ("Handle.Reference")));
          Block.Append
            (Syn.Statements.New_Return_Statement
@@ -1026,6 +907,10 @@ package body Kit.Generate.Handles is
             begin
 
                if Base.Has_Writable_Field then
+                  Block.Append
+                    (Syn.Statements.New_Procedure_Call_Statement
+                       ("Cache.Invalidate",
+                        Syn.Object ("Handle.Reference")));
                   Block.Append
                     (Syn.Statements.New_Return_Statement
                        (Syn.Expressions.New_Function_Call_Expression
@@ -1269,7 +1154,7 @@ package body Kit.Generate.Handles is
       Handle_Package.With_Package
         (Db.Database_Package_Name);
       Handle_Package.With_Package
-        (Db.Database_Package_Name & "." & Table.Ada_Name & "_Reference_Maps",
+        ("Kit.Protected_Maps",
          Body_With => True);
 
       if Table.Has_String_Type then
@@ -1277,9 +1162,15 @@ package body Kit.Generate.Handles is
            ("Kit.Strings", Body_With => True);
       end if;
 
+      Handle_Package.With_Package
+        (Db.Database_Package_Name
+         & "." & Table.Ada_Name
+         & "_Hashes",
+         Body_With => True);
+
       if not Referenced_Tables.Is_Empty then
          Handle_Package.With_Package
-           ("Hera.Db",
+           (Db.Database_Package_Name,
             Private_With => True);
       end if;
 

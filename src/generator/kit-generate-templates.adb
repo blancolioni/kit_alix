@@ -76,7 +76,6 @@ package body Kit.Generate.Templates is
               (Natural'Image (Database.Table_Count), Ada.Strings.Left));
 
          Copy ("hashes");
-         Copy ("reference_Maps");
 
          if Table.With_Vector_Package then
             Copy ("vectors");
