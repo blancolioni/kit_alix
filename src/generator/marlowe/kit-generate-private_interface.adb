@@ -102,7 +102,7 @@ package body Kit.Generate.Private_Interface is
                      begin
                         if not Withed.Contains (P) then
                            Top.With_Package (P);
-                           Withed.Insert (P);
+                           Withed.Include (P);
                         end if;
                      end;
                   end if;
