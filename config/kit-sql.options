@@ -1,0 +1,6 @@
+package Kit.SQL.Options is
+
+   Database   : String;
+   SQL_Script : String;
+   
+end Kit.SQL.Options;
