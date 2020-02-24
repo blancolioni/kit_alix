@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Ada.Strings.Fixed;
 
 with Kit.Schema.Tables;
@@ -41,24 +42,28 @@ package body Kit.Generate.Templates is
 
          procedure Copy (Base_Name : String) is
             Package_Name : constant String :=
-                             Database.Ada_Name
-                             & "."
-                             & Table.Ada_Name
-                             & "_"
-                             & Base_Name;
+              Database.Ada_Name
+              & "."
+              & Table.Ada_Name
+              & "_"
+              & Base_Name;
             Source_Spec  : constant String := Base_Name & ".ads";
             Source_Body  : constant String := Base_Name & ".adb";
             Target_Spec  : constant String :=
-                             Make_File_Name (Package_Name, "ads");
+              Make_File_Name (Package_Name, "ads");
             Target_Body  : constant String :=
-                             Make_File_Name (Package_Name, "adb");
+              Make_File_Name (Package_Name, "adb");
+            Source_Body_Path : constant String :=
+              Kit.Paths.Config_Path & "/" & Source_Body;
          begin
             Copy_File (Kit.Paths.Config_Path & "/" & Source_Spec,
                        Target_Directory & "/" & Target_Spec,
                        Standard_Sub);
-            Copy_File (Kit.Paths.Config_Path & "/" & Source_Body,
-                       Target_Directory & "/" & Target_Body,
-                       Standard_Sub);
+            if Ada.Directories.Exists (Source_Body_Path) then
+               Copy_File (Source_Body_Path,
+                          Target_Directory & "/" & Target_Body,
+                          Standard_Sub);
+            end if;
          end Copy;
 
       begin
@@ -70,6 +75,8 @@ package body Kit.Generate.Templates is
             Ada.Strings.Fixed.Trim
               (Natural'Image (Database.Table_Count), Ada.Strings.Left));
 
+         Copy ("hashes");
+
          if Table.With_Vector_Package then
             Copy ("vectors");
          end if;
@@ -77,6 +84,10 @@ package body Kit.Generate.Templates is
             Copy ("maps");
          end if;
       end Extra_Packages;
+
+      ----------------------
+      -- General_Packages --
+      ----------------------
 
       procedure General_Packages is
          use Kit.Templates;

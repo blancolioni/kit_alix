@@ -1,3 +1,5 @@
+with Ada.Containers.Indefinite_Vectors;
+
 with Syn.Blocks;
 with Syn.Expressions;
 with Syn.Statements;
@@ -10,10 +12,248 @@ with Kit.String_Maps;
 
 package body Kit.Generate.Handles is
 
+   package String_Vectors is
+     new Ada.Containers.Indefinite_Vectors (Positive, String);
+
+   function Find_Field_Type_Table_References
+     (Table : Kit.Schema.Tables.Table_Type)
+      return String_Vectors.Vector;
+
+   function Find_Custom_Type_References
+     (Table : Kit.Schema.Tables.Table_Type)
+      return String_Vectors.Vector;
+
+   procedure Create_Handle_Cache
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : Kit.Schema.Tables.Table_Type;
+      Target : in out Syn.Declarations.Package_Type'Class);
+
    procedure Create_Handle_Type
      (Db     : Kit.Schema.Databases.Database_Type;
       Table  : Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class);
+
+   -------------------------
+   -- Create_Handle_Cache --
+   -------------------------
+
+   procedure Create_Handle_Cache
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : Kit.Schema.Tables.Table_Type;
+      Target : in out Syn.Declarations.Package_Type'Class)
+   is
+
+      Reference_Map_Package_Name : constant String := "Cached_Handle_Maps";
+      Cached_Handle_Name : constant String := "Cached_Handle";
+
+      function Is_Cached
+        (Field : Kit.Schema.Fields.Field_Type)
+         return Boolean
+      is (True or else not Field.Base_Reference);
+
+      procedure Create_Cached_Record;
+      procedure Create_Cached_Map;
+      procedure Create_Cache_Functions;
+
+      ----------------------------
+      -- Create_Cache_Functions --
+      ----------------------------
+
+      procedure Create_Cache_Functions is
+
+         procedure Create_Load_Cached_Record;
+         procedure Create_Get_Statistics;
+
+         procedure Create_Get_Statistics is
+            Block : Syn.Blocks.Block_Type;
+         begin
+            Block.Append
+              (Syn.Statements.New_Procedure_Call_Statement
+                 ("Cache.Get_Statistics",
+                  Syn.Object ("Size"),
+                  Syn.Object ("Hits"),
+                  Syn.Object ("Misses")));
+
+            Target.Append
+              (Syn.Declarations.New_Procedure
+                 (Name       => "Get_Cache_Statistics",
+                  Argument_1 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Size",
+                       Syn.Declarations.Out_Argument,
+                       Syn.Named_Subtype ("Natural")),
+                  Argument_2 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Hits",
+                       Syn.Declarations.Out_Argument,
+                       Syn.Named_Subtype ("Natural")),
+                  Argument_3 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Misses",
+                       Syn.Declarations.Out_Argument,
+                       Syn.Named_Subtype ("Natural")),
+                  Block      => Block));
+         end Create_Get_Statistics;
+
+         -------------------------------
+         -- Create_Load_Cached_Record --
+         -------------------------------
+
+         procedure Create_Load_Cached_Record is
+            Block : Syn.Blocks.Block_Type;
+
+            procedure Copy_Value
+              (Base  : Kit.Schema.Tables.Table_Type;
+               Field : Kit.Schema.Fields.Field_Type);
+
+            ----------------
+            -- Copy_Value --
+            ----------------
+
+            procedure Copy_Value
+              (Base  : Kit.Schema.Tables.Table_Type;
+               Field : Kit.Schema.Fields.Field_Type)
+            is
+               pragma Unreferenced (Base);
+            begin
+               if Is_Cached (Field) then
+                  if Field.Base_Reference then
+                     Field.Get_Field_Type.Set_Value
+                       (Target_Name => "Cached.Kit_Base_" & Field.Ada_Name,
+                        Value_Name  =>
+                          "Rec.Get_" & Field.Ada_Name
+                        & "_Reference",
+                        Sequence    => Block);
+                  else
+                     Field.Get_Field_Type.Set_Value
+                       (Target_Name => "Cached." & Field.Ada_Name,
+                        Value_Name  => "Rec." & Field.Ada_Name,
+                        Sequence    => Block);
+                  end if;
+               end if;
+            end Copy_Value;
+
+         begin
+            Block.Add_Declaration
+              (Syn.Declarations.New_Constant_Declaration
+                 ("Rec",
+                  Db.Database_Package_Name
+                  & "." & Table.Ada_Name
+                  & "." & Table.Type_Name,
+                  Syn.Expressions.New_Function_Call_Expression
+                    (Db.Database_Package_Name
+                     & "." & Table.Ada_Name
+                     & "." & "Get",
+                     Syn.Object ("Reference"))));
+            Table.Iterate_All (Copy_Value'Access);
+
+            Target.Append_To_Body
+              (Syn.Declarations.New_Procedure
+                 (Name       => "Load",
+                  Argument_1 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Reference",
+                       Syn.Named_Subtype
+                         (Db.Database_Package_Name
+                          & "." & Table.Ada_Name
+                          & "_Reference")),
+                  Argument_2 =>
+                    Syn.Declarations.New_Formal_Argument
+                      ("Cached", Syn.Declarations.Inout_Argument,
+                       Syn.Named_Subtype (Cached_Handle_Name)),
+                  Block      => Block));
+         end Create_Load_Cached_Record;
+
+      begin
+         Create_Load_Cached_Record;
+         Create_Get_Statistics;
+      end Create_Cache_Functions;
+
+      -----------------------
+      -- Create_Cached_Map --
+      -----------------------
+
+      procedure Create_Cached_Map is
+         Map_Package   : Syn.Declarations.Package_Type :=
+           Syn.Declarations.New_Package_Type
+             (Reference_Map_Package_Name);
+      begin
+         Map_Package.Set_Generic_Instantiation
+           ("Kit.Protected_Maps");
+         Map_Package.Add_Generic_Actual_Argument
+           (Db.Database_Package_Name & "."
+              & Table.Reference_Type_Name);
+         Map_Package.Add_Generic_Actual_Argument
+           (Cached_Handle_Name);
+         Map_Package.Add_Generic_Actual_Argument
+           ("Load");
+         Map_Package.Add_Generic_Actual_Argument
+           (Db.Database_Package_Name
+            & "." & Table.Ada_Name & "_Hashes.Hash");
+         Map_Package.Add_Generic_Actual_Argument
+           ("Hera.Db.""=""");
+         Target.Append_To_Body (Map_Package);
+      end Create_Cached_Map;
+
+      --------------------------
+      -- Create_Cached_Record --
+      --------------------------
+
+      procedure Create_Cached_Record is
+         Definition : Syn.Types.Record_Type_Definition;
+
+         procedure Add_Component
+           (Base  : Kit.Schema.Tables.Table_Type;
+            Field : Kit.Schema.Fields.Field_Type);
+
+         -------------------
+         -- Add_Component --
+         -------------------
+
+         procedure Add_Component
+           (Base  : Kit.Schema.Tables.Table_Type;
+            Field : Kit.Schema.Fields.Field_Type)
+         is
+            pragma Unreferenced (Base);
+            Component_Name : constant String :=
+              (if Field.Base_Reference
+               then "Kit_Base_" & Field.Ada_Name
+               else Field.Ada_Name);
+         begin
+            if Is_Cached (Field) then
+               Definition.Add_Component
+                 (Component_Name,
+                  Field.Get_Field_Type.Record_Subtype);
+            end if;
+         end Add_Component;
+
+      begin
+         Table.Iterate_All
+           (Add_Component'Access);
+
+         Target.Append_To_Body
+           (Syn.Declarations.New_Full_Type_Declaration
+              (Identifier => Cached_Handle_Name,
+               Definition => Definition));
+      end Create_Cached_Record;
+
+   begin
+      Create_Cached_Record;
+      Create_Cache_Functions;
+      Create_Cached_Map;
+
+      Target.Append_To_Body
+        (Syn.Declarations.New_Subtype_Declaration
+           ("Constant_Reference_Type",
+            Syn.Named_Subtype
+              (Reference_Map_Package_Name
+               & "." & "Constant_Reference_Type")));
+
+      Target.Append_To_Body
+        (Syn.Declarations.New_Object_Declaration
+           ("Cache", Reference_Map_Package_Name & ".Map"));
+
+   end Create_Handle_Cache;
 
    ------------------------
    -- Create_Handle_Type --
@@ -511,37 +751,31 @@ package body Kit.Generate.Handles is
          Block.Add_Declaration
            (Syn.Declarations.New_Constant_Declaration
               ("Rec",
-               Db.Database_Package_Name & "."
-               & Table.Ada_Name & "."
-               & Table.Ada_Name & "_Type",
+               "Constant_Reference_Type",
                Syn.Expressions.New_Function_Call_Expression
-                 (Db.Database_Package_Name
-                  & "."
-                  & Table.Ada_Name
-                  & "."
-                  & "Get",
-                  "Handle.Reference")));
+                 ("Cache.Constant_Reference",
+                  Syn.Object ("Handle.Reference"))));
 
-         if Field.Base_Reference then
-            Block.Append
+         declare
+            Component_Name : constant String :=
+              (if Field.Base_Reference
+               then "Kit_Base_" & Field.Ada_Name
+               else Field.Ada_Name);
+            Fetch_Expr     : constant Syn.Expression'Class :=
+              (if not Field.Base_Reference
+               and then Return_Type.Is_Table_Reference
+               then Syn.Expressions.New_Function_Call_Expression
+                 (Db.Handle_Package_Name
+                  & "." & Return_Type.Ada_Name
+                  & ".Get",
+                  Syn.Object ("Rec." & Component_Name))
+               else Return_Type.Return_Value
+                 ("Rec." & Component_Name));
+         begin
+            Block.Add_Statement
               (Syn.Statements.New_Return_Statement
-                 (Syn.Object
-                      ("Rec.Get_" & Field.Ada_Name & "_Reference")));
-         else
-            if Return_Type.Is_Table_Reference then
-               Block.Append
-                 (Syn.Statements.New_Return_Statement
-                    (Syn.Expressions.New_Function_Call_Expression
-                         (Db.Handle_Package_Name
-                          & "." & Return_Type.Ada_Name
-                          & ".Get",
-                          Syn.Object ("Rec." & Field.Ada_Name))));
-            else
-               Block.Append
-                 (Syn.Statements.New_Return_Statement
-                    (Syn.Object ("Rec." & Field.Ada_Name)));
-            end if;
-         end if;
+                 (Fetch_Expr));
+         end;
 
          declare
             Fn : Syn.Declarations.Subprogram_Declaration'Class :=
@@ -642,6 +876,10 @@ package body Kit.Generate.Handles is
          Block : Syn.Blocks.Block_Type;
       begin
          Block.Append
+           (Syn.Statements.New_Procedure_Call_Statement
+              ("Cache.Invalidate",
+               Syn.Object ("Handle.Reference")));
+         Block.Append
            (Syn.Statements.New_Return_Statement
               (Syn.Expressions.New_Function_Call_Expression
                    (Db.Database_Package_Name
@@ -702,6 +940,10 @@ package body Kit.Generate.Handles is
             begin
 
                if Base.Has_Writable_Field then
+                  Block.Append
+                    (Syn.Statements.New_Procedure_Call_Statement
+                       ("Cache.Invalidate",
+                        Syn.Object ("Handle.Reference")));
                   Block.Append
                     (Syn.Statements.New_Return_Statement
                        (Syn.Expressions.New_Function_Call_Expression
@@ -845,6 +1087,81 @@ package body Kit.Generate.Handles is
 
    end Create_Handle_Type;
 
+   ---------------------------------
+   -- Find_Custom_Type_References --
+   ---------------------------------
+
+   function Find_Custom_Type_References
+     (Table : Kit.Schema.Tables.Table_Type)
+      return String_Vectors.Vector
+   is
+      Result : String_Vectors.Vector;
+
+      procedure Check_Type
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Field : Kit.Schema.Fields.Field_Type);
+
+      ----------------
+      -- Check_Type --
+      ----------------
+
+      procedure Check_Type
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Field : Kit.Schema.Fields.Field_Type)
+      is
+         pragma Unreferenced (Base);
+      begin
+         if Field.Get_Field_Type.Has_Custom_Type
+           and then not Result.Contains (Field.Get_Field_Type.Ada_Name)
+         then
+            Result.Append (Field.Get_Field_Type.Ada_Name);
+         end if;
+      end Check_Type;
+
+   begin
+      Table.Iterate_All
+        (Check_Type'Access);
+      return Result;
+   end Find_Custom_Type_References;
+
+   --------------------------------------
+   -- Find_Field_Type_Table_References --
+   --------------------------------------
+
+   function Find_Field_Type_Table_References
+     (Table : Kit.Schema.Tables.Table_Type)
+      return String_Vectors.Vector
+   is
+      Result : String_Vectors.Vector;
+
+      procedure Check_Type
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Field : Kit.Schema.Fields.Field_Type);
+
+      ----------------
+      -- Check_Type --
+      ----------------
+
+      procedure Check_Type
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Field : Kit.Schema.Fields.Field_Type)
+      is
+         pragma Unreferenced (Base);
+      begin
+         if Field.Get_Field_Type.Is_Table_Reference
+           and then Field.Get_Field_Type.Ada_Name /= Table.Ada_Name
+           and then not Result.Contains (Field.Get_Field_Type.Ada_Name)
+         then
+            Result.Append (Field.Get_Field_Type.Ada_Name);
+         end if;
+      end Check_Type;
+
+   begin
+      Table.Iterate_All
+        (Check_Type'Access);
+      return Result;
+   end Find_Field_Type_Table_References;
+
    -----------------------------
    -- Generate_Handle_Package --
    -----------------------------
@@ -859,11 +1176,96 @@ package body Kit.Generate.Handles is
         Top.New_Child_Package
           (Table.Ada_Name);
 
+      Referenced_Tables : constant String_Vectors.Vector :=
+        Find_Field_Type_Table_References (Table);
+
+      Referenced_Types  : constant String_Vectors.Vector :=
+        Find_Custom_Type_References (Table);
+
    begin
 
       Handle_Package.With_Package
         (Db.Database_Package_Name);
+      Handle_Package.With_Package
+        ("Kit.Protected_Maps",
+         Body_With => True);
 
+      if Table.Has_String_Type then
+         Handle_Package.With_Package
+           ("Kit.Strings", Body_With => True);
+      end if;
+
+      Handle_Package.With_Package
+        (Db.Database_Package_Name
+         & "." & Table.Ada_Name
+         & "_Hashes",
+         Body_With => True);
+
+      if not Referenced_Tables.Is_Empty then
+         Handle_Package.With_Package
+           (Db.Database_Package_Name,
+            Private_With => True);
+      end if;
+
+      for Name of Referenced_Tables loop
+--           Handle_Package.With_Package
+--             (Db.Handle_Package_Name & "." & Name);
+
+         Handle_Package.Append
+           (Syn.Declarations.New_Subtype_Declaration
+              (Identifier => Name & "_Class",
+               Definition =>
+                 Syn.Named_Subtype
+                   (Db.Handle_Package_Name
+                    & "." & Name & "." & Name & "_Class")));
+
+         declare
+            Reference_Subtype : Syn.Declaration'Class :=
+              Syn.Declarations.New_Subtype_Declaration
+                (Identifier => Name & "_Reference",
+                 Definition =>
+                   Syn.Named_Subtype
+                     (Db.Database_Package_Name
+                      & "." & Name & "_Reference"));
+         begin
+            Reference_Subtype.Set_Private_Spec;
+            Handle_Package.Append (Reference_Subtype);
+         end;
+
+      end loop;
+
+      declare
+         Reference_Subtype : Syn.Declaration'Class :=
+           Syn.Declarations.New_Subtype_Declaration
+             (Identifier => Table.Ada_Name & "_Reference",
+              Definition =>
+                Syn.Named_Subtype
+                  (Db.Database_Package_Name
+                   & "." & Table.Ada_Name & "_Reference"));
+      begin
+         Reference_Subtype.Set_Private_Spec;
+         Handle_Package.Append (Reference_Subtype);
+      end;
+
+      for Name of Referenced_Types loop
+
+         declare
+            Reference_Subtype : Syn.Declaration'Class :=
+              Syn.Declarations.New_Subtype_Declaration
+                (Identifier => Name,
+                 Definition =>
+                   Syn.Named_Subtype
+                     (Db.Database_Package_Name
+                      & "." & Name));
+         begin
+            Reference_Subtype.Set_Private_Spec;
+            Handle_Package.Append (Reference_Subtype);
+         end;
+
+      end loop;
+
+      Handle_Package.Add_Separator;
+      Create_Handle_Cache (Db, Table, Handle_Package);
       Create_Handle_Type (Db, Table, Handle_Package);
 
       return Handle_Package;
