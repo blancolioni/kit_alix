@@ -191,7 +191,7 @@ package body Kit.Generate.Handles is
            (Db.Database_Package_Name
             & "." & Table.Ada_Name & "_Hashes.Hash");
          Map_Package.Add_Generic_Actual_Argument
-           ("Hera.Db.""=""");
+           ("Db.""=""");
          Target.Append_To_Body (Map_Package);
       end Create_Cached_Map;
 
