@@ -45,10 +45,19 @@ package body Kit.Generate.Updates is
                   Table.Ada_Name & "_Update_Value ("
                   & "Update_" & Field.Ada_Name & ")"));
 
-            Field.Get_Field_Type.Set_Value
-              (Target_Name => "Change." & Field.Ada_Name & "_Value",
-               Value_Name  => "Value",
-               Sequence    => Block);
+            if Field.Get_Field_Type.Is_Text then
+               Block.Append
+                 (Syn.Statements.New_Assignment_Statement
+                    ("Change." & Field.Ada_Name & "_Value",
+                     Syn.Expressions.New_Function_Call_Expression
+                       ("Ada.Strings.Unbounded.To_Unbounded_String",
+                        "Value")));
+            else
+               Field.Get_Field_Type.Set_Value
+                 (Target_Name => "Change." & Field.Ada_Name & "_Value",
+                  Value_Name  => "Value",
+                  Sequence    => Block);
+            end if;
 
             R_Seq.Append
               (Syn.Statements.New_Assignment_Statement
@@ -332,9 +341,7 @@ package body Kit.Generate.Updates is
          is
             pragma Unreferenced (Base);
          begin
-            if Field.Writeable
-              and then not Field.Get_Field_Type.Is_Text
-            then
+            if Field.Writeable then
                Create_Field_Update_Function (Table, Target, Field);
             end if;
          end Create_Function;
