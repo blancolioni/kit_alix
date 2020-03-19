@@ -24,6 +24,10 @@ package body Kit.Generate.Updates is
       Target : in out Syn.Declarations.Package_Type'Class;
       Field  : Kit.Schema.Fields.Field_Type);
 
+   ----------------------------------
+   -- Create_Field_Update_Function --
+   ----------------------------------
+
    procedure Create_Field_Update_Function
      (Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class;
@@ -104,19 +108,24 @@ package body Kit.Generate.Updates is
          Sequence : Syn.Statements.Sequence_Of_Statements;
       begin
          if Field.Writeable then
-            Sequence.Append
-              (Syn.Statements.New_Procedure_Call_Statement
-                 ("Rec.Set_" & Field.Ada_Name,
-                  Field.Get_Field_Type.Return_Value
-                    ("Item." & Field.Ada_Name & "_Value")));
-         else
-            Sequence.Append (Syn.Statements.New_Null_Statement);
+            if Field.Get_Field_Type.Is_Text then
+               Sequence.Append
+                 (Syn.Statements.New_Procedure_Call_Statement
+                    ("Rec.Set_" & Field.Ada_Name,
+                     Syn.Expressions.New_Function_Call_Expression
+                       ("Ada.Strings.Unbounded.To_String",
+                        "Item." & Field.Ada_Name & "_Value")));
+            else
+               Sequence.Append
+                 (Syn.Statements.New_Procedure_Call_Statement
+                    ("Rec.Set_" & Field.Ada_Name,
+                     Field.Get_Field_Type.Return_Value
+                       ("Item." & Field.Ada_Name & "_Value")));
+            end if;
+            Field_Case.Add_Case_Option
+              (Value => "Update_" & Field.Ada_Name,
+               Stats => Sequence);
          end if;
-
-         Field_Case.Add_Case_Option
-           (Value => "Update_" & Field.Ada_Name,
-            Stats => Sequence);
-
       end Add_Update;
 
       Update_Sequence : Syn.Statements.Sequence_Of_Statements;
@@ -215,11 +224,20 @@ package body Kit.Generate.Updates is
            Field.Ada_Name & "_Value";
       begin
 
-         Field_Enumeration.New_Literal (Literal_Name);
-         Element_Type.Next_Case_Option (Literal_Name);
-         Element_Type.Add_Component
-           (Component_Name => Component_Name,
-            Component_Type => Field.Get_Field_Type.Record_Subtype);
+         if Field.Writeable then
+            Field_Enumeration.New_Literal (Literal_Name);
+            Element_Type.Next_Case_Option (Literal_Name);
+
+            if Field.Get_Field_Type.Is_Text then
+               Element_Type.Add_Component
+                 (Component_Name => Component_Name,
+                  Component_Type => "Ada.Strings.Unbounded.Unbounded_String");
+            else
+               Element_Type.Add_Component
+                 (Component_Name => Component_Name,
+                  Component_Type => Field.Get_Field_Type.Record_Subtype);
+            end if;
+         end if;
       end Add_Field_Component;
 
       Fields_Type       : constant String :=
@@ -314,7 +332,11 @@ package body Kit.Generate.Updates is
          is
             pragma Unreferenced (Base);
          begin
-            Create_Field_Update_Function (Table, Target, Field);
+            if Field.Writeable
+              and then not Field.Get_Field_Type.Is_Text
+            then
+               Create_Field_Update_Function (Table, Target, Field);
+            end if;
          end Create_Function;
 
       begin

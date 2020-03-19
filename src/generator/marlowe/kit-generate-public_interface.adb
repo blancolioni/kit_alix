@@ -2867,6 +2867,12 @@ package body Kit.Generate.Public_Interface is
 
       Table_Package.With_Package ("Ada.Containers.Doubly_Linked_Lists",
                                   Private_With => True);
+
+      if Table.Has_Text_Type then
+         Table_Package.With_Package ("Ada.Strings.Unbounded",
+                                     Private_With => True);
+      end if;
+
       Table_Package.With_Package ("Ada.Finalization", Private_With => True);
 
       Table_Package.With_Package ("Ada.Unchecked_Deallocation",
