@@ -310,10 +310,11 @@ package body Kit.Cache is
                     return Cache_Entry
       is
          Result  : Cache_Entry := null;
+         Position : constant Cache_Map.Cursor := Map.Find (Index);
       begin
 
-         if Map.Contains (Index)  then
-            Result := Map.Element (Index);
+         if Cache_Map.Has_Element (Position) then
+            Result := Cache_Map.Element (Position);
          end if;
 
          return Result;
