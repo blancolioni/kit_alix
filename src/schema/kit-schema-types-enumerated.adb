@@ -22,6 +22,24 @@ package body Kit.Schema.Types.Enumerated is
       end if;
    end Add_Literal;
 
+   -----------------------------
+   -- Argument_Handle_Subtype --
+   -----------------------------
+
+   overriding function Argument_Handle_Subtype
+     (Item : Enumerated_Type)
+      return String
+   is
+      use Ada.Strings.Unbounded;
+   begin
+      if Item.Pkg_Name /= Null_Unbounded_String then
+         return To_String (Item.Pkg_Name) & "."
+           & Root_Kit_Type (Item).Argument_Handle_Subtype;
+      else
+         return Root_Kit_Type (Item).Argument_Handle_Subtype;
+      end if;
+   end Argument_Handle_Subtype;
+
    ----------------------------
    -- Create_Database_Record --
    ----------------------------
@@ -105,6 +123,19 @@ package body Kit.Schema.Types.Enumerated is
    begin
       return Item.Ada_Name;
    end Return_Subtype;
+
+   --------------------------
+   -- Set_Defining_Package --
+   --------------------------
+
+   procedure Set_Defining_Package
+     (Of_Type : in out Enumerated_Type'Class;
+      Name    : String)
+   is
+   begin
+      Of_Type.Pkg_Name :=
+        Ada.Strings.Unbounded.To_Unbounded_String (Name);
+   end Set_Defining_Package;
 
    ----------
    -- Size --
