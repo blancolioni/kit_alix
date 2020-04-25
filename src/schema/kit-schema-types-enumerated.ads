@@ -1,9 +1,14 @@
 with Ada.Containers.Indefinite_Vectors;
+with Ada.Strings.Unbounded;
 
 package Kit.Schema.Types.Enumerated is
 
    type Enumerated_Type is
      new Kit.Schema.Types.Root_Kit_Type with private;
+
+   procedure Set_Defining_Package
+     (Of_Type : in out Enumerated_Type'Class;
+      Name    : String);
 
    procedure Add_Literal (To      : in out Enumerated_Type;
                           Literal : String);
@@ -20,6 +25,7 @@ private
      new Kit.Schema.Types.Root_Kit_Type with
       record
          Literals : String_Vectors.Vector;
+         Pkg_Name : Ada.Strings.Unbounded.Unbounded_String;
       end record;
 
    overriding
@@ -63,6 +69,10 @@ private
       Storage_Name  : String;
       Start, Finish : System.Storage_Elements.Storage_Offset)
       return Syn.Statement'Class;
+
+   overriding function Argument_Handle_Subtype
+     (Item : Enumerated_Type)
+      return String;
 
    type Record_Type_Enumeration is
      new Enumerated_Type with null record;

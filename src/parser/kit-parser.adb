@@ -705,6 +705,7 @@ package body Kit.Parser is
             Result : Kit.Schema.Types.Enumerated.Enumerated_Type;
          begin
             Result.Create (Context_Name);
+            Result.Set_Defining_Package (Db.Database_Package_Name);
             Scan;
             loop
                if Tok = Tok_Identifier then
