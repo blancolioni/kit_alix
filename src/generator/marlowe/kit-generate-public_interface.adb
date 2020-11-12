@@ -2288,12 +2288,12 @@ package body Kit.Generate.Public_Interface is
            (New_Full_Type_Declaration
               (Implementation_Type, Record_Defn));
 
-         Table_Package.Append_To_Body
-           (New_Full_Type_Declaration
-              ("Implementation_Access",
-               New_Access_Type
-                 (Access_To  => Implementation_Type,
-                  Access_All => True)));
+         --  Table_Package.Append_To_Body
+         --    (New_Full_Type_Declaration
+         --       ("Implementation_Access",
+         --        New_Access_Type
+         --          (Access_To  => Implementation_Type,
+         --           Access_All => True)));
 
          Create_Search_Procedures (Db, Table, Table_Package);
 
@@ -2431,42 +2431,21 @@ package body Kit.Generate.Public_Interface is
          Iterator_Package   : Syn.Declarations.Package_Type :=
                                 Syn.Declarations.New_Package_Type
                                   ("Selection_Iterator_Interfaces");
+
+         List_Package   : Syn.Declarations.Package_Type :=
+           Syn.Declarations.New_Package_Type ("List_Of_References");
       begin
 
-         for Mark_Package in Boolean loop
-            declare
-               Name : constant String :=
-                        (if Mark_Package then "Mark" else "Element");
-               Type_Name : constant String :=
-                             (if Mark_Package
-                              then Data_Store_Cursor_Name
-                              else Table.Type_Name);
-               List_Package   : Syn.Declarations.Package_Type :=
-                                  Syn.Declarations.New_Package_Type
-                                    ("List_Of_" & Name & "s");
-               Access_Type    : Declaration'Class :=
-                                  New_Full_Type_Declaration
-                                    (Name & "_Access",
-                                     New_Access_Type
-                                       (Type_Name,
-                                        not Mark_Package));
-            begin
-               Access_Type.Set_Private_Spec;
-               Table_Package.Append (Access_Type);
-
-               List_Package.Set_Generic_Instantiation
-                 ("Ada.Containers.Doubly_Linked_Lists");
-               List_Package.Add_Generic_Actual_Argument
-                 (Name & "_Access");
-               List_Package.Set_Private_Spec;
-               Table_Package.Append (List_Package);
-            end;
-         end loop;
+         List_Package.Set_Generic_Instantiation
+           ("Ada.Containers.Doubly_Linked_Lists");
+         List_Package.Add_Generic_Actual_Argument
+           (Table.Reference_Type_Name);
+         List_Package.Set_Private_Spec;
+         Table_Package.Append (List_Package);
 
          Cursor.Add_Component
-           ("Current_Element", "List_Of_Elements.Cursor");
-         Cursor.Add_Component
-           ("Current_Mark", "List_Of_Marks.Cursor");
+           ("Current", "List_Of_References.Cursor");
+
          Table_Package.Append
            (New_Private_Type_Declaration
               ("Cursor", Cursor));
@@ -2482,18 +2461,9 @@ package body Kit.Generate.Public_Interface is
 
             Has_Element_Block.Add_Statement
               (New_Return_Statement
-                 (Operator
-                    (Name  => "and then",
-                     Left  =>
-                       New_Function_Call_Expression
-                         ("List_Of_Marks.Has_Element",
-                          Object ("Item.Current_Mark")),
-                     Right =>
-                          Object
-                            ("List_Of_Marks.Element (Item.Current_Mark).Valid")
-                    )
-                 )
-              );
+                 (New_Function_Call_Expression
+                      ("List_Of_References.Has_Element",
+                       Object ("Item.Current"))));
 
             Table_Package.Append
               (New_Function
@@ -2506,7 +2476,7 @@ package body Kit.Generate.Public_Interface is
 
          Constant_Reference.Add_Variant
            ("Element",
-            "not null access constant " & Table.Type_Name);
+            "not null access constant " & Table.Reference_Type_Name);
 
          declare
             Ref_Type : Syn.Declaration'Class :=
@@ -2531,53 +2501,10 @@ package body Kit.Generate.Public_Interface is
             Table_Package.Append (Ref_Type);
          end;
 
-         declare
-            Selection_State : Syn.Types.Record_Type_Definition;
-            State_Type      : Syn.Declarations.Type_Declaration;
-         begin
-            Selection_State.Add_Component
-              ("Elements",
-               "List_Of_Elements.List");
-            Selection_State.Add_Component
-              ("Marks",
-               "List_Of_Marks.List");
-            Selection_State.Add_Component
-              ("Mutex",
-               "Kit.Mutex.Mutex_Type");
-            Selection_State.Set_Limited;
-
-            State_Type :=
-              New_Private_Type_Declaration
-                ("Selection_State", Selection_State);
-
-            Table_Package.Append (State_Type);
-            Table_Package.Append
-              (New_Private_Type_Declaration
-                 ("Selection_State_Access",
-                     New_Access_Type
-                       (Access_To  => "Selection_State",
-                        Access_All => False)));
-
-         end;
-
          Selection.Set_Tagged;
-         Selection.Set_Limited;
-         Selection.Add_Variant ("Key_Length",
-                                "System.Storage_Elements.Storage_Count");
-         Selection.Add_Parent
-           ("Ada.Finalization.Limited_Controlled");
          Selection.Add_Component
-           ("First_Key",
-            "System.Storage_Elements.Storage_Array (1 .. Key_Length)");
-         Selection.Add_Component
-           ("Last_Key",
-            "System.Storage_Elements.Storage_Array (1 .. Key_Length)");
-         Selection.Add_Component
-           ("Key_Ref",
-            "Marlowe.Data_Stores.Key_Reference");
-         Selection.Add_Component
-           ("State", "Selection_State_Access");
-
+           ("Elements",
+            "List_Of_References.List");
          Iterator_Package.Set_Generic_Instantiation
            ("Ada.Iterator_Interfaces");
          Iterator_Package.Add_Generic_Actual_Argument ("Cursor");
@@ -2587,16 +2514,16 @@ package body Kit.Generate.Public_Interface is
          declare
             Selection_Type : Type_Declaration :=
                                New_Private_Type_Declaration
-                                 ("Selection", Selection, Indefinite => True);
+                                 ("Selection", Selection);
          begin
             Selection_Type.Add_Aspect ("Constant_Indexing",
                                        "Constant_Reference");
-            Selection_Type.Add_Aspect ("Variable_Indexing",
-                                       "Variable_Reference");
+            --  Selection_Type.Add_Aspect ("Variable_Indexing",
+            --                             "Variable_Reference");
             Selection_Type.Add_Aspect ("Default_Iterator",
                                        "Iterate");
             Selection_Type.Add_Aspect ("Iterator_Element",
-                                       Table.Ada_Name & "_Type");
+                                       Table.Reference_Type_Name);
 
             Table_Package.Append (Selection_Type);
          end;
@@ -2627,125 +2554,49 @@ package body Kit.Generate.Public_Interface is
                   Block       => Iterate_Block));
          end;
 
-         for Is_Variable in Boolean loop
-            declare
-               Ref_Block : Syn.Blocks.Block_Type;
-            begin
-               Ref_Block.Add_Declaration
-                 (Syn.Declarations.New_Pragma
-                    ("Unreferenced", "Container"));
-               Ref_Block.Add_Statement
-                 (Syn.Statements.New_Return_Statement
-                    (Result =>
-                       Object
-                         ("(Element => "
-                          & "List_Of_Elements.Element "
-                          & "(Position.Current_Element))")));
-               declare
-                  Fn_Name : constant String :=
-                              (if Is_Variable
-                               then "Variable_"
-                               else "Constant_")
-                              & "Reference";
-                  Ref_Fn : Subprogram_Declaration'Class :=
-                             New_Function
-                               (Fn_Name,
-                                Named_Subtype
-                                  ((if Is_Variable
-                                   then ""
-                                   else "Constant_")
-                                   & "Reference_Type"),
-                                Ref_Block);
-                  Container : Formal_Argument'Class :=
-                                New_Formal_Argument
-                                  ("Container",
-                                   (if Is_Variable
-                                    then Inout_Argument
-                                    else In_Argument),
-                                   Named_Subtype
-                                     ("Selection"));
-                  Position : constant Formal_Argument'Class :=
-                                New_In_Argument
-                                  ("Position",
-                                   Named_Subtype ("Cursor"));
-                  Inline    : Declaration'Class :=
-                                New_Pragma ("Inline", Fn_Name);
-               begin
-                  Container.Set_Aliased;
-                  Ref_Fn.Add_Formal_Argument (Container);
-                  Ref_Fn.Add_Formal_Argument (Position);
-                  Table_Package.Append (Ref_Fn);
-
-                  Inline.Set_Private_Spec;
-                  Table_Package.Append (Inline);
-               end;
-            end;
-         end loop;
-
          declare
-            use Syn.Statements;
-            Free_Element_Sequence  : Sequence_Of_Statements;
-            Free_Mark_Sequence     : Sequence_Of_Statements;
-            Finalize_Block         : Syn.Blocks.Block_Type;
-            Free_Element           : Subprogram_Declaration'Class :=
-                                       Instantiate_Generic_Procedure
-                                         (Instantiated_Name => "Free",
-                                          Generic_Name      =>
-                                            "Ada.Unchecked_Deallocation");
-            Free_State             : Subprogram_Declaration'Class :=
-                                       Instantiate_Generic_Procedure
-                                         (Instantiated_Name => "Free",
-                                          Generic_Name      =>
-                                            "Ada.Unchecked_Deallocation");
+            Ref_Block : Syn.Blocks.Block_Type;
          begin
-            Free_Element.Add_Generic_Actual_Argument
-              (Table.Ada_Name & "_Type");
-            Free_Element.Add_Generic_Actual_Argument
-              ("Element_Access");
-            Finalize_Block.Add_Declaration (Free_Element);
+            --  Ref_Block.Add_Declaration
+            --    (Syn.Declarations.New_Pragma
+            --       ("Unreferenced", "Container"));
 
-            Free_State.Add_Generic_Actual_Argument
-              ("Selection_State");
-            Free_State.Add_Generic_Actual_Argument
-              ("Selection_State_Access");
-            Finalize_Block.Add_Declaration (Free_State);
-
-            Free_Element_Sequence.Append
-              (New_Procedure_Call_Statement
-                 ("Free", Object ("X")));
-            Free_Mark_Sequence.Append
-              (New_Procedure_Call_Statement
-                 ("Free", Object ("X")));
-            Finalize_Block.Add_Statement
-              (Item =>
-                 Syn.Statements.Iterate
-                   (Loop_Variable  => "X",
-                    Container_Name => "Object.State.Elements",
-                    Iterate_Body   => Free_Element_Sequence));
-            Finalize_Block.Add_Statement
-              (Item =>
-                 Syn.Statements.Iterate
-                   (Loop_Variable  => "X",
-                    Container_Name => "Object.State.Marks",
-                    Iterate_Body   => Free_Mark_Sequence));
-            Finalize_Block.Add_Statement
-              (Syn.Statements.New_Procedure_Call_Statement
-                 ("Free", Object ("Object.State")));
-
+            Ref_Block.Add_Statement
+              (Syn.Statements.New_Return_Statement
+                 (Result =>
+                      Object
+                    ("(Element => "
+                     & "Container.Elements.Constant_Reference "
+                     & "(Position.Current).Element)")));
             declare
-               Finalize : Subprogram_Declaration'Class :=
-                            New_Procedure
-                              (Name     => "Finalize",
-                               Argument =>
-                                 New_Inout_Argument
-                                   (Name          => "Object",
-                                    Argument_Type =>
-                                      Named_Subtype ("Selection")),
-                               Block    => Finalize_Block);
+               Fn_Name   : constant String :=
+                 "Constant_Reference";
+               Ref_Fn    : Subprogram_Declaration'Class :=
+                 New_Function
+                   (Fn_Name,
+                    Named_Subtype
+                      ("Constant_Reference_Type"),
+                    Ref_Block);
+               Container : Formal_Argument'Class :=
+                 New_Formal_Argument
+                   ("Container",
+                    In_Argument,
+                    Named_Subtype
+                      ("Selection"));
+               Position  : constant Formal_Argument'Class :=
+                 New_In_Argument
+                   ("Position",
+                    Named_Subtype ("Cursor"));
+               Inline    : Declaration'Class :=
+                 New_Pragma ("Inline", Fn_Name);
             begin
-               Finalize.Set_Overriding;
-               Finalize.Set_Private_Spec;
-               Table_Package.Append (Finalize);
+               Container.Set_Aliased;
+               Ref_Fn.Add_Formal_Argument (Container);
+               Ref_Fn.Add_Formal_Argument (Position);
+               Table_Package.Append (Ref_Fn);
+
+               Inline.Set_Private_Spec;
+               Table_Package.Append (Inline);
             end;
          end;
 
@@ -2784,13 +2635,13 @@ package body Kit.Generate.Public_Interface is
                                 (Name          => "Item",
                                  Argument_Type =>
                                    Named_Subtype ("Cursor")),
-                            Result_Type => Table.Ada_Name & "_Type",
+                            Result_Type => Table.Reference_Type_Name,
                             Block       =>
                               Syn.Blocks.Create_Block
                                 (New_Return_Statement
                                      (Object
-                                          ("List_Of_Elements.Element "
-                                           & "(Item.Current_Element).all")
+                                          ("List_Of_References.Element "
+                                           & "(Item.Current)")
                                      )
                                 )
                            );
@@ -2873,16 +2724,13 @@ package body Kit.Generate.Public_Interface is
                                      Private_With => True);
       end if;
 
-      Table_Package.With_Package ("Ada.Finalization", Private_With => True);
-
-      Table_Package.With_Package ("Ada.Unchecked_Deallocation",
-                                  Body_With => True);
+      Table_Package.With_Package ("Ada.Finalization", Body_With => True);
 
       Table_Package.With_Package ("System.Storage_Elements",
-                                  Private_With => True);
+                                  Body_With => True);
 
       Table_Package.With_Package ("Marlowe.Data_Stores",
-                                  Private_With => True);
+                                  Body_With => True);
 
       Table_Package.With_Package ("Ada.Iterator_Interfaces");
       if Table.Has_Key_Field then
@@ -2962,32 +2810,6 @@ package body Kit.Generate.Public_Interface is
             Syn.Class_Wide_Subtype
               (Table.Interface_Name)));
 
-      --  Create_Key_Marks (Db, Table, Table_Package);
-      --  Create_Key_Context_Type (Db, Table, Table_Package);
-
-      declare
-         --           Mark_Access : constant Access_Type_Definition :=
-         --                           New_Access_Type
-         --                             ("Marlowe.Btree_Handles.Btree_Mark",
---                              False);
-         Free        : Subprogram_Declaration'Class :=
-                         Instantiate_Generic_Procedure
-                           (Instantiated_Name => "Free",
-                            Generic_Name      => "Ada.Unchecked_Deallocation");
-      begin
-
---           Table_Package.Append_To_Body
---             (New_Full_Type_Declaration
---                ("Mark_Access", Mark_Access));
-
-         Free.Add_Generic_Actual_Argument
-           (Data_Store_Cursor_Name);
-         Free.Add_Generic_Actual_Argument
-           ("Mark_Access");
-
-         Table_Package.Append_To_Body (Free);
-      end;
-
       Create_Implementation_Type;
 
       Table_Package.Append
@@ -3034,7 +2856,9 @@ package body Kit.Generate.Public_Interface is
 
       Create_Selection_Type;
 
-      Public_Get.Create_Get_From_Index (Table, Table_Package);
+      if False then
+         Public_Get.Create_Get_From_Index (Table, Table_Package);
+      end if;
 
       Create_Identity_Function (Table, Table_Package);
       Create_Generic_Get (Table, Table_Package);

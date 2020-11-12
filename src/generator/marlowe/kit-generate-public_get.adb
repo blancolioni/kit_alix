@@ -1,5 +1,3 @@
-with Ada.Strings.Fixed;
-
 with Syn.Blocks;
 with Syn.Expressions;
 with Syn.Statements;
@@ -386,103 +384,26 @@ package body Kit.Generate.Public_Get is
       Inline        : in     Boolean;
       Next          : in     Boolean)
    is
+      pragma Unreferenced (Table);
       use Syn;
       use Syn.Declarations;
-      use Syn.Expressions;
       use Syn.Statements;
       Next_Block        : Syn.Blocks.Block_Type;
+      Call              : constant String :=
+        (if Next then "Next" else "Previous");
    begin
-      Next_Block.Add_Declaration
-        (New_Object_Declaration
-           ("Item", "Implementation_Access"));
-      Next_Block.Add_Declaration
-        (New_Object_Declaration
-           ("Mark", "Mark_Access"));
-      Next_Block.Add_Declaration
-        (New_Object_Declaration
-           ("Got_Valid_Index", "Boolean"));
-
-      Next_Block.Add_Statement
-        (If_Statement
-           (Operator
-              ("not",
-               New_Function_Call_Expression
-                 ("Has_Element",
-                  Object ("Position"))),
-            (if not Inline
-             then New_Return_Statement
-               (Object ("Position"))
-             else New_Return_Statement)));
-
-      if With_Iterator then
+      if Inline then
          Next_Block.Add_Statement
-           ("Object.Container.State.Mutex.Shared_Lock");
-      end if;
-
-      Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
-                                & ".Shared_Lock");
-
-      Next_Block.Add_Statement
-        (New_Assignment_Statement
-           ("Item",
-            New_Function_Call_Expression
-              ("Implementation_Access",
-               New_Function_Call_Expression
-                 ("List_Of_Elements.Element",
-                  Object ("Position.Current_Element")))));
-      Next_Block.Add_Statement
-        (New_Assignment_Statement
-           ("Mark",
-            New_Function_Call_Expression
-              ("List_Of_Marks.Element",
-               Object ("Position.Current_Mark"))));
-
-      Next_Block.Add_Statement
-        (New_Procedure_Call_Statement
-           ("Mark.Next"));
-
-      Next_Block.Add_Statement
-        (New_Assignment_Statement
-           ("Got_Valid_Index",
-            New_Function_Call_Expression ("Mark.Valid")));
-
-      Next_Block.Add_Statement
-        (If_Statement
-           (Object ("Got_Valid_Index"),
-            New_Assignment_Statement
-              ("Item.M_Index",
-               New_Function_Call_Expression
-                 (Table.Reference_Type_Name,
-                  New_Function_Call_Expression
-                    ("Marlowe.Key_Storage.To_Database_Index",
-                     New_Function_Call_Expression
-                       ("Mark.Get_Key"))))));
-
-      Next_Block.Add_Statement (Table.Ada_Name & "_Impl.File_Mutex"
-                                & ".Shared_Unlock");
-
-      declare
-         Fetch_Found : Sequence_Of_Statements;
-         Not_Found   : Sequence_Of_Statements;
-      begin
-         Fetch.Fetch_From_Index (Table, "Item", False, Fetch_Found);
-         Not_Found.Append ("Item.M_Index := 0");
+           (New_Procedure_Call_Statement
+              ("List_Of_References." & Call,
+               Object ("Position.Current")));
+      else
          Next_Block.Add_Statement
-           (If_Statement
-              (Object ("Got_Valid_Index"),
-               Fetch_Found,
-               Not_Found));
-      end;
-
-      if With_Iterator then
-         Next_Block.Add_Statement
-           ("Object.Container.State.Mutex.Shared_Unlock");
-      end if;
-
-      if not Inline then
-         Next_Block.Add_Statement
-           (Syn.Statements.New_Return_Statement
-              (Syn.Object ("Position")));
+           (New_Return_Statement
+              (Object
+                   ("(Current => "
+                    & "List_Of_References.Previous "
+                    & "(Position.Current))")));
       end if;
 
       declare
@@ -526,13 +447,10 @@ package body Kit.Generate.Public_Get is
       Container     : in     Boolean;
       First         : in     Boolean)
    is
+      pragma Unreferenced (Table);
       use Syn;
       use Syn.Declarations;
-      use Syn.Expressions, Syn.Statements;
-
-      Return_Sequence  : Sequence_Of_Statements;
-      Valid_Block      : Syn.Blocks.Block_Type;
-      Invalid_Sequence : Sequence_Of_Statements;
+      use Syn.Statements;
 
       function Function_Name return String;
 
@@ -572,172 +490,22 @@ package body Kit.Generate.Public_Get is
       end Set_Field;
 
    begin
-
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Lock"));
-
-      if Container then
-         Return_Sequence.Append
-           (New_Procedure_Call_Statement
-              ("Container.State.Mutex.Lock"));
-      else
-         Return_Sequence.Append
-           (New_Procedure_Call_Statement
-              ("Object.Container.State.Mutex.Lock"));
-      end if;
-
-      Valid_Block.Add_Declaration
-        (New_Constant_Declaration
-           (Name => "Element",
-            Object_Type => "Implementation_Access",
-            Value       =>
-              New_Allocation_Expression
-                (Table.Ada_Name & "_Implementation")));
-
-      Valid_Block.Add_Declaration
-        (New_Constant_Declaration
-           (Name => "Mark",
-            Object_Type => "Mark_Access",
-            Value       =>
-              New_Allocation_Expression
-                (Data_Store_Cursor_Name & "'(M)")));
-
-      if Container then
-         Valid_Block.Add_Statement
-           (New_Procedure_Call_Statement
-              ("Container.State.Elements.Append",
-               New_Function_Call_Expression
-                 ("Element_Access", "Element")));
-
-         Valid_Block.Add_Statement
-           (New_Procedure_Call_Statement
-              ("Container.State.Marks.Append",
-               Object ("Mark")));
-      else
-         Valid_Block.Add_Statement
-           (New_Procedure_Call_Statement
-              ("Object.Container.State.Elements.Append",
-               New_Function_Call_Expression
-                 ("Element_Access", "Element")));
-
-         Valid_Block.Add_Statement
-           (New_Procedure_Call_Statement
-              ("Object.Container.State.Marks.Append",
-               Object ("Mark")));
-      end if;
-
-      Valid_Block.Add_Statement
-        (New_Procedure_Call_Statement
-           ("Get",
-            New_Function_Call_Expression
-              ("Marlowe.Key_Storage.To_Database_Index",
-               Object ("M.Get_Key")),
-            Object ("Element.all")));
-      if Container then
-         Valid_Block.Add_Statement
-           (New_Assignment_Statement
-              ("Result.Current_Element",
-               Object ("Container.State.Elements.Last")));
-         Valid_Block.Add_Statement
-           (New_Assignment_Statement
-              ("Result.Current_Mark",
-               Object ("Container.State.Marks.Last")));
-      else
-         Valid_Block.Add_Statement
-           (New_Assignment_Statement
-              ("Result.Current_Element",
-               Object ("Object.Container.State.Elements.Last")));
-         Valid_Block.Add_Statement
-           (New_Assignment_Statement
-              ("Result.Current_Mark",
-               Object ("Object.Container.State.Marks.Last")));
-      end if;
-
-      Invalid_Sequence.Append
-        (New_Assignment_Statement
-           ("Result.Current_Element",
-            Object ("List_Of_Elements.No_Element")));
-      Invalid_Sequence.Append
-        (New_Assignment_Statement
-           ("Result.Current_Mark",
-            Object ("List_Of_Marks.No_Element")));
-
-      declare
-         Mark_Block : Syn.Blocks.Block_Type;
-         Initialiser      : Function_Call_Expression :=
-                              New_Function_Call_Expression
-                                ("Marlowe_Keys.Handle.Search");
-      begin
-         if Container then
-            Initialiser.Add_Actual_Argument
-              (Object ("Container.Key_Ref"));
-            Initialiser.Add_Actual_Argument
-              (Object ("Container.First_Key"));
-            Initialiser.Add_Actual_Argument
-              (Object ("Container.Last_Key"));
-         else
-            Initialiser.Add_Actual_Argument
-              (Object ("Object.Container.Key_Ref"));
-            Initialiser.Add_Actual_Argument
-              (Object ("Object.Container.First_Key"));
-            Initialiser.Add_Actual_Argument
-              (Object ("Object.Container.Last_Key"));
-         end if;
-
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe.Closed"));
-         Initialiser.Add_Actual_Argument
-           (Object ("Marlowe.Closed"));
-         if First then
-            Initialiser.Add_Actual_Argument
-              (Object ("Marlowe.Forward"));
-         else
-            Initialiser.Add_Actual_Argument
-              (Object ("Marlowe.Backward"));
-         end if;
-         Mark_Block.Add_Declaration
-           (New_Constant_Declaration
-              ("M", Data_Store_Cursor_Name,
-               Initialiser));
-         declare
-            Valid_Sequence : Sequence_Of_Statements;
-         begin
-            Valid_Sequence.Append
-              (Declare_Statement (Valid_Block));
-
-            Mark_Block.Append
-              (If_Statement
-                 (Object ("M.Valid"),
-                  Valid_Sequence,
-                  Invalid_Sequence));
-         end;
-
-         Return_Sequence.Append
-           (Declare_Statement
-              (Mark_Block));
-      end;
-
-      if Container then
-         Return_Sequence.Append
-           (New_Procedure_Call_Statement
-              ("Container.State.Mutex.Unlock"));
-      else
-         Return_Sequence.Append
-           (New_Procedure_Call_Statement
-              ("Object.Container.State.Mutex.Unlock"));
-      end if;
-
-      Return_Sequence.Append
-        (New_Procedure_Call_Statement
-           (Table.Ada_Name & "_Impl.File_Mutex.Shared_Unlock"));
-
       declare
          Block                  : Syn.Blocks.Block_Type;
       begin
-         Block.Append
-           (Syn.Statements.New_Return_Statement
-              ("Result", "Cursor", Return_Sequence));
+         if Container then
+            Block.Append
+              (New_Return_Statement
+                 (Object
+                      ("(Current => Container.Elements."
+                       & Function_Name & ")")));
+         else
+            Block.Append
+              (New_Return_Statement
+                 (Object
+                      ("(Current => Object.Container.Elements."
+                       & Function_Name & ")")));
+         end if;
 
          declare
             Fn : Subprogram_Declaration'Class :=
@@ -1011,9 +779,11 @@ package body Kit.Generate.Public_Get is
       end Create_Function;
 
    begin
-      for Reference in Boolean loop
-         Create_Function (Reference);
-      end loop;
+      Create_Function (True);
+
+      --  for Reference in Boolean loop
+      --     Create_Function (Reference);
+      --  end loop;
       Table_Package.Append (Syn.Declarations.New_Separator);
    end Create_Non_Iterator_Fetch;
 
@@ -1169,8 +939,10 @@ package body Kit.Generate.Public_Get is
       use Syn.Expressions, Syn.Statements;
 
       Scanning : constant Boolean :=
-                   not Bounds and then not Key_Value;
+        not Bounds and then not Key_Value
+        with Unreferenced;
 
+      Function_Body    : Blocks.Block_Type;
       Return_Sequence  : Sequence_Of_Statements;
       Key              : constant Kit.Schema.Keys.Key_Type :=
                            Table.Key (Key_Name);
@@ -1244,159 +1016,196 @@ package body Kit.Generate.Public_Get is
 
    begin
 
-      if not Key_Value then
-         Return_Sequence.Append
-           (New_Assignment_Statement
-              ("Result.First_Key",
-               Object ("(others => 0)")));
-         Return_Sequence.Append
-           (New_Assignment_Statement
-              ("Result.Last_Key",
-               Object
-                 ("(others => "
-                  & "System.Storage_Elements.Storage_Element'Last)")));
-      else
-         declare
-            Start_Storage    : constant Expression'Class :=
-                                 New_Function_Call_Expression
-                                   ("Marlowe.Key_Storage.To_Storage_Array",
-                                    "Marlowe.Database_Index'First");
-            Last_Storage     : constant Expression'Class :=
-                                 New_Function_Call_Expression
-                                   ("Marlowe.Key_Storage.To_Storage_Array",
-                                    "Marlowe.Database_Index'Last");
-         begin
-            Return_Sequence.Append
-              (New_Assignment_Statement
-                 ("Result.First_Key",
-                  Operator
-                    (Name  => "&",
-                     Left  => To_Storage (True),
-                     Right => Start_Storage)));
-            Return_Sequence.Append
-              (New_Assignment_Statement
-                 ("Result.Last_Key",
-                  Operator
-                    (Name  => "&",
-                     Left  => To_Storage (False),
-                     Right => Last_Storage)));
-         end;
-      end if;
-
-      Return_Sequence.Append
-        (New_Assignment_Statement
-           ("Result.Key_Ref",
-            Object ("Marlowe_Keys."
-              & Table.Key_Reference_Name (Key_Name))));
-
-      Return_Sequence.Append
-        (New_Assignment_Statement
-           ("Result.State",
-            New_Allocation_Expression
-              (Allocated_Type => "Selection_State")));
+      Check_Deferred_Keys (Function_Body, Key_Table);
 
       declare
          use Syn.Declarations;
          Block        : Syn.Blocks.Block_Type;
-         Return_Type  : constant String :=
-                          "Selection ("
-                          & Ada.Strings.Fixed.Trim (Natural'Image (Key.Size),
-                                                    Ada.Strings.Left)
-                          & ")";
-
+         Return_Type  : constant String := "Selection";
+         Marlowe_Key  : constant String :=
+           "Marlowe_Keys."
+           & Table.Key_Reference_Name (Key_Name);
+         Start_Storage    : constant Expression'Class :=
+           New_Function_Call_Expression
+             ("Marlowe.Key_Storage.To_Storage_Array",
+              "Marlowe.Database_Index'First");
+         Last_Storage     : constant Expression'Class :=
+           New_Function_Call_Expression
+             ("Marlowe.Key_Storage.To_Storage_Array",
+              "Marlowe.Database_Index'Last");
       begin
-         if not Scanning then
+         Block.Add_Declaration
+           (Use_Package ("System.Storage_Elements"));
+
+         if Key_Value then
             Block.Add_Declaration
-              (Use_Type ("System.Storage_Elements.Storage_Array"));
+              (New_Constant_Declaration
+                 (Name        => "First_Key",
+                  Object_Type => "Storage_Array",
+                  Value       =>
+                    Operator
+                      (Name  => "&",
+                       Left  => To_Storage (True),
+                       Right => Start_Storage)));
+            Block.Add_Declaration
+              (New_Constant_Declaration
+                 (Name        => "Last_Key",
+                  Object_Type => "Storage_Array",
+                  Value       =>
+                    Operator
+                      (Name  => "&",
+                       Left  => To_Storage (False),
+                       Right => Last_Storage)));
+         else
+            Block.Add_Declaration
+              (New_Constant_Declaration
+                 (Name        => "First_Key",
+                  Object_Type => "Storage_Array (1 .." & Key.Size'Image & ")",
+                  Value       => Object ("(others => 0)")));
+            Block.Add_Declaration
+              (New_Constant_Declaration
+                 (Name        => "Last_Key",
+                  Object_Type => "Storage_Array (1 .." & Key.Size'Image & ")",
+                  Value       =>
+                    Object
+                      ("(others => "
+                       & "System.Storage_Elements.Storage_Element'Last)")));
          end if;
 
-         Check_Deferred_Keys (Block, Key_Table);
+         declare
+            Initialiser      : Function_Call_Expression :=
+              New_Function_Call_Expression
+                ("Marlowe_Keys.Handle.Search");
+         begin
+            Initialiser.Add_Actual_Argument
+              (Object (Marlowe_Key));
+            Initialiser.Add_Actual_Argument
+              (Object ("First_Key"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Last_Key"));
+
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe.Closed"));
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe.Closed"));
+
+            Initialiser.Add_Actual_Argument
+              (Object ("Marlowe.Forward"));
+
+            Block.Add_Declaration
+              (New_Object_Declaration
+                 ("Mark", Data_Store_Cursor_Name,
+                  Initialiser));
+         end;
+
+         declare
+            While_Body : Sequence_Of_Statements;
+         begin
+            While_Body.Append
+              (New_Procedure_Call_Statement
+                 ("Result.Elements.Append",
+                  New_Function_Call_Expression
+                    (Table.Reference_Type_Name,
+                     New_Function_Call_Expression
+                       ("Marlowe.Key_Storage.To_Database_Index",
+                        Object ("Mark.Get_Key")))));
+            While_Body.Append
+              (New_Procedure_Call_Statement
+                 ("Mark.Next"));
+
+            Return_Sequence.Append
+              (While_Statement
+                 (Object ("Mark.Valid"),
+                  While_Body));
+         end;
 
          Block.Append
            (Syn.Statements.New_Return_Statement
               ("Result", Return_Type, Return_Sequence));
 
-         declare
-            Fn : Subprogram_Declaration'Class :=
-                   New_Function
-                     (Function_Name, "Selection",
-                      Block);
-         begin
-            if Key_Value then
-               declare
-                  Key : constant Kit.Schema.Keys.Key_Type :=
-                          Table.Key (Key_Name);
-               begin
-                  if Bounds and then Bounded_Index = 0 then
-                     for Is_Finish in Boolean loop
-                        for I in 1 .. Field_Count loop
-                           declare
-                              Tag        : constant String :=
-                                             (if Is_Finish
-                                              then "Finish_"
-                                              else "Start_");
-                              Field      : Kit.Schema.Fields.Field_Type
-                              renames Key.Field (I);
-                              Field_Type : Kit.Schema.Types.Kit_Type
-                              renames Field.Get_Field_Type;
-                           begin
-                              if I = 1
-                                or else Field_Type.Is_Table_Reference
-                                or else Field_Type.Is_External_Type
-                              then
-                                 Fn.Add_Formal_Argument
-                                   (New_Formal_Argument
-                                      (Tag & Field.Ada_Name,
-                                       Named_Subtype
-                                         (Field_Type.Argument_Subtype)));
-                              else
-                                 Fn.Add_Formal_Argument
-                                   (New_Formal_Argument
-                                      (Tag & Field.Ada_Name,
-                                       Named_Subtype
-                                         (Field_Type.Argument_Subtype),
-                                       (if Is_Finish
-                                        then Field_Type.Last_Value
-                                        else Field_Type.First_Value)));
-                              end if;
-                           end;
-                        end loop;
-                     end loop;
-                  else
+         Function_Body.Append (Declare_Statement (Block));
+      end;
+
+      declare
+         use Syn.Declarations;
+         Fn : Subprogram_Declaration'Class :=
+           New_Function
+             (Function_Name, "Selection",
+              Function_Body);
+      begin
+         if Key_Value then
+            declare
+               Key : constant Kit.Schema.Keys.Key_Type :=
+                 Table.Key (Key_Name);
+            begin
+               if Bounds and then Bounded_Index = 0 then
+                  for Is_Finish in Boolean loop
                      for I in 1 .. Field_Count loop
                         declare
-                           Field : Kit.Schema.Fields.Field_Type
+                           Tag        : constant String :=
+                             (if Is_Finish
+                              then "Finish_"
+                              else "Start_");
+                           Field      : Kit.Schema.Fields.Field_Type
                            renames Key.Field (I);
+                           Field_Type : Kit.Schema.Types.Kit_Type
+                           renames Field.Get_Field_Type;
                         begin
-                           if Bounds and then I = Bounded_Index then
+                           if I = 1
+                             or else Field_Type.Is_Table_Reference
+                             or else Field_Type.Is_External_Type
+                           then
                               Fn.Add_Formal_Argument
                                 (New_Formal_Argument
-                                   ("Start_" & Field.Ada_Name,
+                                   (Tag & Field.Ada_Name,
                                     Named_Subtype
-                                      (Field.Get_Field_Type
-                                       .Argument_Subtype)));
-                              Fn.Add_Formal_Argument
-                                (New_Formal_Argument
-                                   ("Finish_" & Field.Ada_Name,
-                                    Named_Subtype
-                                      (Field.Get_Field_Type
-                                       .Argument_Subtype)));
+                                      (Field_Type.Argument_Subtype)));
                            else
                               Fn.Add_Formal_Argument
                                 (New_Formal_Argument
-                                   (Field.Ada_Name,
+                                   (Tag & Field.Ada_Name,
                                     Named_Subtype
-                                      (Field.Get_Field_Type
-                                       .Argument_Subtype)));
+                                      (Field_Type.Argument_Subtype),
+                                    (if Is_Finish
+                                     then Field_Type.Last_Value
+                                     else Field_Type.First_Value)));
                            end if;
                         end;
                      end loop;
-                  end if;
-               end;
-            end if;
-            Table_Package.Append (Fn);
-         end;
-
+                  end loop;
+               else
+                  for I in 1 .. Field_Count loop
+                     declare
+                        Field : Kit.Schema.Fields.Field_Type
+                        renames Key.Field (I);
+                     begin
+                        if Bounds and then I = Bounded_Index then
+                           Fn.Add_Formal_Argument
+                             (New_Formal_Argument
+                                ("Start_" & Field.Ada_Name,
+                                 Named_Subtype
+                                   (Field.Get_Field_Type
+                                    .Argument_Subtype)));
+                           Fn.Add_Formal_Argument
+                             (New_Formal_Argument
+                                ("Finish_" & Field.Ada_Name,
+                                 Named_Subtype
+                                   (Field.Get_Field_Type
+                                    .Argument_Subtype)));
+                        else
+                           Fn.Add_Formal_Argument
+                             (New_Formal_Argument
+                                (Field.Ada_Name,
+                                 Named_Subtype
+                                   (Field.Get_Field_Type
+                                    .Argument_Subtype)));
+                        end if;
+                     end;
+                  end loop;
+               end if;
+            end;
+         end if;
+         Table_Package.Append (Fn);
       end;
 
       Table_Package.Append (Syn.Declarations.New_Separator);

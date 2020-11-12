@@ -347,12 +347,11 @@ package body Kit.Generate.Handles is
         (Base : Kit.Schema.Tables.Table_Type)
       is
       begin
-         if not Withed_Db_Tables.Contains (Base.Ada_Name)
-           and then Base.Has_Writable_Field
-         then
+         if not Withed_Db_Tables.Contains (Base.Ada_Name) then
             Target.With_Package
               (Db.Database_Package_Name
-               & "." & Base.Package_Name);
+               & "." & Base.Package_Name,
+              Body_With => True);
             Withed_Db_Tables.Insert (Base.Ada_Name);
          end if;
       end Add_Base_Db;
@@ -1015,13 +1014,14 @@ package body Kit.Generate.Handles is
                          Table_First => True);
 
       Interface_Definition.Add_Parent ("Handle_Interface");
+
       Table.Iterate
         (Process     => Add_Base_Db'Access,
          Inclusive   => False);
 
       Target.With_Package
         (Db.Database_Package_Name & "." & Table.Ada_Name,
-         Body_With => not Table.Has_Writable_Field);
+         Body_With => True);
 
       Target.Append
         (Syn.Declarations.New_Full_Type_Declaration
