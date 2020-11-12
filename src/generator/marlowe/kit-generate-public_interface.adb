@@ -9,7 +9,7 @@ with Kit.Schema.Types;
 
 with Kit.Generate.Fetch;
 with Kit.Generate.Public_Get;
-with Kit.Generate.Updates;
+--  with Kit.Generate.Updates;
 
 with Kit.Options;
 with Kit.String_Maps;
@@ -2749,7 +2749,7 @@ package body Kit.Generate.Public_Interface is
 
       if Table.Has_String_Type then
          Table_Package.With_Package ("Kit.Strings",
-                                     Private_With => True);
+                                     Body_With => True);
       end if;
 
       if Table.Has_Text_Type then
@@ -2888,10 +2888,10 @@ package body Kit.Generate.Public_Interface is
 
       Table.Iterate_All (Add_Store'Access);
 
-      if Table.Has_Writable_Field then
-         Kit.Generate.Updates.Generate_Update_Subprograms
-           (Table, Table_Package);
-      end if;
+      --  if Table.Has_Writable_Field then
+      --     Kit.Generate.Updates.Generate_Update_Subprograms
+      --       (Table, Table_Package);
+      --  end if;
 
       return Table_Package;
    end Generate_Public_Interface;

@@ -10,6 +10,8 @@ with Kit.Schema.Types;
 
 with Kit.String_Maps;
 
+with Kit.Generate.Updates;
+
 package body Kit.Generate.Handles is
 
    package String_Vectors is
@@ -434,9 +436,7 @@ package body Kit.Generate.Handles is
                   Argument    => Interface_Argument,
                   Result_Type =>
                     Syn.Named_Subtype
-                      (Db.Database_Package_Name
-                       & "." & Table.Ada_Name
-                       & "." & Table.Ada_Name & "_Update_Handle")));
+                      (Table.Ada_Name & "_Update_Handle'Class")));
          end if;
       end Create_Abstract_Reference_Functions;
 
@@ -881,9 +881,7 @@ package body Kit.Generate.Handles is
          Block.Append
            (Syn.Statements.New_Return_Statement
               (Syn.Expressions.New_Function_Call_Expression
-                   (Db.Database_Package_Name
-                    & "." & Table.Ada_Name
-                    & ".Update_" & Table.Ada_Name,
+                   ("Update_" & Table.Ada_Name,
                     Syn.Object ("Handle.Reference"))));
 
          declare
@@ -896,9 +894,7 @@ package body Kit.Generate.Handles is
                       Syn.Named_Subtype
                         (Table.Ada_Name & "_Handle")),
                  Result_Type =>
-                   Db.Database_Package_Name
-                 & "." & Table.Ada_Name
-                 & "." & Table.Ada_Name & "_Update_Handle",
+                   Table.Ada_Name & "_Update_Handle'Class",
             Block       => Block);
          begin
             Target.Append (Fn);
@@ -914,10 +910,8 @@ package body Kit.Generate.Handles is
                       Syn.Named_Subtype
                         (Table.Ada_Name & "_Handle")),
                  Result_Type =>
-                   Db.Database_Package_Name
-                 & "." & Table.Ada_Name
-                 & "." & Table.Ada_Name
-                 & "_Update_Handle",
+                   Table.Ada_Name
+                 & "_Update_Handle'Class",
                  Block       => Block);
          begin
             Fn.Set_Overriding;
@@ -946,9 +940,7 @@ package body Kit.Generate.Handles is
                   Block.Append
                     (Syn.Statements.New_Return_Statement
                        (Syn.Expressions.New_Function_Call_Expression
-                            (Db.Database_Package_Name
-                             & "." & Base.Ada_Name
-                             & ".Update_" & Base.Ada_Name,
+                            (Base.Ada_Name & ".Update_" & Base.Ada_Name,
                              Syn.Object
                                ("Handle.Reference_"
                                 & Base.Ada_Name))));
@@ -964,10 +956,9 @@ package body Kit.Generate.Handles is
                                Syn.Named_Subtype
                                  (Table.Ada_Name & "_Handle")),
                           Result_Type =>
-                            Db.Database_Package_Name
+                            Base.Ada_Name
                           & "." & Base.Ada_Name
-                          & "." & Base.Ada_Name
-                          & "_Update_Handle",
+                          & "_Update_Handle'Class",
                           Block       => Block);
                   begin
                      Fn.Set_Overriding;
@@ -1015,13 +1006,22 @@ package body Kit.Generate.Handles is
 
       Interface_Definition.Add_Parent ("Handle_Interface");
 
-      Table.Iterate
-        (Process     => Add_Base_Db'Access,
-         Inclusive   => False);
+      if False then
+         Table.Iterate
+           (Process     => Add_Base_Db'Access,
+            Inclusive   => False);
+      end if;
 
       Target.With_Package
         (Db.Database_Package_Name & "." & Table.Ada_Name,
          Body_With => True);
+
+      if Table.Has_Writable_Field then
+         Target.Append (Syn.Declarations.New_Separator);
+         Kit.Generate.Updates.Create_Update_Type
+           (Table  => Table,
+            Target => Target);
+      end if;
 
       Target.Append
         (Syn.Declarations.New_Full_Type_Declaration
@@ -1067,14 +1067,18 @@ package body Kit.Generate.Handles is
       Target.Append (Syn.Declarations.New_Separator);
       Create_Reference_Functions;
 
-      if Table.Has_Writable_Field then
-         Target.Append (Syn.Declarations.New_Separator);
-         Create_Update_Functions;
-      end if;
-
       Target.Append (Syn.Declarations.New_Separator);
       Table.Iterate (Process     => Create_Base_Conversion'Access,
                      Inclusive   => False);
+
+      if Table.Has_Writable_Field then
+         Target.Append (Syn.Declarations.New_Separator);
+         Kit.Generate.Updates.Generate_Update_Subprograms
+           (Db     => Db,
+            Table  => Table,
+            Target => Target);
+         Create_Update_Functions;
+      end if;
 
       Target.Append (Syn.Declarations.New_Separator);
       Table.Iterate_All (Create_Property'Access);
@@ -1189,11 +1193,6 @@ package body Kit.Generate.Handles is
       Handle_Package.With_Package
         ("Kit.Protected_Maps",
          Body_With => True);
-
-      if Table.Has_String_Type then
-         Handle_Package.With_Package
-           ("Kit.Strings", Body_With => True);
-      end if;
 
       Handle_Package.With_Package
         (Db.Database_Package_Name
