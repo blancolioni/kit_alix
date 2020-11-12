@@ -80,7 +80,7 @@ package body Kit.Generate.Public_Get is
       use Syn.Declarations;
       Ask   : Syn.Expressions.Function_Call_Expression :=
                 Syn.Expressions.New_Function_Call_Expression
-                  ("Get_By_" & Key.Ada_Name);
+                  ("Get_Reference_By_" & Key.Ada_Name);
       Block : Syn.Blocks.Block_Type;
    begin
 
@@ -94,12 +94,11 @@ package body Kit.Generate.Public_Get is
          end;
       end loop;
 
-      Block.Add_Declaration
-        (New_Constant_Declaration
-           ("Item", Table.Type_Name, Ask));
       Block.Add_Statement
         (Syn.Statements.New_Return_Statement
-           (Syn.Object ("Item.Has_Element")));
+           (Syn.Expressions.Operator
+                ("/=", Ask,
+                 Syn.Object ("Null_" & Table.Ada_Name & "_Reference"))));
 
       declare
          Fn : Subprogram_Declaration'Class :=
