@@ -302,6 +302,12 @@ private
    package Table_Vectors is
       new Ada.Containers.Vectors (Positive, Table_Type);
 
+   type Constant_Table_Access is
+     access constant Root_Table_Type'Class;
+
+   package Constant_Table_Vectors is
+     new Ada.Containers.Vectors (Positive, Constant_Table_Access);
+
    type Base_Cursor is new Table_Vectors.Cursor;
 
    package Base_Layout_Vectors is

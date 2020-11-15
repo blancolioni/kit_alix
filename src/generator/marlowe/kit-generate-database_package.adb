@@ -613,17 +613,12 @@ package body Kit.Generate.Database_Package is
                begin
                   Field_Block.Add_Declaration
                     (New_Constant_Declaration
-                       ("Key_Field",
-                        "Kit_Field.Kit_Field_Type",
-                        New_Function_Call_Expression
-                          ("Kit_Field.Get_By_Record_Field",
-                           Object (Ref_Name),
-                           Literal (Key.Field (I).Standard_Name))));
-                  Field_Block.Add_Declaration
-                    (New_Constant_Declaration
                        ("Field_Ref",
                         "Kit_Field_Reference",
-                        Object ("Key_Field.Get_Kit_Field_Reference")));
+                        New_Function_Call_Expression
+                          ("Kit_Field.Get_Reference_By_Record_Field",
+                           Object (Ref_Name),
+                           Literal (Key.Field (I).Standard_Name))));
                   Key_Field.Add_Actual_Argument (Object ("Ref"));
                   Key_Field.Add_Actual_Argument (Object ("Field_Ref"));
                   Field_Block.Add_Statement (Key_Field);

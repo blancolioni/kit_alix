@@ -4,23 +4,23 @@ with Syn.Statements;
 with Syn.Types;
 
 with Kit.Schema.Fields;
+with Kit.Schema.Types;
 
 package body Kit.Generate.Updates is
 
-   procedure Create_Update_Type
-     (Table  : in     Kit.Schema.Tables.Table_Type;
-      Target : in out Syn.Declarations.Package_Type'Class);
-
    procedure Create_Update_Start
-     (Table  : in     Kit.Schema.Tables.Table_Type;
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Update_Finish
-     (Table  : in     Kit.Schema.Tables.Table_Type;
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Field_Update_Function
-     (Table  : in     Kit.Schema.Tables.Table_Type;
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class;
       Field  : Kit.Schema.Fields.Field_Type);
 
@@ -29,7 +29,8 @@ package body Kit.Generate.Updates is
    ----------------------------------
 
    procedure Create_Field_Update_Function
-     (Table  : in     Kit.Schema.Tables.Table_Type;
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class;
       Field  : Kit.Schema.Fields.Field_Type)
    is
@@ -52,6 +53,13 @@ package body Kit.Generate.Updates is
                      Syn.Expressions.New_Function_Call_Expression
                        ("Ada.Strings.Unbounded.To_Unbounded_String",
                         "Value")));
+            elsif Field.Get_Field_Type.Is_Table_Reference then
+               Field.Get_Field_Type.Set_Value
+                 (Target_Name => "Change." & Field.Ada_Name & "_Value",
+                  Value_Name  =>
+                    "Value.Reference_"
+                  & Field.Get_Field_Type.Ada_Name,
+                  Sequence    => Block);
             else
                Field.Get_Field_Type.Set_Value
                  (Target_Name => "Change." & Field.Ada_Name & "_Value",
@@ -73,18 +81,31 @@ package body Kit.Generate.Updates is
               (Syn.Statements.New_Return_Statement
                  ("Result", Table.Ada_Name & "_Update_Handle", R_Seq));
 
-            Target.Append
-              (Syn.Declarations.New_Function
-                 ("Set_" & Field.Ada_Name,
-                  Syn.Declarations.New_Formal_Argument
-                    ("Update",
-                     Syn.Named_Subtype (Table.Ada_Name & "_Update_Handle")),
-                  Syn.Declarations.New_Formal_Argument
-                    ("Value",
-                     Syn.Named_Subtype
-                       (Field.Get_Field_Type.Argument_Subtype)),
-                  Table.Ada_Name & "_Update_Handle",
-                  Block));
+            declare
+               Argument_Type : constant Kit.Schema.Types.Kit_Type :=
+                                 Field.Get_Field_Type;
+               Argument_Type_Name : constant String :=
+                 (if Argument_Type.Is_Table_Reference
+                  then Db.Handle_Package_Name
+                  & "." & Argument_Type.Ada_Name
+                  & "." & Argument_Type.Ada_Name & "_Class"
+                  elsif Argument_Type.Has_Custom_Type
+                  then Db.Database_Package_Name
+                  & "." & Argument_Type.Ada_Name
+                  else Argument_Type.Argument_Subtype);
+            begin
+               Target.Append
+                 (Syn.Declarations.New_Function
+                    ("Set_" & Field.Ada_Name,
+                     Syn.Declarations.New_Formal_Argument
+                       ("Update",
+                        Syn.Named_Subtype (Table.Ada_Name & "_Update_Handle")),
+                     Syn.Declarations.New_Formal_Argument
+                       ("Value",
+                        Syn.Named_Subtype (Argument_Type_Name)),
+                     Table.Ada_Name & "_Update_Handle",
+                     Block));
+            end;
          end;
 
       end if;
@@ -95,7 +116,8 @@ package body Kit.Generate.Updates is
    --------------------------
 
    procedure Create_Update_Finish
-     (Table  : in     Kit.Schema.Tables.Table_Type;
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class)
    is
       Field_Case : Syn.Statements.Case_Statement_Record'Class :=
@@ -152,12 +174,22 @@ package body Kit.Generate.Updates is
               Container_Name => "Update.Updates",
               Iterate_Body   => Update_Sequence);
          Block    : Syn.Blocks.Block_Type;
+         Prefix   : constant String :=
+                      Db.Database_Package_Name
+                      & "."
+                      & Table.Ada_Name
+                      & ".";
+         Update_Type_Name : constant String :=
+                              Prefix & Table.Update_Type_Name;
+         Get_Update_Name  : constant String :=
+                              Prefix & "Get_Update";
       begin
          Block.Add_Declaration
            (Syn.Declarations.New_Object_Declaration
-              ("Rec", Syn.Named_Subtype (Table.Update_Type_Name),
+              ("Rec",
+               Syn.Named_Subtype (Update_Type_Name),
                Syn.Expressions.New_Function_Call_Expression
-                 ("Get_Update", "Update.Reference")));
+                 (Get_Update_Name, "Update.Reference")));
 
          Block.Append (Iterator);
 
@@ -177,7 +209,8 @@ package body Kit.Generate.Updates is
    -------------------------
 
    procedure Create_Update_Start
-     (Table  : in     Kit.Schema.Tables.Table_Type;
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class)
    is
       Return_Sequence : Syn.Statements.Sequence_Of_Statements;
@@ -196,7 +229,11 @@ package body Kit.Generate.Updates is
         (Syn.Declarations.New_Function
            ("Update_" & Table.Ada_Name,
             Syn.Declarations.New_Formal_Argument
-              ("Target", Syn.Named_Subtype (Table.Reference_Type_Name)),
+              ("Target",
+               Syn.Named_Subtype
+                 (Db.Database_Package_Name
+                  & "."
+                  & Table.Reference_Type_Name)),
             Table.Ada_Name & "_Update_Handle",
             Block));
 
@@ -260,6 +297,12 @@ package body Kit.Generate.Updates is
         ("Ada.Containers.Indefinite_Doubly_Linked_Lists",
          Private_With => True);
 
+      if Table.Has_String_Type then
+         Target.With_Package
+           ("Kit.Strings",
+            Private_With => True);
+      end if;
+
       Element_Type.Add_Variant
         (Variant_Name    => "Field",
          Variant_Type    => Fields_Type);
@@ -318,13 +361,14 @@ package body Kit.Generate.Updates is
    ---------------------------------
 
    procedure Generate_Update_Subprograms
-     (Table  : in     Kit.Schema.Tables.Table_Type;
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : in     Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class)
    is
    begin
-      Create_Update_Type (Table, Target);
-      Create_Update_Start (Table, Target);
-      Create_Update_Finish (Table, Target);
+
+      Create_Update_Start (Db, Table, Target);
+      Create_Update_Finish (Db, Table, Target);
 
       declare
          procedure Create_Function
@@ -342,7 +386,7 @@ package body Kit.Generate.Updates is
             pragma Unreferenced (Base);
          begin
             if Field.Writeable then
-               Create_Field_Update_Function (Table, Target, Field);
+               Create_Field_Update_Function (Db, Table, Target, Field);
             end if;
          end Create_Function;
 

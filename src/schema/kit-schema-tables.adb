@@ -499,7 +499,7 @@ package body Kit.Schema.Tables is
 
       use type Kit.Schema.Keys.Key_Type;
 
-      Visited : Table_Vectors.Vector;
+      Visited : Constant_Table_Vectors.Vector;
       Result  : Kit.Schema.Keys.Key_Type := null;
 
       procedure Process
@@ -533,8 +533,8 @@ package body Kit.Schema.Tables is
         (Base : not null access constant Root_Table_Type'Class)
       is
       begin
-         if not Visited.Contains (Base) then
-            Visited.Append (Base);
+         if not Visited.Contains (Constant_Table_Access (Base)) then
+            Visited.Append (Constant_Table_Access (Base));
             for B of Base.Bases loop
                Recurse (B);
                exit when Result /= null;

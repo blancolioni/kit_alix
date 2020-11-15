@@ -62,7 +62,8 @@ package Kit.Generate.Public_Get is
 
    procedure Create_Get_From_Index
      (Table         : in     Kit.Schema.Tables.Table_Type;
-      Table_Package : in out Syn.Declarations.Package_Type'Class);
+      Table_Package : in out Syn.Declarations.Package_Type'Class)
+     with Unreferenced;
 
    --  Generate a procedure which fetches a record given its index
 
