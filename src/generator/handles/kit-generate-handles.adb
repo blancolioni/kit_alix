@@ -1050,7 +1050,10 @@ package body Kit.Generate.Handles is
         (Component_Name => "Reference",
          Component_Type =>
            Db.Database_Package_Name & "."
-         & Table.Ada_Name & "_Reference");
+         & Table.Ada_Name & "_Reference",
+         Component_Default =>
+           Db.Database_Package_Name & "."
+         & "Null_" & Table.Ada_Name & "_Reference");
 
       declare
          Handle_Type : constant Syn.Declarations.Type_Declaration :=
