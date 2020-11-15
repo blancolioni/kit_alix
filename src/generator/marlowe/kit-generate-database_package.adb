@@ -616,7 +616,7 @@ package body Kit.Generate.Database_Package is
                        ("Field_Ref",
                         "Kit_Field_Reference",
                         New_Function_Call_Expression
-                          ("Kit_Field.Get_Reference_By_Record_Field",
+                          ("Kit_Field.Get_By_Record_Field",
                            Object (Ref_Name),
                            Literal (Key.Field (I).Standard_Name))));
                   Key_Field.Add_Actual_Argument (Object ("Ref"));
@@ -647,7 +647,7 @@ package body Kit.Generate.Database_Package is
                        Object (Table.Ada_Name & "_Ref"),
                      Argument_2     =>
                        New_Function_Call_Expression
-                         ("Kit_Field.Get_Reference_By_Record_Field",
+                         ("Kit_Field.Get_By_Record_Field",
                           Object ("Db_" & Base.Ada_Name & "."
                             & Base.Ada_Name & "_Ref"),
                           Literal (Field.Standard_Name))));

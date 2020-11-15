@@ -5,6 +5,7 @@ with Syn.Types;
 with Kit.Schema.Keys;
 with Kit.Schema.Tables;
 with Kit.Schema.Types;
+with Kit.Schema.Types.Enumerated;
 
 with Kit.Generate.Database_Package;
 with Kit.Generate.Get_From_Cache;
@@ -414,8 +415,6 @@ package body Kit.Generate is
       Top : in out Syn.Declarations.Package_Type)
    is
 
-      pragma Unreferenced (Db);
-
       procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type);
 
       -----------------
@@ -425,6 +424,12 @@ package body Kit.Generate is
       procedure Create_Type (User_Type : Kit.Schema.Types.Kit_Type) is
       begin
          if not User_Type.Is_External_Type then
+            if User_Type.all in
+              Kit.Schema.Types.Enumerated.Enumerated_Type'Class
+            then
+               Kit.Schema.Types.Enumerated.Enumerated_Type (User_Type.all)
+                 .Set_Defining_Package (Db.Database_Package_Name);
+            end if;
             Top.Append (User_Type.To_Declaration);
          end if;
       end Create_Type;

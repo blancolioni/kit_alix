@@ -80,7 +80,7 @@ package body Kit.Generate.Public_Get is
       use Syn.Declarations;
       Ask   : Syn.Expressions.Function_Call_Expression :=
                 Syn.Expressions.New_Function_Call_Expression
-                  ("Get_Reference_By_" & Key.Ada_Name);
+                  ("Get_By_" & Key.Ada_Name);
       Block : Syn.Blocks.Block_Type;
    begin
 
@@ -580,10 +580,6 @@ package body Kit.Generate.Public_Get is
          -------------------
 
          function Function_Name return String is
-            Reference_Part : constant String :=
-                               (if Reference
-                                then "Reference_"
-                                else "");
             Fetch_Part     : constant String :=
                                (case Fetch_Type is
                                    when Unique_Get => "Get_",
@@ -594,7 +590,6 @@ package body Kit.Generate.Public_Get is
                return Fetch_Part & Table.Ada_Name;
             else
                return Fetch_Part
-                 & Reference_Part
                  & "By_"
                  & Key.Ada_Name;
             end if;

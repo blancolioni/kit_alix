@@ -6,11 +6,14 @@ with Syn.Statements;
 with Syn.Types;
 
 with Kit.Schema.Fields;
+with Kit.Schema.Keys;
 with Kit.Schema.Types;
 
 with Kit.String_Maps;
 
 with Kit.Generate.Updates;
+
+with Kit.Generate.Handles.Search;
 
 package body Kit.Generate.Handles is
 
@@ -31,6 +34,11 @@ package body Kit.Generate.Handles is
       Target : in out Syn.Declarations.Package_Type'Class);
 
    procedure Create_Handle_Type
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : Kit.Schema.Tables.Table_Type;
+      Target : in out Syn.Declarations.Package_Type'Class);
+
+   procedure Create_Key_Functions
      (Db     : Kit.Schema.Databases.Database_Type;
       Table  : Kit.Schema.Tables.Table_Type;
       Target : in out Syn.Declarations.Package_Type'Class);
@@ -1012,10 +1020,6 @@ package body Kit.Generate.Handles is
             Inclusive   => False);
       end if;
 
-      Target.With_Package
-        (Db.Database_Package_Name & "." & Table.Ada_Name,
-         Body_With => True);
-
       if Table.Has_Writable_Field then
          Target.Append (Syn.Declarations.New_Separator);
          Kit.Generate.Updates.Create_Update_Type
@@ -1093,6 +1097,101 @@ package body Kit.Generate.Handles is
       end if;
 
    end Create_Handle_Type;
+
+   --------------------------
+   -- Create_Key_Functions --
+   --------------------------
+
+   procedure Create_Key_Functions
+     (Db     : Kit.Schema.Databases.Database_Type;
+      Table  : Kit.Schema.Tables.Table_Type;
+      Target : in out Syn.Declarations.Package_Type'Class)
+   is
+      procedure Create_Key_Get
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Key   : Kit.Schema.Keys.Key_Type);
+
+      --------------------
+      -- Create_Key_Get --
+      --------------------
+
+      procedure Create_Key_Get
+        (Base  : Kit.Schema.Tables.Table_Type;
+         Key   : Kit.Schema.Keys.Key_Type)
+      is
+      begin
+         if Key.Field_Count = 1
+           and then Key.Field (1).Base_Reference
+         then
+            Search.Create_Unique_Get_Function
+              (Db            => Db,
+               Table         => Table,
+               Key_Table     => Base,
+               Table_Package => Target,
+               Key_Name      => Key.Standard_Name);
+         else
+            for Use_Key_Value in Boolean loop
+               if Use_Key_Value then
+                  if Key.Unique then
+                     Search.Create_Unique_Get_Function
+                       (Db            => Db,
+                        Table         => Table,
+                        Key_Table     => Base,
+                        Table_Package => Target,
+                        Key_Name      => Key.Standard_Name);
+                  else
+                     Search.Create_First_Last_Functions
+                       (Db            => Db,
+                        Table         => Table,
+                        Key_Table     => Base,
+                        Table_Package => Target,
+                        Key_Name      => Key.Standard_Name);
+                  end if;
+               end if;
+
+               Search.Create_Selection_Function
+                 (Db            => Db,
+                  Table         => Table,
+                  Key_Table     => Base,
+                  Table_Package => Target,
+                  Key_Name      => Key.Standard_Name,
+                  Key_Value     => Use_Key_Value,
+                  Bounds        => False);
+            end loop;
+
+            for I in 1 .. Key.Field_Count loop
+               if not Key.Field (I).Get_Field_Type.Is_Table_Reference then
+                  Search.Create_Selection_Function
+                    (Db            => Db,
+                     Table         => Table,
+                     Key_Table     => Base,
+                     Table_Package => Target,
+                     Key_Name      => Key.Standard_Name,
+                     Key_Value     => True,
+                     Bounds        => True,
+                     Bounded_Index => I);
+               end if;
+            end loop;
+
+            if Base.Ada_Name = Table.Ada_Name
+            --  and then Key.Ada_Name = Table.Ada_Name
+              and then Key.Unique
+            then
+               --  a unique key with the same name as its table is
+               --  understood to be a default key
+               Search.Create_Default_Key_Functions
+                 (Db, Table, Target, Key);
+
+            end if;
+         end if;
+
+      end Create_Key_Get;
+
+   begin
+      Search.Create_Selection_Type (Db, Table, Target);
+      Table.Scan_Keys (Create_Key_Get'Access,
+                       Include_Base_Keys => True);
+   end Create_Key_Functions;
 
    ---------------------------------
    -- Find_Custom_Type_References --
@@ -1269,6 +1368,8 @@ package body Kit.Generate.Handles is
       Handle_Package.Add_Separator;
       Create_Handle_Cache (Db, Table, Handle_Package);
       Create_Handle_Type (Db, Table, Handle_Package);
+
+      Create_Key_Functions (Db, Table, Handle_Package);
 
       return Handle_Package;
    end Generate_Handle_Package;
