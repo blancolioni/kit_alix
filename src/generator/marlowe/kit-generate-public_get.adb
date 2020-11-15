@@ -401,7 +401,7 @@ package body Kit.Generate.Public_Get is
            (New_Return_Statement
               (Object
                    ("(Current => "
-                    & "List_Of_References.Previous "
+                    & "List_Of_References." & Call & " "
                     & "(Position.Current))")));
       end if;
 
