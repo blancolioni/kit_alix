@@ -27,11 +27,11 @@ package {database}.Tables is
    function Is_Key (Table : Database_Table'Class;
                     Name  : String)
                     return Boolean;
-   
+
    function Default_Key
      (Table : Database_Table'Class)
      return String;
-   
+
    type Record_Reference is private;
    Null_Record_Reference : constant Record_Reference;
    function To_String (Reference : Record_Reference) return String;

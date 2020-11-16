@@ -157,7 +157,6 @@ package body {database}.Tables.Scanner is
       -------------
 
       procedure Add_Row (Item : Database_Record'Class) is
-         use type Marlowe.Database_Index;
          Row : Table_Row;
       begin
          Row.Cells.Append

@@ -947,7 +947,7 @@ package body Kit.Parser is
             Db := Kit.Schema.Databases.Create_Database (Package_Name);
          end if;
 
-         if With_System and then Package_Name /= "kit.db" then
+         if With_System and then Package_Name /= "kit" then
             if not Got_System_Db then
                declare
                   System_Path : constant String :=

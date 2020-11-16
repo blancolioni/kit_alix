@@ -1,5 +1,8 @@
-package Kit.Db is
+package Kit is
 
+   for Kit'Database_Package_Name use "Kit.Db";
+   for Kit'Handle_Package_Name use "Kit.Handles";
+   
    abstract record Kit_Root_Record is
       key Top_Record : Record_Type is Readable;
    end Kit_Root_Record;
@@ -92,4 +95,4 @@ package Kit.Db is
       unique key Key_Field with Kit_Key, Kit_Field;
    end Kit_Key_Field;
 
-end Kit.Db;
+end Kit;

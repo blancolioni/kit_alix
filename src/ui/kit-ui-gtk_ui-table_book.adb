@@ -9,9 +9,9 @@ with Gtk.List_Store;
 with Gtk.Tree_Model;
 with Gtk.Tree_View_Column;
 
-with Kit.Db.Kit_Key;
-with Kit.Db.Kit_Record;
-with Kit.Db.Kit_Record_Base;
+with Kit.Handles.Kit_Key;
+with Kit.Handles.Kit_Record;
+with Kit.Handles.Kit_Record_Base;
 
 package body Kit.UI.Gtk_UI.Table_Book is
 
@@ -131,11 +131,14 @@ package body Kit.UI.Gtk_UI.Table_Book is
       Initialise_View_From_Record;
 
       declare
-         Kit_Record : constant Kit.Db.Kit_Record.Kit_Record_Type :=
-                        Kit.Db.Kit_Record.Get_By_Name (Table_Name);
-         Kit_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
-                        Kit.Db.Kit_Key.First_By_Kit_Record
-                          (Kit_Record.Get_Kit_Record_Reference);
+         use Kit.Handles.Kit_Key;
+         use Kit.Handles.Kit_Record;
+         use Kit.Handles.Kit_Record_Base;
+
+         Kit_Record : constant Kit_Record_Handle :=
+                        Get_By_Name (Table_Name);
+         Kit_Key    : constant Kit_Key_Handle :=
+                        First_By_Kit_Record (Kit_Record);
          Found      : Boolean := False;
       begin
          if Kit_Key.Has_Element then
@@ -145,14 +148,12 @@ package body Kit.UI.Gtk_UI.Table_Book is
               (Result.Scan, Table, Kit_Key.Name);
          else
             for Base of
-              Kit.Db.Kit_Record_Base.Select_By_Derived
-                (Kit_Record.Get_Kit_Record_Reference)
+              Select_By_Derived (Kit_Record)
             loop
                if not Found then
                   declare
-                     Base_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
-                                     Kit.Db.Kit_Key.First_By_Kit_Record
-                                       (Base.Base);
+                     Base_Key : constant Kit_Key_Handle :=
+                                  First_By_Kit_Record (Base.Base);
                   begin
                      if Base_Key.Has_Element then
                         Result.Key_Name :=
@@ -212,11 +213,14 @@ package body Kit.UI.Gtk_UI.Table_Book is
       Nice_Title : constant String := Tree_View.Get_Title;
       Standard_Title : constant String := Deformat_Heading (Nice_Title);
 
-      Kit_Record : constant Kit.Db.Kit_Record.Kit_Record_Type :=
-                     Kit.Db.Kit_Record.Get_By_Name (Table_Name (Display.all));
-      Kit_Key    : constant Kit.Db.Kit_Key.Kit_Key_Type :=
-                     Kit.Db.Kit_Key.Get_By_Record_Key
-                       (Kit_Record.Get_Kit_Record_Reference, Standard_Title);
+      use Kit.Handles.Kit_Key;
+      use Kit.Handles.Kit_Record;
+
+      Kit_Record : constant Kit_Record_Handle :=
+                     Get_By_Name (Table_Name (Display.all));
+      Kit_Key    : constant Kit_Key_Handle :=
+                     Get_By_Record_Key
+                       (Kit_Record, Standard_Title);
       Found      : Boolean := False;
    begin
       if Kit_Key.Has_Element then
@@ -225,13 +229,11 @@ package body Kit.UI.Gtk_UI.Table_Book is
          Found := True;
       else
          for Base of
-           Kit.Db.Kit_Record_Base.Select_By_Derived
-             (Kit_Record.Get_Kit_Record_Reference)
+           Kit.Handles.Kit_Record_Base.Select_By_Derived (Kit_Record)
          loop
             declare
-               Base_Key : constant Kit.Db.Kit_Key.Kit_Key_Type :=
-                            Kit.Db.Kit_Key.Get_By_Record_Key
-                              (Base.Base, Standard_Title);
+               Base_Key : constant Kit_Key_Handle :=
+                            Get_By_Record_Key (Base.Base, Standard_Title);
             begin
                if Base_Key.Has_Element then
                   Display.Key_Name :=
