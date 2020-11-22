@@ -340,7 +340,7 @@ package body Kit.Generate.Handles.Search is
                                 when Last       => "Last_");
       begin
          if Key.Base_Reference then
-            return Fetch_Part & Table.Ada_Name;
+               return Fetch_Part & "From_" & Key.Base_Table_Name;
          else
             return Fetch_Part
               & "By_"

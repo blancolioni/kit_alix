@@ -98,11 +98,11 @@ package body Kit.Schema.Tables is
             if not Found then
                declare
                   Base_Key : constant Kit.Schema.Keys.Key_Type :=
-
                                Kit.Schema.Keys.Create_Key
                                  (Base.Internal_Table_Name,
                                   Unique => True,
-                                  Base_Reference => True);
+                                  Base_Reference =>
+                                    Base.Ada_Name);
                begin
                   Base_Key.Add_Field (Table.Base_Field (Base));
                   Table.Add_Key (Base_Key);

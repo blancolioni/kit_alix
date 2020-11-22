@@ -17,9 +17,20 @@ package body Kit.Schema.Keys is
    --------------------
 
    function Base_Reference (Key : Root_Key_Type) return Boolean is
+      use type Ada.Strings.Unbounded.Unbounded_String;
    begin
-      return Key.Base_Reference;
+      return Key.Base_Reference /=
+        Ada.Strings.Unbounded.Null_Unbounded_String;
    end Base_Reference;
+
+   ---------------------
+   -- Base_Table_Name --
+   ---------------------
+
+   function Base_Table_Name (Key : Root_Key_Type) return String is
+   begin
+      return Ada.Strings.Unbounded.To_String (Key.Base_Reference);
+   end Base_Table_Name;
 
    --------------
    -- Contains --
@@ -57,16 +68,17 @@ package body Kit.Schema.Keys is
    ----------------
 
    function Create_Key
-     (Name           : in     String;
-      Unique         : in     Boolean;
-      Base_Reference : in Boolean := False)
+     (Name           : in String;
+      Unique         : in Boolean;
+      Base_Reference : in String := "")
       return Key_Type
    is
       Item           : Root_Key_Type;
    begin
       Kit.Names.Root_Named_Object (Item).Create (Name);
       Item.Unique := Unique;
-      Item.Base_Reference := Base_Reference;
+      Item.Base_Reference :=
+        Ada.Strings.Unbounded.To_Unbounded_String (Base_Reference);
       return new Root_Key_Type'(Item);
    end Create_Key;
 

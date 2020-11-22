@@ -1,4 +1,5 @@
 private with Ada.Containers.Vectors;
+private with Ada.Strings.Unbounded;
 
 with Kit.Names;
 with Kit.Schema.Fields;
@@ -12,6 +13,8 @@ package Kit.Schema.Keys is
 
    function Unique (Key : Root_Key_Type) return Boolean;
    function Base_Reference (Key : Root_Key_Type) return Boolean;
+   function Base_Table_Name (Key : Root_Key_Type) return String
+     with Pre => Base_Reference (Key);
 
    procedure Add_Field
      (Key   : in out Root_Key_Type'Class;
@@ -34,7 +37,7 @@ package Kit.Schema.Keys is
    function Create_Key
      (Name           : in     String;
       Unique         : in     Boolean;
-      Base_Reference : in Boolean := False)
+      Base_Reference : in String := "")
       return Key_Type;
 
 private
@@ -49,7 +52,7 @@ private
      new Kit.Names.Root_Named_Object with
       record
          Unique         : Boolean;
-         Base_Reference : Boolean;
+         Base_Reference : Ada.Strings.Unbounded.Unbounded_String;
          Fields         : Key_Field_Vector.Vector;
       end record;
 
