@@ -1302,6 +1302,12 @@ package body Kit.Generate.Handles is
          & "_Hashes",
          Body_With => True);
 
+      if Table.Has_Text_Type then
+         Handle_Package.With_Package
+           ("Ada.Strings.Unbounded",
+            Private_With => True);
+      end if;
+
       if not Referenced_Tables.Is_Empty then
          Handle_Package.With_Package
            (Db.Database_Package_Name,
