@@ -883,10 +883,6 @@ package body Kit.Generate.Handles is
          Block : Syn.Blocks.Block_Type;
       begin
          Block.Append
-           (Syn.Statements.New_Procedure_Call_Statement
-              ("Cache.Invalidate",
-               Syn.Object ("Handle.Reference")));
-         Block.Append
            (Syn.Statements.New_Return_Statement
               (Syn.Expressions.New_Function_Call_Expression
                    ("Update_" & Table.Ada_Name,

@@ -192,6 +192,10 @@ package body Kit.Generate.Updates is
                  (Get_Update_Name, "Update.Reference")));
 
          Block.Append (Iterator);
+         Block.Append
+           (Syn.Statements.New_Procedure_Call_Statement
+              ("Cache.Invalidate",
+               Syn.Object ("Update.Reference")));
 
          Target.Append
            (Syn.Declarations.New_Procedure
