@@ -134,6 +134,14 @@ package body Kit.Generate.Handles is
                           "Rec.Get_" & Field.Ada_Name
                         & "_Reference",
                         Sequence    => Block);
+                  elsif Field.Get_Field_Type.Is_Text then
+                     Block.Append
+                       (Syn.Statements.New_Assignment_Statement
+                          (Target => "Cached." & Field.Ada_Name,
+                           Value  =>
+                             Syn.Expressions.New_Function_Call_Expression
+                               ("Ada.Strings.Unbounded.To_Unbounded_String",
+                                "Rec." & Field.Ada_Name)));
                   else
                      Field.Get_Field_Type.Set_Value
                        (Target_Name => "Cached." & Field.Ada_Name,
@@ -231,9 +239,15 @@ package body Kit.Generate.Handles is
                else Field.Ada_Name);
          begin
             if Is_Cached (Field) then
-               Definition.Add_Component
-                 (Component_Name,
-                  Field.Get_Field_Type.Record_Subtype);
+               if Field.Get_Field_Type.Is_Text then
+                  Definition.Add_Component
+                    (Component_Name,
+                     "Ada.Strings.Unbounded.Unbounded_String");
+               else
+                  Definition.Add_Component
+                    (Component_Name,
+                     Field.Get_Field_Type.Record_Subtype);
+               end if;
             end if;
          end Add_Component;
 
@@ -775,6 +789,10 @@ package body Kit.Generate.Handles is
                  (Db.Handle_Package_Name
                   & "." & Return_Type.Ada_Name
                   & ".Get",
+                  Syn.Object ("Rec." & Component_Name))
+               elsif Field.Get_Field_Type.Is_Text then
+                  Syn.Expressions.New_Function_Call_Expression
+                 ("Ada.Strings.Unbounded.To_String",
                   Syn.Object ("Rec." & Component_Name))
                else Return_Type.Return_Value
                  ("Rec." & Component_Name));
