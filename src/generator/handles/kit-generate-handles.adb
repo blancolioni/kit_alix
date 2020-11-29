@@ -341,6 +341,8 @@ package body Kit.Generate.Handles is
       procedure Create_Base_Conversion
         (Base : Kit.Schema.Tables.Table_Type);
 
+      procedure Create_From_Class_Conversion;
+
       function Return_Type_Name
         (Field : Kit.Schema.Fields.Field_Type)
          return String;
@@ -509,6 +511,33 @@ package body Kit.Generate.Handles is
             Target.Append (Fn);
          end;
       end Create_Base_Conversion;
+
+      ----------------------------------
+      -- Create_From_Class_Conversion --
+      ----------------------------------
+
+      procedure Create_From_Class_Conversion is
+         Block       : Syn.Blocks.Block_Type;
+      begin
+         Block.Append
+           (Syn.Statements.New_Return_Statement
+              (Syn.Expressions.New_Function_Call_Expression
+                   ("Get",
+                    Syn.Object ("Class.Reference_" & Table.Ada_Name))));
+         declare
+            Fn : constant Syn.Declarations.Subprogram_Declaration'Class :=
+                   Syn.Declarations.New_Function
+                     (Name        => "To_" & Table.Ada_Name & "_Handle",
+                      Argument    =>
+                        Syn.Declarations.New_Formal_Argument
+                          ("Class",
+                           Syn.Named_Subtype (Table.Ada_Name & "_Class")),
+                         Result_Type => Table.Handle_Name,
+                         Block       => Block);
+         begin
+            Target.Append (Fn);
+         end;
+      end Create_From_Class_Conversion;
 
       --------------------------
       -- Create_Get_Functions --
@@ -1091,6 +1120,8 @@ package body Kit.Generate.Handles is
       Target.Append (Syn.Declarations.New_Separator);
       Table.Iterate (Process     => Create_Base_Conversion'Access,
                      Inclusive   => False);
+
+      Create_From_Class_Conversion;
 
       if Table.Has_Writable_Field then
          Target.Append (Syn.Declarations.New_Separator);
