@@ -907,10 +907,11 @@ package body Kit.Parser is
                                 then Related_Path
                                 elsif Ada.Directories.Exists (System_Path)
                                 then System_Path
-                                else raise Constraint_Error
-                                  with "not found: " & Name);
+                                else "");
             begin
-               if not Withed_Databases.Contains (Path) then
+               if Path = "" then
+                  Error ("not found: " & Name);
+               elsif not Withed_Databases.Contains (Path) then
                   Local_Withed_Databases.Append (Path);
                end if;
             end;
