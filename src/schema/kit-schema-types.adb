@@ -209,6 +209,15 @@ package body Kit.Schema.Types is
                            return Syn.Expression'Class;
 
    overriding
+   function Default_Argument_Value
+     (Item : Table_Reference_Type_Record)
+      return Syn.Expression'Class
+   is (Syn.Object
+       (Item.Ada_Name
+        & "."
+        & "Empty_Handle"));
+
+   overriding
    function Is_Reference_To
      (Item       : Table_Reference_Type_Record;
       Table_Name : String)
@@ -279,9 +288,13 @@ package body Kit.Schema.Types is
    function Has_Default_Value (Item : String_Type)
                                return Boolean;
 
-   overriding
-   function Default_Value (Item : String_Type)
-                           return Syn.Expression'Class;
+   overriding function Default_Value
+     (Item : String_Type)
+      return Syn.Expression'Class;
+
+   overriding function Default_Argument_Value
+     (Item : String_Type)
+      return Syn.Expression'Class;
 
    function Standard_String_Name
      (Fixed  : Boolean;
@@ -392,6 +405,16 @@ package body Kit.Schema.Types is
    function Default_Value (Item : External_Type)
                            return Syn.Expression'Class
    is (Item.Local_Type.Default_Value);
+
+   overriding
+   function Default_Argument_Value
+     (Item : External_Type)
+      return Syn.Expression'Class
+   is (Syn.Expressions.New_Function_Call_Expression
+       (Ada.Strings.Unbounded.To_String (Item.External_Package)
+        & "."
+        & Ada.Strings.Unbounded.To_String (Item.From_Database),
+        Item.Local_Type.Default_Value));
 
    overriding function Record_Subtype
      (Item : External_Type) return String
@@ -908,6 +931,26 @@ package body Kit.Schema.Types is
       New_Type (Standard_Text);
 
    end Create_Standard_Types;
+
+   ----------------------------
+   -- Default_Argument_Value --
+   ----------------------------
+
+   overriding function Default_Argument_Value
+     (Item : String_Type)
+      return Syn.Expression'Class
+   is
+   begin
+      if Item.Fixed then
+         declare
+            S : constant String (1 .. Item.Length) := (others => ' ');
+         begin
+            return Syn.Literal (S);
+         end;
+      else
+         return Syn.Literal ("");
+      end if;
+   end Default_Argument_Value;
 
    -------------------
    -- Default_Value --

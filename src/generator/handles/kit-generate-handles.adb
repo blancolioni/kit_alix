@@ -655,11 +655,21 @@ package body Kit.Generate.Handles is
                   then Db.Database_Package_Name
                   & "." & Argument_Type.Ada_Name
                   else Argument_Type.Argument_Subtype);
+               Default_Value      : constant Syn.Expression'Class :=
+                                      (if Argument_Type.Is_Table_Reference
+                                       then Syn.Object
+                                         (Db.Handle_Package_Name
+                                          & "."
+                                          & Argument_Type.Ada_Name
+                                          & ".Empty_Handle")
+                                       else Argument_Type
+                                       .Default_Argument_Value);
             begin
                if Field.Created then
                   Sub.Add_Formal_Argument
                     (Field.Ada_Name,
-                     Argument_Type_Name);
+                     Argument_Type_Name,
+                     Default_Value);
                end if;
             end Add_Formal_Argument;
 
