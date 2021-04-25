@@ -49,9 +49,13 @@ private
       return Boolean
    is (Item.User_Defined);
 
-   overriding
-   function Default_Value (Item : Enumerated_Type)
-                           return Syn.Expression'Class;
+   overriding function Default_Value
+     (Item : Enumerated_Type)
+      return Syn.Expression'Class;
+
+   overriding function Default_Argument_Value
+     (Item : Enumerated_Type)
+      return Syn.Expression'Class;
 
    overriding function Haskell_Type_Name
      (Item : Enumerated_Type)

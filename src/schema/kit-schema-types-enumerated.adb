@@ -86,6 +86,26 @@ package body Kit.Schema.Types.Enumerated is
 
    end Create_Database_Record;
 
+   ----------------------------
+   -- Default_Argument_Value --
+   ----------------------------
+
+   overriding function Default_Argument_Value
+     (Item : Enumerated_Type)
+      return Syn.Expression'Class
+   is
+      use Ada.Strings.Unbounded;
+      Value : constant String :=
+                Enumerated_Type'Class (Item).Ada_Name
+                & "'First";
+   begin
+      if Item.Pkg_Name /= Null_Unbounded_String then
+         return Syn.Object (To_String (Item.Pkg_Name) & "." & Value);
+      else
+         return Syn.Object (Value);
+      end if;
+   end Default_Argument_Value;
+
    -------------------
    -- Default_Value --
    -------------------

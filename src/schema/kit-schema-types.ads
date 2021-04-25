@@ -40,6 +40,11 @@ package Kit.Schema.Types is
                            return Syn.Expression'Class
                            is abstract;
 
+   function Default_Argument_Value
+     (Item : Root_Kit_Type)
+      return Syn.Expression'Class
+   is (Root_Kit_Type'Class (Item).Default_Value);
+
    function Has_Operator
      (Item     : Root_Kit_Type;
       Operator : Kit_Operator)
