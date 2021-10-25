@@ -336,6 +336,10 @@ package body Kit.Schema.Types is
       Target_Name : String)
       return Syn.Expression'Class;
 
+   overriding function Default_Argument_Value
+     (Item : Text_Type)
+      return Syn.Expression'Class;
+
    overriding function Has_Default_Value
      (Item : Text_Type)
       return Boolean
@@ -950,6 +954,18 @@ package body Kit.Schema.Types is
       else
          return Syn.Literal ("");
       end if;
+   end Default_Argument_Value;
+
+   ----------------------------
+   -- Default_Argument_Value --
+   ----------------------------
+
+   overriding function Default_Argument_Value
+     (Item : Text_Type)
+      return Syn.Expression'Class
+   is
+   begin
+      return Syn.Literal ("");
    end Default_Argument_Value;
 
    -------------------
