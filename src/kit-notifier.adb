@@ -229,7 +229,7 @@ package body Kit.Notifier is
                             Table_Notifier_Index (Table);
       begin
          while Vector.Last_Index < Notifier_Index loop
-            Vector.Append ((others => <>));
+            Vector.Append (Table_Notifier_Entry'(others => <>));
          end loop;
 
          case Notification is
@@ -271,7 +271,7 @@ package body Kit.Notifier is
                             Table_Notifier_Index (Table);
       begin
          while Vector.Last_Index < Notifier_Index loop
-            Vector.Append ((others => <>));
+            Vector.Append (Table_Notifier_Entry'(others => <>));
          end loop;
 
          case Notification is
