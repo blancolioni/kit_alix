@@ -69,6 +69,8 @@ package body Kit.Generate.Templates is
       begin
 
          Add_Substitution (Standard_Sub, "database", Database.Ada_Name);
+         Add_Substitution (Standard_Sub, "handles",
+                           Database.Handle_Package_Name);
          Add_Substitution (Standard_Sub, "table", Table.Ada_Name);
          Add_Substitution
            (Standard_Sub, "table_count",
@@ -125,6 +127,8 @@ package body Kit.Generate.Templates is
       begin
 
          Add_Substitution (Standard_Sub, "database", Database.Ada_Name);
+         Add_Substitution (Standard_Sub, "handles",
+                           Database.Handle_Package_Name);
          Add_Substitution
            (Standard_Sub, "table_count",
             Ada.Strings.Fixed.Trim
