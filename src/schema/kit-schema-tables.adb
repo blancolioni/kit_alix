@@ -49,7 +49,7 @@ package body Kit.Schema.Tables is
            (Created        => False,
             Readable       => False,
             Writable       => False,
-            Base_Reference =>  True);
+            Base_Reference => True);
          Table.Append (Base_Field);
 
       end Update_Base_Layout;

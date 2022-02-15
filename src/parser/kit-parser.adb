@@ -310,6 +310,17 @@ package body Kit.Parser is
                                 (Field_Name, Field_Type);
             begin
 
+               if Tok = Tok_Becomes then
+                  Scan;
+                  if Tok = Tok_Box then
+                     Scan;
+                  else
+                     Error ("only <> defaults are supported");
+                     Skip_To (Tok_Semi);
+                  end if;
+                  Field.Set_Default;
+               end if;
+
                if Tok = Tok_Is then
                   Scan;
                   Parse_Field_Options (Field);

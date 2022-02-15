@@ -65,6 +65,17 @@ package body Kit.Schema.Fields is
       return Field.Readable;
    end Readable;
 
+   -----------------
+   -- Set_Default --
+   -----------------
+
+   procedure Set_Default
+     (Field : in out Root_Field_Type'Class)
+   is
+   begin
+      Field.Has_Default := True;
+   end Set_Default;
+
    -----------------------
    -- Set_Display_Field --
    -----------------------

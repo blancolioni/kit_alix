@@ -8,6 +8,6 @@ private package Kit.Parser.Tokens is
        Tok_Record, Tok_Type, Tok_Unique, Tok_Use, Tok_With,
 
        Tok_Colon, Tok_Semi, Tok_Left_Paren, Tok_Right_Paren, Tok_Comma,
-       Tok_Dot, Tok_Dot_Dot, Tok_Arrow, Tok_Becomes, Tok_Apostrophe);
+       Tok_Dot, Tok_Dot_Dot, Tok_Arrow, Tok_Becomes, Tok_Apostrophe, Tok_Box);
 
 end Kit.Parser.Tokens;
