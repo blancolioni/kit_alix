@@ -20,6 +20,9 @@ package Kit.Schema.Fields is
    procedure Set_Display_Field
      (Field : in out Root_Field_Type'Class);
 
+   procedure Set_Default
+     (Field : in out Root_Field_Type'Class);
+
    function Get_Field_Type (Item : Root_Field_Type)
                            return Kit.Schema.Types.Kit_Type;
 
@@ -35,6 +38,9 @@ package Kit.Schema.Fields is
    function Display (Field : Root_Field_Type) return Boolean;
    --  return true if Field should be used to represent its record
    --  instead of the record's database index.
+
+   function Has_Default_Value (Field : Root_Field_Type) return Boolean;
+   --  return true if the Field has a default value
 
    function Base_Reference (Field : Root_Field_Type) return Boolean;
 
@@ -54,9 +60,13 @@ private
          Created        : Boolean := True;
          Readable       : Boolean := True;
          Writeable      : Boolean := True;
+         Has_Default    : Boolean := False;
          Display        : Boolean := False;
          Base_Reference : Boolean := False;
          Field_Type     : Kit.Schema.Types.Kit_Type;
       end record;
+
+   function Has_Default_Value (Field : Root_Field_Type) return Boolean
+   is (Field.Has_Default);
 
 end Kit.Schema.Fields;

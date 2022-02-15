@@ -666,10 +666,16 @@ package body Kit.Generate.Handles is
                                        .Default_Argument_Value);
             begin
                if Field.Created then
-                  Sub.Add_Formal_Argument
-                    (Field.Ada_Name,
-                     Argument_Type_Name,
-                     Default_Value);
+                  if Field.Has_Default_Value then
+                     Sub.Add_Formal_Argument
+                       (Field.Ada_Name,
+                        Argument_Type_Name,
+                        Default_Value);
+                  else
+                     Sub.Add_Formal_Argument
+                       (Field.Ada_Name,
+                        Argument_Type_Name);
+                  end if;
                end if;
             end Add_Formal_Argument;
 
