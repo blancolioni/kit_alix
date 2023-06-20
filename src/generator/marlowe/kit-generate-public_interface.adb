@@ -340,7 +340,7 @@ package body Kit.Generate.Public_Interface is
            (New_Procedure_Call_Statement
               ("Database_Mutex.Shared_Lock"));
 
-         if Kit.Options.Generate_Debug then
+         if Kit.Options.Debug then
             Finalize_Block.Add_Statement
               (New_Procedure_Call_Statement
                  ("Ada.Text_IO.Put_Line",
@@ -509,7 +509,7 @@ package body Kit.Generate.Public_Interface is
            (New_Assignment_Statement
               ("Item.Created", Object ("False")));
 
-         if Kit.Options.Generate_Debug then
+         if Kit.Options.Debug then
             Finalize_Block.Add_Statement
               (New_Procedure_Call_Statement
                  ("Ada.Text_IO.Put_Line",
@@ -2757,7 +2757,7 @@ package body Kit.Generate.Public_Interface is
       Table_Package.With_Package (Db.Ada_Name & ".Marlowe_Keys",
                                   Body_With => True);
 
-      if Kit.Options.Generate_Deadlock_Detection then
+      if Kit.Options.Deadlock_Detection then
          Table_Package.With_Package
            (Db.Ada_Name & ".Kit_Locking",
             Body_With => True);
@@ -2784,7 +2784,7 @@ package body Kit.Generate.Public_Interface is
         (Db.Ada_Name & "." & Cache_Package,
          Body_With => True);
 
-      if Kit.Options.Generate_Debug then
+      if Kit.Options.Debug then
          Table_Package.With_Package
            ("Ada.Text_IO",
             Body_With => True);
@@ -2906,7 +2906,7 @@ package body Kit.Generate.Public_Interface is
       use Syn.Statements;
       use Syn.Expressions;
    begin
-      if Kit.Options.Generate_Deadlock_Detection then
+      if Kit.Options.Deadlock_Detection then
          Sequence.Append
            (New_Assignment_Statement
               (Request_Object,
@@ -2920,7 +2920,7 @@ package body Kit.Generate.Public_Interface is
       end if;
       Sequence.Append
         (New_Procedure_Call_Statement (Object_Name & ".X_Lock"));
-      if Kit.Options.Generate_Deadlock_Detection then
+      if Kit.Options.Deadlock_Detection then
          Sequence.Append
            (New_Procedure_Call_Statement
               (Procedure_Name => "Kit_Locking.Got_Lock",

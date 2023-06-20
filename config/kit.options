@@ -1,0 +1,7 @@
+package Kit.Options is
+
+   Deadlock_Detection : Boolean := False;
+   Debug              : Boolean := False;
+   Ada_2022           : Boolean := False;
+   
+end Kit.Options;

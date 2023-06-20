@@ -176,7 +176,7 @@ package body Kit.Parser is
          Scan;
          if Tok /= Tok_Identifier then
             Error ("missing base record name");
-            Skip_To ((Tok_Identifier, Tok_Is));
+            Skip_To ([Tok_Identifier, Tok_Is]);
          end if;
       end loop;
    end Parse_Bases;
@@ -207,7 +207,7 @@ package body Kit.Parser is
 
       if Tok /= Tok_Identifier then
          Error ("missing field name");
-         Skip_To ((Tok_Semi, Tok_End));
+         Skip_To ([Tok_Semi, Tok_End]);
          if Tok = Tok_Semi then
             Scan;
          end if;
@@ -757,8 +757,8 @@ package body Kit.Parser is
 
       if Tok /= Tok_Identifier then
          Error ("expected a type name");
-         Skip_To (Skip_To_And_Parse => (1 => Tok_Semi),
-                  Skip_To_And_Stop  =>  (1 => Tok_End));
+         Skip_To (Skip_To_And_Parse => [1 => Tok_Semi],
+                  Skip_To_And_Stop  =>  [1 => Tok_End]);
          return;
       end if;
 
@@ -832,8 +832,8 @@ package body Kit.Parser is
             Scan;
             if Tok /= Tok_Is then
                Error ("missing 'is'");
-               Skip_To (Skip_To_And_Parse => (1 => Tok_Semi),
-                        Skip_To_And_Stop  =>  (1 => Tok_End));
+               Skip_To (Skip_To_And_Parse => [1 => Tok_Semi],
+                        Skip_To_And_Stop  =>  [1 => Tok_End]);
                return;
             end if;
 
@@ -930,11 +930,11 @@ package body Kit.Parser is
             Scan;
             if Tok = Tok_Comma then
                Scan;
-               Expect (Tok_Identifier, (Tok_Semi, Tok_Package));
+               Expect (Tok_Identifier, [Tok_Semi, Tok_Package]);
             elsif Tok = Tok_Identifier then
                Error ("missing package name");
             elsif Tok /= Tok_Semi then
-               Expect (Tok_Semi, (Tok_Package, Tok_With));
+               Expect (Tok_Semi, [Tok_Package, Tok_With]);
                exit;
             end if;
          end loop;
@@ -953,7 +953,7 @@ package body Kit.Parser is
       declare
          Package_Name : constant String := Parse_Qualified_Identifier;
       begin
-         Expect (Tok_Is, (Tok_Record, Tok_End));
+         Expect (Tok_Is, [Tok_Record, Tok_End]);
 
          if Create_Database then
             Db := Kit.Schema.Databases.Create_Database (Package_Name);
