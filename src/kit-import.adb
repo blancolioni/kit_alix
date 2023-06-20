@@ -60,15 +60,15 @@ package body Kit.Import is
          Ada.Directories.Search
            (Directory      => Full_Name (Directory_Entry),
             Pattern        => "*.xml",
-            Filter         => (Ada.Directories.Ordinary_File => True,
-                               others                        => False),
+            Filter         => [Ada.Directories.Ordinary_File => True,
+                               others                        => False],
             Process        => Call_Importer'Access);
 
          Ada.Directories.Search
            (Directory      => Full_Name (Directory_Entry),
             Pattern        => "*",
-            Filter         => (Ada.Directories.Directory     => True,
-                               others                        => False),
+            Filter         => [Ada.Directories.Directory     => True,
+                               others                        => False],
             Process        => Recurse'Access);
       end Recurse;
 
@@ -76,15 +76,15 @@ package body Kit.Import is
       Ada.Directories.Search
         (Directory      => Directory_Path,
          Pattern        => "*.xml",
-         Filter         => (Ada.Directories.Ordinary_File => True,
-                            others => False),
+         Filter         => [Ada.Directories.Ordinary_File => True,
+                            others => False],
          Process        => Call_Importer'Access);
 
       Ada.Directories.Search
         (Directory      => Directory_Path,
          Pattern        => "*",
-         Filter         => (Ada.Directories.Directory     => True,
-                            others => False),
+         Filter         => [Ada.Directories.Directory     => True,
+                            others => False],
          Process        => Recurse'Access);
 
       return Result;

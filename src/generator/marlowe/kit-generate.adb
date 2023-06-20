@@ -16,6 +16,8 @@ with Kit.Generate.Private_Interface;
 with Kit.Generate.Selections;
 with Kit.Generate.Table_Name_Map;
 
+with Kit.Options;
+
 package body Kit.Generate is
 
    procedure Create_Handle_Function
@@ -52,6 +54,19 @@ package body Kit.Generate is
    procedure Create_Locking_Interface
      (Db  : Kit.Schema.Databases.Database_Type;
       Top : in out Syn.Declarations.Package_Type);
+
+   ----------------------
+   -- Create_Aggregate --
+   ----------------------
+
+   function Create_Aggregate (Content : String) return String is
+   begin
+      if Kit.Options.Ada_2022 then
+         return '[' & Content & ']';
+      else
+         return '(' & Content & ')';
+      end if;
+   end Create_Aggregate;
 
    ----------------------------
    -- Create_Handle_Function --

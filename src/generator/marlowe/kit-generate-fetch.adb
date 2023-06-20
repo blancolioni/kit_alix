@@ -91,7 +91,7 @@ package body Kit.Generate.Fetch is
       end Unlock_Base;
 
    begin
-      if Kit.Options.Generate_Debug then
+      if Kit.Options.Debug then
          declare
             use Syn;
             use Syn.Expressions;

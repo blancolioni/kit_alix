@@ -67,7 +67,7 @@ package body Kit.Generate.Database_Package is
          Block.Add_Statement
            (Syn.Statements.New_Procedure_Call_Statement
               ("Kit.Notifier.Stop"));
-         if Kit.Options.Generate_Deadlock_Detection then
+         if Kit.Options.Deadlock_Detection then
             Block.Add_Statement
               (Syn.Statements.New_Procedure_Call_Statement
                  ("Kit_Locking.Stop_Scanning"));
@@ -176,7 +176,7 @@ package body Kit.Generate.Database_Package is
             Initialise_Database_Structure (Db, Block);
          end if;
 
-         if Kit.Options.Generate_Deadlock_Detection then
+         if Kit.Options.Deadlock_Detection then
             Block.Add_Statement
               (Syn.Statements.New_Procedure_Call_Statement
                  ("Kit_Locking.Start_Scanning"));
@@ -211,7 +211,7 @@ package body Kit.Generate.Database_Package is
       Result.With_Package (Db.Ada_Name & ".Kit_Deferred_Keys",
                            Body_With => True);
 
-      if Kit.Options.Generate_Deadlock_Detection then
+      if Kit.Options.Deadlock_Detection then
          Result.With_Package (Db.Ada_Name & ".Kit_Locking",
                               Body_With => True);
       end if;

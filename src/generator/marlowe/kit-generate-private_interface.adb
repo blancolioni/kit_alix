@@ -148,8 +148,10 @@ package body Kit.Generate.Private_Interface is
            (Syn.Declarations.New_Constant_Declaration
               ("Partial_Key_Suffix",
                "System.Storage_Elements.Storage_Array (1 .."
-                 & Missing_Length'Image & ")",
-               Syn.Object ("(others => (if Fill_Low then 0 else 255))")));
+               & Missing_Length'Image & ")",
+               Syn.Object
+                 (Create_Aggregate
+                      ("others => (if Fill_Low then 0 else 255)"))));
 
          Block.Add_Statement
            (Syn.Statements.New_Return_Statement

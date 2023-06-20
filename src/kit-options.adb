@@ -1,21 +1,25 @@
+with WL.Command_Line;
+
 package body Kit.Options is
 
-   ---------------------------------
-   -- Generate_Deadlock_Detection --
-   ---------------------------------
+   pragma Style_Checks (Off);
 
-   function Generate_Deadlock_Detection return Boolean is
+   function Deadlock_Detection return Boolean is
    begin
-      return False;
-   end Generate_Deadlock_Detection;
+      return WL.Command_Line.Find_Option
+               ("deadlock-detection", ' ');
+   end Deadlock_Detection;
 
-   --------------------
-   -- Generate_Debug --
-   --------------------
-
-   function Generate_Debug return Boolean is
+   function Debug return Boolean is
    begin
-      return False;
-   end Generate_Debug;
+      return WL.Command_Line.Find_Option
+               ("debug", ' ');
+   end Debug;
+
+   function Ada_2022 return Boolean is
+   begin
+      return WL.Command_Line.Find_Option
+               ("ada-2022", ' ');
+   end Ada_2022;
 
 end Kit.Options;

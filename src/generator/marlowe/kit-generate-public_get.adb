@@ -9,6 +9,8 @@ with Kit.Names;
 with Kit.Schema.Fields;
 with Kit.Schema.Types;
 
+with Kit.Options;
+
 package body Kit.Generate.Public_Get is
 
    type Non_Iterator_Fetch_Type is (Unique_Get, First, Last);
@@ -1027,6 +1029,26 @@ package body Kit.Generate.Public_Get is
            New_Function_Call_Expression
              ("Marlowe.Key_Storage.To_Storage_Array",
               "Marlowe.Database_Index'Last");
+         First_Key        : constant String := "others => 0";
+         Last_Key         : constant String :=
+                              "others => "
+                              & "System.Storage_Elements.Storage_Element'Last";
+         Aggregate_Start  : constant Character :=
+                              (if Kit.Options.Ada_2022
+                               then '['
+                               else '(');
+         Aggregate_End   : constant Character :=
+                              (if Kit.Options.Ada_2022
+                               then ']'
+                               else ')');
+         First_Key_Init   : constant String :=
+                              Aggregate_Start
+                              & First_Key
+                              & Aggregate_End;
+         Last_Key_Init    : constant String :=
+                              Aggregate_Start
+                              & Last_Key
+                              & Aggregate_End;
       begin
          Block.Add_Declaration
            (Use_Package ("System.Storage_Elements"));
@@ -1055,15 +1077,12 @@ package body Kit.Generate.Public_Get is
               (New_Constant_Declaration
                  (Name        => "First_Key",
                   Object_Type => "Storage_Array (1 .." & Key.Size'Image & ")",
-                  Value       => Object ("(others => 0)")));
+                  Value       => Object (First_Key_Init)));
             Block.Add_Declaration
               (New_Constant_Declaration
                  (Name        => "Last_Key",
                   Object_Type => "Storage_Array (1 .." & Key.Size'Image & ")",
-                  Value       =>
-                    Object
-                      ("(others => "
-                       & "System.Storage_Elements.Storage_Element'Last)")));
+                  Value       => Object (Last_Key_Init)));
          end if;
 
          declare

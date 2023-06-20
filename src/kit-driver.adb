@@ -3,6 +3,8 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Text_IO;
 
+with WL.Command_Line;
+
 with Syn;
 with Syn.File_Writer;
 with Syn.Projects;
@@ -18,17 +20,34 @@ with Kit.Schema.Types;
 with Kit.Generate.Leander_Module;
 with Kit.Generate.Templates;
 
+with Kit.Paths;
+
 with GCS.Errors;
 
 procedure Kit.Driver is
    Target_Directory : constant String :=
                         Ada.Directories.Current_Directory;
-   Db : Kit.Schema.Databases.Database_Type;
+   Db               : Kit.Schema.Databases.Database_Type;
+
+   Master_Options_Path  : constant String :=
+                            Kit.Paths.Config_File ("default-options.txt");
+   Local_Options_Path   : constant String :=
+                            ".kit-options";
 begin
 
-   if Ada.Command_Line.Argument_Count /= 1 then
+   if not Ada.Directories.Exists (Local_Options_Path) then
+      if Ada.Directories.Exists (Master_Options_Path) then
+         Ada.Directories.Copy_File (Master_Options_Path, Local_Options_Path);
+      else
+         raise Constraint_Error with "cannot find configuration";
+      end if;
+   end if;
+
+   WL.Command_Line.Load_Defaults (Local_Options_Path);
+
+   if WL.Command_Line.Argument_Count /= 1 then
       Ada.Text_IO.Put_Line
-        ("Usage: kit <file or directory>");
+        ("Usage: kit [options ...] <file or directory>");
       Ada.Command_Line.Set_Exit_Status (1);
       return;
    end if;

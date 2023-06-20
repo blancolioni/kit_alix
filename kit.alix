@@ -17,10 +17,3 @@ main_unit = kit-driver
 exec_name = kit
 config_dir = config
 path_unit = { unit = Kit.Paths path = src/kit-paths.ads }
-builder_option = "-g"
-builder_option = "-k"
-compiler_option = "-g"
-compiler_option = "-gnatwae"
-compiler_option = "-gnatyabcefhiklmnoprst"
-compiler_option = "-gnat2012"
-linker_option = "-g"

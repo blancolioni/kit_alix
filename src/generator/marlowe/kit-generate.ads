@@ -17,4 +17,8 @@ package Kit.Generate is
      (Db : Kit.Schema.Databases.Database_Type)
       return Syn.Projects.Project;
 
+private
+
+   function Create_Aggregate (Content : String) return String;
+
 end Kit.Generate;
